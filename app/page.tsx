@@ -17,7 +17,7 @@ import {
 import Seal from "./Seal";
 
 type Opts = Omit<CartLine, "itemId">;
-type Done = { no: number; pickupTime: string; total: number };
+type Done = { no: number; pickupTime: string; total: number; ahead: number };
 
 export default function OrderPage() {
   const [phase, setPhase] = useState<"loading" | "error" | "menu" | "done">("loading");
@@ -172,6 +172,14 @@ export default function OrderPage() {
         <h2>รับออเดอร์แล้ว</h2>
         <p className="t">
           มารับได้เวลา <strong>{done.pickupTime} น.</strong> แจ้งเลข #{done.no} ที่เคาน์เตอร์
+          <br />
+          {done.ahead > 0 ? (
+            <>
+              ตอนนี้มีคิวก่อนหน้า <strong>{done.ahead} คิว</strong>
+            </>
+          ) : (
+            "ตอนนี้ไม่มีคิวก่อนหน้า"
+          )}
           <br />
           ชำระ ฿{done.total} ที่ร้าน เราจะส่ง LINE บอกเมื่อพร้อมรับ
         </p>

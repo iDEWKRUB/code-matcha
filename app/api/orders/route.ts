@@ -76,18 +76,43 @@ export async function POST(req: Request) {
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number };
+  const ahead = await queueAhead(now.date, pickupTime, row.order_no);
+  const itemLines = items.map((i) => `• ${i.qty}× ${i.name} (${i.detail})`);
 
-  await pushText(
-    process.env.LINE_STAFF_GROUP_ID,
-    [
-      `🍵 ออเดอร์ใหม่ #${row.order_no} รับ ${pickupTime} น.`,
-      `${user.name} ฿${total}`,
-      ...items.map((i) => `• ${i.qty}× ${i.name} (${i.detail})`),
-      cleanNote && `📝 ${cleanNote}`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
-  );
+  await Promise.all([
+    pushText(
+      process.env.LINE_STAFF_GROUP_ID,
+      [`🍵 ออเดอร์ใหม่ #${row.order_no} รับ ${pickupTime} น.`, `${user.name} ฿${total}`, ...itemLines, cleanNote && `📝 ${cleanNote}`]
+        .filter(Boolean)
+        .join("\n"),
+    ),
+    pushText(
+      user.userId,
+      [
+        `✅ ร้านได้รับออเดอร์ #${row.order_no} แล้ว`,
+        ...itemLines,
+        `รวม ฿${total} ชำระที่ร้าน`,
+        `เวลารับ ${pickupTime} น.`,
+        ahead ? `ตอนนี้มีคิวก่อนหน้า ${ahead} คิว` : "ตอนนี้ไม่มีคิวก่อนหน้า",
+        "เครื่องดื่มเสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง 🍵",
+      ].join("\n"),
+    ),
+  ]);
 
-  return NextResponse.json({ no: row.order_no, pickupTime, total });
+  return NextResponse.json({ no: row.order_no, pickupTime, total, ahead });
+}
+
+// ออเดอร์ที่ยังไม่เสร็จและต้องทำก่อน (เวลารับเร็วกว่า หรือเวลาเดียวกันแต่สั่งก่อน)
+async function queueAhead(date: string, pickupTime: string, no: number) {
+  const { data, error } = await db()
+    .from("orders")
+    .select("pickup_time,daily_no")
+    .eq("pickup_date", date)
+    .in("status", ["pending", "preparing"])
+    .lte("pickup_time", pickupTime);
+  if (error) {
+    console.error("queueAhead failed", error);
+    return 0;
+  }
+  return data.filter((o) => o.pickup_time < pickupTime || o.daily_no < no).length;
 }
