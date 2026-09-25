@@ -46,6 +46,37 @@ const toDraft = (m: MenuItem): Draft => ({
   look: m.look ?? "",
 });
 
+const pad = (n: number) => String(n).padStart(2, "0");
+const HOURS = Array.from({ length: 24 }, (_, i) => pad(i));
+const MINUTES = Array.from({ length: 12 }, (_, i) => pad(i * 5));
+
+// เลือกเวลาแบบ 24 ชม. (ช่อง type="time" แสดง AM/PM ตามภาษาเครื่อง จึงไม่ใช้)
+function TimeSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [h, m] = value.split(":");
+  const minutes = MINUTES.includes(m) ? MINUTES : [...MINUTES, m].sort();
+  return (
+    <fieldset className="time24">
+      <legend>{label}</legend>
+      <select className="text" aria-label={`${label} ชั่วโมง`} value={h} onChange={(e) => onChange(`${e.target.value}:${m}`)}>
+        {HOURS.map((x) => (
+          <option key={x} value={x}>
+            {x}
+          </option>
+        ))}
+      </select>
+      <span aria-hidden="true">:</span>
+      <select className="text" aria-label={`${label} นาที`} value={m} onChange={(e) => onChange(`${h}:${e.target.value}`)}>
+        {minutes.map((x) => (
+          <option key={x} value={x}>
+            {x}
+          </option>
+        ))}
+      </select>
+      <span className="unit">น.</span>
+    </fieldset>
+  );
+}
+
 const json = (method: string, body?: unknown) => ({
   method,
   headers: { "Content-Type": "application/json" },
@@ -169,14 +200,8 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           </button>
         </header>
         <div className="hours">
-          <label>
-            รอบรับแรก
-            <input className="text" type="time" value={settings.openTime} onChange={(e) => setSettings({ ...settings, openTime: e.target.value })} />
-          </label>
-          <label>
-            ปิดรับ (รอบสุดท้ายก่อนเวลานี้)
-            <input className="text" type="time" value={settings.closeTime} onChange={(e) => setSettings({ ...settings, closeTime: e.target.value })} />
-          </label>
+          <TimeSelect label="รอบรับแรก" value={settings.openTime} onChange={(v) => setSettings({ ...settings, openTime: v })} />
+          <TimeSelect label="ปิดรับ (รอบสุดท้ายก่อนเวลานี้)" value={settings.closeTime} onChange={(v) => setSettings({ ...settings, closeTime: v })} />
           <label>
             ระยะห่างแต่ละรอบ
             <select className="text" value={settings.slotMinutes} onChange={(e) => setSettings({ ...settings, slotMinutes: Number(e.target.value) })}>
