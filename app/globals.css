@@ -120,6 +120,25 @@ textarea, input.text { width: 100%; border: 1px solid var(--edge); border-radius
 .tacts button.danger { flex: 1; background: var(--seal); color: #fff; border-color: var(--seal); }
 .tacts button:disabled { opacity: .5; }
 .empty { font-size: 14px; color: var(--stone); }
+.ticket.payment_review { border-left-color: #e0a526; }
+.slip { display: block; margin-top: 12px; color: var(--stone); font-size: 13px; text-decoration: none; }
+.slip img { display: block; width: 100%; max-height: 320px; object-fit: contain; background: #f4f4ef; border-radius: 8px; border: 1px solid var(--hair); margin-bottom: 4px; }
+
+/* ---------- หน้าจ่ายเงินของลูกค้า ---------- */
+.pay { min-height: 100dvh; padding: 24px 20px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.pay h1 { font-size: 22px; margin: 12px 0 4px; }
+.pay .sub { color: var(--stone); margin: 0; font-size: 14px; }
+.amount { font-size: 40px; font-weight: 700; margin: 8px 0 0; color: var(--ink); }
+.qr-card { background: #fff; border-radius: 20px; padding: 16px; margin-top: 16px; box-shadow: 0 10px 24px -14px rgba(28,36,25,.5); width: 100%; max-width: 300px; }
+.qr-card .pp { display: inline-block; background: #0e3b6d; color: #fff; font-weight: 700; font-size: 13px; letter-spacing: .04em; border-radius: 6px; padding: 3px 10px; margin-bottom: 10px; }
+.qr-card img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.timer { margin: 14px 0 0; font-weight: 600; color: var(--matcha); }
+.timer.late { color: var(--seal); }
+.pay .steps { text-align: left; font-size: 14px; color: var(--stone); margin: 14px 0 0; padding-left: 20px; line-height: 1.8; max-width: 320px; }
+.pay .acts { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.upload { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.slip-preview { max-width: 180px; border-radius: 10px; margin-top: 12px; border: 1px solid var(--hair); }
 .stock { margin-top: 40px; }
 .stock ul { list-style: none; margin: 0; padding: 0; background: #fff; border-radius: 10px; }
 .stock li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 16px; min-height: 56px; }

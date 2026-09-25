@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { SHOP } from "@/lib/config";
-import { verifyIdToken, pushText } from "@/lib/line";
+import { verifyIdToken } from "@/lib/line";
 import { MAX_QTY, MILKS, POWDERS, SWEET, hasPowder, lineDetail, linePrice, type CartLine, type OrderItem } from "@/lib/menu";
-import { getMenu } from "@/lib/orders";
+import { getMenu, paymentFor } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
 
@@ -62,6 +62,7 @@ export async function POST(req: Request) {
     return fail("เวลารับนี้ไม่ว่างแล้ว เลือกเวลาอื่น", 409);
 
   const cleanNote = typeof note === "string" ? note.trim().slice(0, 200) : "";
+  if (!process.env.PROMPTPAY_ID) return fail("ร้านยังไม่ได้ตั้งค่าการรับเงิน กรุณาติดต่อร้าน", 503);
 
   const { data, error } = await db().rpc("place_order", {
     p_date: now.date,
@@ -73,50 +74,35 @@ export async function POST(req: Request) {
     p_total: total,
     p_cups: cups,
     p_note: cleanNote,
+    p_hold_minutes: SHOP.holdMinutes,
   });
   if (error) {
     if (error.message.includes("SLOT_FULL")) return fail("เวลารับนี้เต็มแล้ว เลือกเวลาอื่น", 409);
     console.error("place_order failed", error);
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
-  const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number };
-  const ahead = await queueAhead(now.date, pickupTime, row.order_no);
-  const itemLines = items.map((i) => `• ${i.qty}× ${i.name} (${i.detail})`);
+  const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string };
 
-  await Promise.all([
-    pushText(
-      process.env.LINE_STAFF_GROUP_ID,
-      [`🍵 ออเดอร์ใหม่ #${row.order_no} รับ ${pickupTime} น.`, `${user.name} ฿${total}`, ...itemLines, cleanNote && `📝 ${cleanNote}`]
-        .filter(Boolean)
-        .join("\n"),
-    ),
-    pushText(
-      user.userId,
-      [
-        `✅ ร้านได้รับออเดอร์ #${row.order_no} แล้ว`,
-        ...itemLines,
-        `รวม ฿${total} ชำระที่ร้าน`,
-        `เวลารับ ${pickupTime} น.`,
-        ahead ? `ตอนนี้มีคิวก่อนหน้า ${ahead} คิว` : "ตอนนี้ไม่มีคิวก่อนหน้า",
-        "เครื่องดื่มเสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง 🍵",
-      ].join("\n"),
-    ),
-  ]);
-
-  return NextResponse.json({ no: row.order_no, pickupTime, total, ahead });
+  // ยังไม่แจ้งร้าน: ออเดอร์จะเข้าคิวหลังร้านยืนยันสลิป
+  return NextResponse.json(
+    await paymentFor({ id: row.order_id, daily_no: row.order_no, total, pickup_time: pickupTime, expires_at: row.order_expires }),
+  );
 }
 
-// ออเดอร์ที่ยังไม่เสร็จและต้องทำก่อน (เวลารับเร็วกว่า หรือเวลาเดียวกันแต่สั่งก่อน)
-async function queueAhead(date: string, pickupTime: string, no: number) {
+// ออเดอร์ของฉันที่ยังรอชำระ (กลับมาจ่ายต่อหลังปิดหน้า)
+export async function GET(req: Request) {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const user = token ? await verifyIdToken(token) : null;
+  if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
   const { data, error } = await db()
     .from("orders")
-    .select("pickup_time,daily_no")
-    .eq("pickup_date", date)
-    .in("status", ["pending", "preparing"])
-    .lte("pickup_time", pickupTime);
-  if (error) {
-    console.error("queueAhead failed", error);
-    return 0;
-  }
-  return data.filter((o) => o.pickup_time < pickupTime || o.daily_no < no).length;
+    .select("id,daily_no,total,pickup_time,expires_at")
+    .eq("line_user_id", user.userId)
+    .eq("pickup_date", nowInShop().date)
+    .eq("status", "awaiting_payment")
+    .gt("expires_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return NextResponse.json({ pending: data[0] ? await paymentFor(data[0]) : null });
 }

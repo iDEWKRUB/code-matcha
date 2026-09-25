@@ -7,11 +7,13 @@ import Seal from "../Seal";
 
 const POLL_MS = 5000;
 const COLS: [OrderStatus, string][] = [
-  ["pending", "ออเดอร์ใหม่"],
+  ["payment_review", "รอตรวจสลิป"],
+  ["pending", "ออเดอร์ใหม่ (จ่ายแล้ว)"],
   ["preparing", "กำลังทำ"],
   ["ready", "รอลูกค้ารับ"],
 ];
 const ACTIONS: Partial<Record<OrderStatus, [OrderStatus, string][]>> = {
+  payment_review: [["pending", "ยอดเงินถูกต้อง"], ["cancelled", "สลิปไม่ถูกต้อง"]],
   pending: [["preparing", "เริ่มทำ"], ["cancelled", "ยกเลิก"]],
   preparing: [["ready", "พร้อมรับ (ส่ง LINE)"], ["cancelled", "ยกเลิก"]],
   ready: [["completed", "ลูกค้ารับแล้ว"]],
@@ -142,6 +144,13 @@ export default function Board() {
                       ))}
                     </ul>
                     {o.note && <p className="note">📝 {o.note}</p>}
+                    {st === "payment_review" && o.hasSlip && (
+                      <a className="slip" href={`/api/admin/orders/${o.id}/slip`} target="_blank" rel="noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/api/admin/orders/${o.id}/slip?v=${o.id}`} alt={`สลิปออเดอร์ #${o.no}`} loading="lazy" />
+                        <span>ยอดที่ต้องได้รับ ฿{o.total} · แตะเพื่อขยาย</span>
+                      </a>
+                    )}
                     <div className="tacts">
                       {confirming === o.id ? (
                         <>

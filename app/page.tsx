@@ -15,6 +15,7 @@ import {
   linePrice,
   type CartLine,
   type MenuItem,
+  type Payment,
   type Slot,
 } from "@/lib/menu";
 import Cup, { tintOf } from "./Cup";
@@ -23,10 +24,34 @@ import Seal from "./Seal";
 const tint = (id: string) => ({ "--tint": tintOf(id) }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
-type Done = { no: number; pickupTime: string; total: number; ahead: number };
+type Done = { no: number; pickupTime: string; total: number };
+
+// ย่อรูปสลิปก่อนอัปโหลด (รูปจากมือถือมักใหญ่หลาย MB)
+async function shrink(file: File): Promise<Blob> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale);
+    c.height = Math.round(bmp.height * scale);
+    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.85));
+  } catch {
+    return file;
+  }
+}
+
+const mmss = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 
 export default function OrderPage() {
-  const [phase, setPhase] = useState<"loading" | "error" | "menu" | "done">("loading");
+  const [phase, setPhase] = useState<"loading" | "error" | "menu" | "pay" | "done">("loading");
+  const [pay, setPay] = useState<Payment | null>(null);
+  const [payErr, setPayErr] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [fatal, setFatal] = useState("");
   const [name, setName] = useState("");
   const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -70,7 +95,14 @@ export default function OrderPage() {
           throw new Error("ยังไม่ได้ตั้งค่า LIFF");
         }
         await loadMenu();
-        setPhase("menu");
+        // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
+        const token = liff.current ? liff.current.getIDToken() : "dev";
+        const r = await fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+        const pending = r.ok ? ((await r.json()) as { pending: Payment | null }).pending : null;
+        if (pending) {
+          setPay(pending);
+          setPhase("pay");
+        } else setPhase("menu");
       } catch (e) {
         setFatal(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
         setPhase("error");
@@ -82,6 +114,12 @@ export default function OrderPage() {
     setEdit(null);
     setCheckout(false);
   }, []);
+
+  useEffect(() => {
+    if (phase !== "pay") return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [phase]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
@@ -137,17 +175,50 @@ export default function OrderPage() {
         await loadMenu().catch(() => {});
       }
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
-      setDone(j as Done);
+      setPay(j as Payment);
+      setPayErr("");
       setCart([]);
       setNote("");
       setPickup("");
       setCheckout(false);
-      setPhase("done");
+      setNow(Date.now());
+      setPhase("pay");
     } catch (e) {
       setSendErr(e instanceof Error ? e.message : "สั่งไม่สำเร็จ");
     } finally {
       setSending(false);
     }
+  }
+
+  async function uploadSlip(file: File | undefined) {
+    if (!file || !pay) return;
+    setUploading(true);
+    setPayErr("");
+    try {
+      const token = liff.current ? liff.current.getIDToken() : "dev";
+      const fd = new FormData();
+      fd.append("slip", await shrink(file), "slip.jpg");
+      const r = await fetch(`/api/orders/${pay.id}/slip`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 401) setNeedLogin(true);
+      if (!r.ok) throw new Error(j.error ?? "ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้ง");
+      setDone({ no: pay.no, pickupTime: pay.pickupTime, total: pay.total });
+      setPay(null);
+      setPhase("done");
+    } catch (e) {
+      setPayErr(e instanceof Error ? e.message : "ส่งสลิปไม่สำเร็จ");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function cancelPay() {
+    if (!pay) return;
+    const token = liff.current ? liff.current.getIDToken() : "dev";
+    await fetch(`/api/orders/${pay.id}/cancel`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    setPay(null);
+    setPhase("menu");
+    loadMenu().catch(() => {});
   }
 
   function relogin() {
@@ -174,6 +245,42 @@ export default function OrderPage() {
       </main>
     );
 
+  if (phase === "pay" && pay) {
+    const left = new Date(pay.expiresAt).getTime() - now;
+    return (
+      <main className="app pay">
+        <Seal size={44} />
+        <h1>ชำระเงินเพื่อยืนยันออเดอร์ #{pay.no}</h1>
+        <p className="sub">รับที่ร้านเวลา {pay.pickupTime} น.</p>
+        <p className="amount">฿{pay.total}</p>
+        <div className="qr-card">
+          <span className="pp">PromptPay</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={pay.qr} alt={`QR พร้อมเพย์ ยอด ${pay.total} บาท`} />
+        </div>
+        <p className={`timer${left <= 0 ? " late" : ""}`} role="timer">
+          {left > 0 ? `จองคิวไว้ให้อีก ${mmss(left)} นาที` : "หมดเวลาจองคิวแล้ว ถ้าโอนแล้วยังแนบสลิปได้"}
+        </p>
+        <ol className="steps">
+          <li>กดค้างที่ QR เพื่อบันทึกรูป หรือแคปหน้าจอ</li>
+          <li>สแกนจ่ายด้วยแอปธนาคาร ยอด ฿{pay.total}</li>
+          <li>กลับมาที่หน้านี้ แล้วแนบสลิปการโอน</li>
+        </ol>
+        <div className="acts">
+          <label className={`primary upload${uploading ? " busy" : ""}`}>
+            {uploading ? "กำลังส่งสลิป…" : "แนบสลิปการโอน"}
+            <input type="file" accept="image/*" disabled={uploading} onChange={(e) => uploadSlip(e.target.files?.[0])} />
+          </label>
+          {payErr && <p className="err" role="alert">{payErr}</p>}
+          {needLogin && liff.current && (
+            <button className="ghost" onClick={relogin}>เข้าสู่ระบบ LINE ใหม่</button>
+          )}
+          <button className="ghost" onClick={cancelPay} disabled={uploading}>ยกเลิกออเดอร์</button>
+        </div>
+      </main>
+    );
+  }
+
   if (phase === "done" && done)
     return (
       <main className="app done">
@@ -183,19 +290,13 @@ export default function OrderPage() {
             <p className="n">#{done.no}</p>
           </div>
         </div>
-        <h2>รับออเดอร์แล้ว</h2>
+        <h2>ส่งสลิปแล้ว รอร้านตรวจยอด</h2>
         <p className="t">
-          มารับได้เวลา <strong>{done.pickupTime} น.</strong> แจ้งเลข #{done.no} ที่เคาน์เตอร์
+          ยอด ฿{done.total} · รับที่ร้าน <strong>{done.pickupTime} น.</strong>
           <br />
-          {done.ahead > 0 ? (
-            <>
-              ตอนนี้มีคิวก่อนหน้า <strong>{done.ahead} คิว</strong>
-            </>
-          ) : (
-            "ตอนนี้ไม่มีคิวก่อนหน้า"
-          )}
+          เมื่อร้านยืนยันการชำระเงิน จะแจ้งทาง LINE พร้อมจำนวนคิว
           <br />
-          ชำระ ฿{done.total} ที่ร้าน เราจะส่ง LINE บอกเมื่อพร้อมรับ
+          และแจ้งอีกครั้งเมื่อเครื่องดื่มพร้อมรับ
         </p>
         <div className="acts">
           {liff.current?.isInClient() && (
@@ -255,7 +356,7 @@ export default function OrderPage() {
           );
         })}
       </ul>
-      <p className="hint">ชำระเงินที่หน้าร้านตอนรับเครื่องดื่ม</p>
+      <p className="hint">ชำระผ่านพร้อมเพย์ก่อน ออเดอร์จึงเข้าคิว</p>
 
       {cups > 0 && !checkout && !edit && (
         <button key={cups} className="cartbar bump" onClick={openCheckout}>
@@ -431,13 +532,13 @@ export default function OrderPage() {
             <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ขอหลอดกระดาษ" value={note} onChange={(e) => setNote(e.target.value)} />
 
             <button className="primary" style={{ marginTop: 20, minHeight: 56 }} disabled={!pickup || sending} onClick={submit}>
-              {sending ? "กำลังส่ง…" : pickup ? `ยืนยันสั่ง ฿${total}` : "เลือกเวลารับก่อน"}
+              {sending ? "กำลังส่ง…" : pickup ? `ไปชำระเงิน ฿${total}` : "เลือกเวลารับก่อน"}
             </button>
             {sendErr && <p className="err" role="alert">{sendErr}</p>}
             {needLogin && liff.current && (
               <button className="ghost" onClick={relogin}>เข้าสู่ระบบ LINE ใหม่</button>
             )}
-            <p className="small">ชำระเงินที่หน้าร้านตอนรับเครื่องดื่ม</p>
+            <p className="small">ถัดไปจะแสดง QR พร้อมเพย์ ระบบจองเวลารับไว้ให้ 10 นาที</p>
           </div>
         </>
       )}

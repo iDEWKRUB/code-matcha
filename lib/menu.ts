@@ -26,7 +26,14 @@ export type CartLine = {
 
 export type OrderItem = { name: string; qty: number; detail: string; price: number };
 
-export type OrderStatus = "pending" | "preparing" | "ready" | "completed" | "cancelled";
+export type OrderStatus =
+  | "awaiting_payment"
+  | "payment_review"
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "completed"
+  | "cancelled";
 
 export type Order = {
   id: number;
@@ -40,7 +47,11 @@ export type Order = {
   note: string;
   status: OrderStatus;
   createdAt: string;
+  hasSlip: boolean;
 };
+
+// ข้อมูลสำหรับหน้าจ่ายเงินของลูกค้า
+export type Payment = { id: number; no: number; total: number; pickupTime: string; expiresAt: string; qr: string };
 
 export type Slot = { time: string; remaining: number };
 

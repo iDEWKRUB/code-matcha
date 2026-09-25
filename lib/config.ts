@@ -7,4 +7,5 @@ export const SHOP = {
   slotMinutes: 15,
   slotCapacity: 8, // จำนวนแก้วสูงสุดต่อช่องเวลา
   leadMinutes: 10, // ต้องสั่งล่วงหน้าอย่างน้อยกี่นาที
+  holdMinutes: 10, // จองเวลารับไว้ให้ระหว่างรอชำระเงินกี่นาที
 };

@@ -13,7 +13,7 @@ export async function GET() {
       .from("orders")
       .select(ORDER_COLUMNS)
       .eq("pickup_date", nowInShop().date)
-      .in("status", ["pending", "preparing", "ready"])
+      .in("status", ["payment_review", "pending", "preparing", "ready"])
       .order("pickup_time")
       .order("daily_no"),
     getMenu(),
