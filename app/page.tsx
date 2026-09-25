@@ -18,13 +18,14 @@ import {
   type Payment,
   type Slot,
 } from "@/lib/menu";
+import { POINTS, pointsEarned } from "@/lib/config";
 import Cup, { tintOf } from "./Cup";
 import Seal from "./Seal";
 
 const tint = (id: string) => ({ "--tint": tintOf(id) }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
-type Done = { no: number; pickupTime: string; total: number };
+type Done = { no: number; pickupTime: string; total: number; discount: number; free?: boolean };
 
 // ย่อรูปสลิปก่อนอัปโหลด (รูปจากมือถือมักใหญ่หลาย MB)
 async function shrink(file: File): Promise<Blob> {
@@ -66,7 +67,19 @@ export default function OrderPage() {
   const [sendErr, setSendErr] = useState("");
   const [needLogin, setNeedLogin] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
+  const [points, setPoints] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
   const liff = useRef<Liff | null>(null);
+
+  // ออเดอร์ที่ค้างจ่าย + แต้มคงเหลือ
+  const loadMine = useCallback(async () => {
+    const token = liff.current ? liff.current.getIDToken() : "dev";
+    const r = await fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { pending: Payment | null; points: number };
+    setPoints(j.points ?? 0);
+    return j.pending;
+  }, []);
 
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
@@ -96,9 +109,7 @@ export default function OrderPage() {
         }
         await loadMenu();
         // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
-        const token = liff.current ? liff.current.getIDToken() : "dev";
-        const r = await fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-        const pending = r.ok ? ((await r.json()) as { pending: Payment | null }).pending : null;
+        const pending = await loadMine();
         if (pending) {
           setPay(pending);
           setPhase("pay");
@@ -108,7 +119,7 @@ export default function OrderPage() {
         setPhase("error");
       }
     })();
-  }, [loadMenu]);
+  }, [loadMenu, loadMine]);
 
   const close = useCallback(() => {
     setEdit(null);
@@ -134,6 +145,10 @@ export default function OrderPage() {
     return it ? linePrice(it, l) : 0;
   };
   const total = cart.reduce((n, l) => n + priceOf(l), 0);
+  // ใช้แต้มได้เต็มที่ไม่เกินยอด และต้องถึงขั้นต่ำ
+  const usable = Math.min(points, total) >= POINTS.minRedeem ? Math.min(points, total) : 0;
+  const pointsToUse = usePoints ? usable : 0;
+  const payAmount = total - pointsToUse;
 
   function open(it: MenuItem) {
     setEdit(it);
@@ -152,6 +167,7 @@ export default function OrderPage() {
     setSendErr("");
     setCheckout(true);
     loadMenu().catch(() => {}); // รีเฟรชที่ว่างของช่องเวลา
+    loadMine().catch(() => {});
   }
 
   async function submit() {
@@ -166,21 +182,33 @@ export default function OrderPage() {
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lines: cart, pickupTime: pickup, note }),
+        body: JSON.stringify({ lines: cart, pickupTime: pickup, note, points: pointsToUse }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
       if (r.status === 409) {
-        setPickup("");
-        await loadMenu().catch(() => {});
+        if (String(j.error).includes("แต้ม")) {
+          setUsePoints(false);
+          await loadMine().catch(() => {});
+        } else {
+          setPickup("");
+          await loadMenu().catch(() => {});
+        }
       }
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
-      setPay(j as Payment);
-      setPayErr("");
       setCart([]);
       setNote("");
       setPickup("");
+      setUsePoints(false);
       setCheckout(false);
+      if (j.free) {
+        setDone({ no: j.no, pickupTime: j.pickupTime, total: 0, discount: j.discount, free: true });
+        loadMine().catch(() => {});
+        setPhase("done");
+        return;
+      }
+      setPay(j as Payment);
+      setPayErr("");
       setNow(Date.now());
       setPhase("pay");
     } catch (e) {
@@ -202,7 +230,7 @@ export default function OrderPage() {
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
       if (!r.ok) throw new Error(j.error ?? "ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้ง");
-      setDone({ no: pay.no, pickupTime: pay.pickupTime, total: pay.total });
+      setDone({ no: pay.no, pickupTime: pay.pickupTime, total: pay.total, discount: pay.discount });
       setPay(null);
       setPhase("done");
     } catch (e) {
@@ -219,6 +247,7 @@ export default function OrderPage() {
     setPay(null);
     setPhase("menu");
     loadMenu().catch(() => {});
+    loadMine().catch(() => {}); // แต้มที่ใช้ไว้กลับคืน
   }
 
   function relogin() {
@@ -253,6 +282,7 @@ export default function OrderPage() {
         <h1>ชำระเงินเพื่อยืนยันออเดอร์ #{pay.no}</h1>
         <p className="sub">รับที่ร้านเวลา {pay.pickupTime} น.</p>
         <p className="amount">฿{pay.total}</p>
+        {pay.discount > 0 && <p className="sub">ใช้ {pay.discount} แต้ม ลดไปแล้ว ฿{pay.discount}</p>}
         <div className="qr-card">
           <span className="pp">PromptPay</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -290,14 +320,29 @@ export default function OrderPage() {
             <p className="n">#{done.no}</p>
           </div>
         </div>
-        <h2>ส่งสลิปแล้ว รอร้านตรวจยอด</h2>
-        <p className="t">
-          ยอด ฿{done.total} · รับที่ร้าน <strong>{done.pickupTime} น.</strong>
-          <br />
-          เมื่อร้านยืนยันการชำระเงิน จะแจ้งทาง LINE พร้อมจำนวนคิว
-          <br />
-          และแจ้งอีกครั้งเมื่อเครื่องดื่มพร้อมรับ
-        </p>
+        {done.free ? (
+          <>
+            <h2>แลกแต้มสำเร็จ เข้าคิวแล้ว</h2>
+            <p className="t">
+              ใช้ {done.discount} แต้ม · รับที่ร้าน <strong>{done.pickupTime} น.</strong>
+              <br />
+              แต้มคงเหลือ <strong>{points} แต้ม</strong>
+              <br />
+              จะแจ้งทาง LINE เมื่อเครื่องดื่มพร้อมรับ
+            </p>
+          </>
+        ) : (
+          <>
+            <h2>ส่งสลิปแล้ว รอร้านตรวจยอด</h2>
+            <p className="t">
+              ยอด ฿{done.total} · รับที่ร้าน <strong>{done.pickupTime} น.</strong>
+              <br />
+              เมื่อร้านยืนยันการชำระเงิน จะแจ้งทาง LINE พร้อมจำนวนคิว
+              <br />
+              และได้รับ <strong>{pointsEarned(done.total)} แต้ม</strong> สะสมไว้เป็นส่วนลดครั้งหน้า
+            </p>
+          </>
+        )}
         <div className="acts">
           {liff.current?.isInClient() && (
             <button className="primary" onClick={() => liff.current?.closeWindow()}>กลับไปที่แชท</button>
@@ -326,6 +371,7 @@ export default function OrderPage() {
             <p className="hero-jp">いらっしゃいませ</p>
             <h1>CODE-MACHA</h1>
             <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
+            <span className="points-chip">🎁 แต้มสะสม {points.toLocaleString()} แต้ม</span>
           </div>
         </div>
         <svg className="wave" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
@@ -531,8 +577,46 @@ export default function OrderPage() {
             <div className="lg">หมายเหตุถึงร้าน</div>
             <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ขอหลอดกระดาษ" value={note} onChange={(e) => setNote(e.target.value)} />
 
-            <button className="primary" style={{ marginTop: 20, minHeight: 56 }} disabled={!pickup || sending} onClick={submit}>
-              {sending ? "กำลังส่ง…" : pickup ? `ไปชำระเงิน ฿${total}` : "เลือกเวลารับก่อน"}
+            <div className="lg">
+              แต้มสะสม<span>มี {points.toLocaleString()} แต้ม</span>
+            </div>
+            {usable > 0 ? (
+              <label className="row points-row" style={{ marginTop: 0 }}>
+                <span>
+                  ใช้ {usable} แต้ม <span style={{ fontWeight: 400, color: "var(--stone)" }}>ลด ฿{usable}</span>
+                </span>
+                <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} />
+              </label>
+            ) : (
+              <p className="ds">
+                {points < POINTS.minRedeem
+                  ? `สะสมครบ ${POINTS.minRedeem} แต้มเพื่อใช้เป็นส่วนลด (อีก ${POINTS.minRedeem - points} แต้ม)`
+                  : `ใช้แต้มได้เมื่อยอดสั่งตั้งแต่ ฿${POINTS.minRedeem} ขึ้นไป`}
+              </p>
+            )}
+
+            <dl className="sum">
+              <dt>ราคาเครื่องดื่ม</dt>
+              <dd>฿{total}</dd>
+              {pointsToUse > 0 && (
+                <>
+                  <dt>ส่วนลดจากแต้ม</dt>
+                  <dd>−฿{pointsToUse}</dd>
+                </>
+              )}
+              <dt className="grand">ยอดที่ต้องจ่าย</dt>
+              <dd className="grand">฿{payAmount}</dd>
+            </dl>
+            {payAmount > 0 && <p className="small">ออเดอร์นี้จะได้รับ {pointsEarned(payAmount)} แต้ม</p>}
+
+            <button className="primary" style={{ marginTop: 16, minHeight: 56 }} disabled={!pickup || sending} onClick={submit}>
+              {sending
+                ? "กำลังส่ง…"
+                : !pickup
+                  ? "เลือกเวลารับก่อน"
+                  : payAmount === 0
+                    ? `ใช้ ${pointsToUse} แต้ม ยืนยันสั่ง`
+                    : `ไปชำระเงิน ฿${payAmount}`}
             </button>
             {sendErr && <p className="err" role="alert">{sendErr}</p>}
             {needLogin && liff.current && (

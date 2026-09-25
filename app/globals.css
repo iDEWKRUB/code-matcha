@@ -124,6 +124,13 @@ textarea, input.text { width: 100%; border: 1px solid var(--edge); border-radius
 .slip { display: block; margin-top: 12px; color: var(--stone); font-size: 13px; text-decoration: none; }
 .slip img { display: block; width: 100%; max-height: 320px; object-fit: contain; background: #f4f4ef; border-radius: 8px; border: 1px solid var(--hair); margin-bottom: 4px; }
 
+/* ---------- แต้มสะสม ---------- */
+.points-chip { display: inline-block; margin-top: 8px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 600; }
+.sum { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 20px 0 0; padding-top: 14px; border-top: 1px dashed var(--edge); font-size: 14px; }
+.sum dt { color: var(--stone); margin: 0; }
+.sum dd { margin: 0; text-align: right; font-weight: 600; }
+.sum .grand { color: var(--ink); font-size: 17px; font-weight: 700; }
+
 /* ---------- หน้าจ่ายเงินของลูกค้า ---------- */
 .pay { min-height: 100dvh; padding: 24px 20px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .pay h1 { font-size: 22px; margin: 12px 0 4px; }

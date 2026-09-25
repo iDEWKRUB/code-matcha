@@ -48,10 +48,19 @@ export type Order = {
   status: OrderStatus;
   createdAt: string;
   hasSlip: boolean;
+  discount: number; // ส่วนลดจากแต้ม (total คือยอดที่จ่ายจริงหลังหักแล้ว)
 };
 
 // ข้อมูลสำหรับหน้าจ่ายเงินของลูกค้า
-export type Payment = { id: number; no: number; total: number; pickupTime: string; expiresAt: string; qr: string };
+export type Payment = {
+  id: number;
+  no: number;
+  total: number;
+  discount: number;
+  pickupTime: string;
+  expiresAt: string;
+  qr: string;
+};
 
 export type Slot = { time: string; remaining: number };
 

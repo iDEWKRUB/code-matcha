@@ -1,6 +1,6 @@
 import "server-only";
 import QRCode from "qrcode";
-import { SHOP } from "./config";
+import { SHOP, pointsEarned } from "./config";
 import type { MenuItem, Order, Payment, Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
@@ -49,11 +49,36 @@ export async function queueAhead(date: string, pickupTime: string, no: number) {
   return data.filter((o) => o.pickup_time < pickupTime || o.daily_no < no).length;
 }
 
-export async function paymentFor(r: Pick<OrderRow, "id" | "daily_no" | "total" | "pickup_time" | "expires_at">): Promise<Payment> {
+export async function paymentFor(
+  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at">,
+): Promise<Payment> {
   const id = process.env.PROMPTPAY_ID;
   if (!id) throw new Error("Missing environment variable PROMPTPAY_ID");
   const qr = await QRCode.toDataURL(promptPayPayload(id, r.total), { margin: 1, width: 480, errorCorrectionLevel: "M" });
-  return { id: r.id, no: r.daily_no, total: r.total, pickupTime: r.pickup_time, expiresAt: r.expires_at ?? "", qr };
+  return { id: r.id, no: r.daily_no, total: r.total, discount: r.discount, pickupTime: r.pickup_time, expiresAt: r.expires_at ?? "", qr };
+}
+
+export async function pointsBalance(userId: string) {
+  const { data, error } = await db().rpc("points_balance", { p_user: userId });
+  if (error) throw error;
+  return Math.max(0, Number(data) || 0);
+}
+
+// ให้แต้มเมื่อร้านยืนยันการชำระ (unique order_id+kind กันให้ซ้ำ)
+export async function earnPoints(o: Pick<OrderRow, "id" | "line_user_id" | "total">) {
+  const earned = pointsEarned(o.total);
+  if (earned > 0) {
+    const { error } = await db()
+      .from("points_ledger")
+      .upsert({ line_user_id: o.line_user_id, order_id: o.id, delta: earned, kind: "earn" }, { onConflict: "order_id,kind", ignoreDuplicates: true });
+    if (error) console.error("earnPoints failed", error);
+  }
+  return earned;
+}
+
+export async function revokeEarned(orderId: number) {
+  const { error } = await db().from("points_ledger").delete().eq("order_id", orderId).eq("kind", "earn");
+  if (error) console.error("revokeEarned failed", error);
 }
 
 type OrderRow = {
@@ -65,6 +90,7 @@ type OrderRow = {
   customer_name: string;
   items: Order["items"];
   total: number;
+  discount: number;
   cups: number;
   note: string;
   status: Order["status"];
@@ -74,7 +100,7 @@ type OrderRow = {
 };
 
 export const ORDER_COLUMNS =
-  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,cups,note,status,created_at,expires_at,slip_path";
+  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path";
 
 export function toOrder(r: OrderRow): Order {
   return {
@@ -90,6 +116,7 @@ export function toOrder(r: OrderRow): Order {
     status: r.status,
     createdAt: r.created_at,
     hasSlip: !!r.slip_path,
+    discount: r.discount,
   };
 }
 

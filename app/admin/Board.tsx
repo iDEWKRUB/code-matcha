@@ -132,6 +132,7 @@ export default function Board() {
                     </div>
                     <p className="who">
                       {o.customerName} ฿{o.total}
+                      {o.discount > 0 && ` (ใช้แต้มลด ฿${o.discount})`}
                     </p>
                     <ul className="its">
                       {o.items.map((i, k) => (
