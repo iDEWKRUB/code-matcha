@@ -363,6 +363,35 @@ textarea, input.text { width: 100%; border: 1px solid var(--edge); border-radius
 @keyframes cap { 0% { opacity: 0; transform: translateY(6px); } 15%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
 @keyframes capin { from { opacity: 0; transform: translateY(6px); } }
 
+/* ---------- โปสเตอร์สแกนสั่ง (A5) ---------- */
+.poster-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: #d9dfc8; }
+.poster { width: 148mm; max-width: 100%; aspect-ratio: 148 / 210; background: var(--foam); border-radius: 6mm; padding: 9mm 9mm 7mm; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden; box-shadow: 0 20px 50px -25px rgba(0,0,0,.5); }
+.poster::before { content: ""; position: absolute; inset: 0 0 auto; height: 44%; background: linear-gradient(155deg, #3f5f26, #7c9a3e); border-radius: 0 0 50% 50% / 0 0 12% 12%; }
+.poster > * { position: relative; }
+.poster-top { color: #fff; display: flex; flex-direction: column; align-items: center; }
+.poster-jp { font-family: var(--mincho); margin: 8px 0 0; opacity: .85; font-size: 13px; }
+.poster h1 { margin: 0; font-size: 34px; letter-spacing: .06em; line-height: 1.15; }
+.poster-tag { margin: 2px 0 0; font-size: 15px; opacity: .95; }
+.poster-qr { margin-top: 14px; background: #fff; border-radius: 18px; padding: 16px 16px 12px; box-shadow: 0 16px 30px -18px rgba(28,36,25,.7); }
+.poster-qr .qr { width: 62mm; height: 62mm; }
+.poster-qr .qr svg { display: block; width: 100%; height: 100%; }
+.scan { margin: 10px 0 0; font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.line-badge { background: #06c755; color: #fff; font-size: 12px; font-weight: 800; border-radius: 6px; padding: 2px 7px; letter-spacing: .03em; }
+.poster-steps { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+.poster-steps li { background: #fff; border-radius: 12px; padding: 8px 6px; font-size: 13px; font-weight: 600; line-height: 1.35; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.poster-steps b { width: 24px; height: 24px; border-radius: 50%; background: var(--matcha); color: #fff; display: grid; place-items: center; font-size: 13px; }
+.poster-cups { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin-top: auto; }
+.poster-foot { margin: 6px 0 0; font-size: 11px; color: var(--stone); }
+.qr-panel { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.qr-panel img { width: 132px; height: 132px; background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--hair); }
+.qr-panel code { display: block; font-size: 13px; color: var(--stone); word-break: break-all; margin-bottom: 10px; }
+.qr-panel a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+@page { size: A5; margin: 0; }
+@media print {
+  .poster-page { padding: 0; background: none; min-height: 0; }
+  .poster { width: 148mm; height: 210mm; border-radius: 0; box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet, .stamp, .ticket.fresh, .hero-seal, .cup *, .brew-cap .cap { animation: none !important; }
   .brew-cap .cap:not(.last) { display: none; }

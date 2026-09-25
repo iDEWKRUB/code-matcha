@@ -163,6 +163,23 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       </section>
 
       <section className="panel">
+        <header>
+          <h2>📱 QR สแกนสั่ง</h2>
+          <p>ลูกค้าสแกนด้วยกล้องมือถือ จะเปิดหน้าสั่งใน LINE ทันที วางไว้ที่เคาน์เตอร์หรือหน้าร้าน</p>
+        </header>
+        <div className="qr-panel">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/api/qr" alt="QR สำหรับสั่งเครื่องดื่ม" />
+          <div>
+            <code>{`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID ?? ""}`}</code>
+            <a className="btn primary-sm" href="/poster" target="_blank" rel="noreferrer">
+              เปิดโปสเตอร์ A5 เพื่อพิมพ์
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
         <header className="panel-head">
           <div>
             <h2>🍵 จัดการเมนู</h2>
