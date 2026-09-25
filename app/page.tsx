@@ -19,7 +19,7 @@ import {
   type Payment,
   type Slot,
 } from "@/lib/menu";
-import { POINTS, pointsEarned } from "@/lib/config";
+import { POINTS, SHOP, pointsEarned } from "@/lib/config";
 import Cup, { tintOf } from "./Cup";
 import Icon from "./Icon";
 import Seal from "./Seal";
@@ -97,6 +97,34 @@ export default function OrderPage() {
   const [points, setPoints] = useState(0);
   const [banner, setBanner] = useState("");
   const [hours, setHours] = useState<Hours | null>(null);
+  const [isFriend, setIsFriend] = useState<boolean | null>(null); // null = ยังไม่รู้ / เช็กไม่ได้
+
+  // LINE ส่งแจ้งเตือนได้เฉพาะคนที่เป็นเพื่อนกับ OA
+  function checkFriend() {
+    liff.current
+      ?.getFriendship()
+      .then((f) => setIsFriend(f.friendFlag))
+      .catch(() => {});
+  }
+
+  function addFriend() {
+    const url = `https://line.me/R/ti/p/${encodeURIComponent(SHOP.lineOaId)}`;
+    if (liff.current?.isInClient()) liff.current.openWindow({ url, external: false });
+    else window.open(url, "_blank");
+  }
+
+  const friendCard = isFriend === false && (
+    <div className="friend-card" role="note">
+      <span className="friend-ico">
+        <Icon name="bell" size={22} />
+      </span>
+      <div>
+        <b>เพิ่มร้านเป็นเพื่อนเพื่อรับแจ้งเตือน</b>
+        <span>ไม่งั้นจะไม่ได้รับข้อความตอนร้านยืนยันการจ่าย และตอนเครื่องดื่มพร้อมรับ</span>
+      </div>
+      <button onClick={addFriend}>เพิ่มเพื่อน</button>
+    </div>
+  );
   const [usePoints, setUsePoints] = useState(false);
   const liff = useRef<Liff | null>(null);
 
@@ -133,6 +161,7 @@ export default function OrderPage() {
           }
           liff.current = l;
           setName((await l.getProfile()).displayName);
+          checkFriend();
         } else if (process.env.NODE_ENV !== "production") {
           setName("Dev (โหมดทดสอบ)");
         } else {
@@ -151,6 +180,13 @@ export default function OrderPage() {
       }
     })();
   }, [loadMenu, loadMine]);
+
+  // กลับมาจากหน้าแอดเพื่อน → เช็กใหม่ให้การ์ดหายเอง
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && checkFriend();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   const close = useCallback(() => {
     setEdit(null);
@@ -328,6 +364,7 @@ export default function OrderPage() {
           <li>สแกนจ่ายด้วยแอปธนาคาร ยอด ฿{pay.total}</li>
           <li>กลับมาที่หน้านี้ แล้วแนบสลิปการโอน</li>
         </ol>
+        {friendCard}
         <div className="acts">
           <label className={`primary upload${uploading ? " busy" : ""}`}>
             {uploading ? "กำลังส่งสลิป…" : "แนบสลิปการโอน"}
@@ -375,6 +412,7 @@ export default function OrderPage() {
             </p>
           </>
         )}
+        {friendCard}
         <div className="acts">
           {liff.current?.isInClient() && (
             <button className="primary" onClick={() => liff.current?.closeWindow()}>กลับไปที่แชท</button>
@@ -413,6 +451,7 @@ export default function OrderPage() {
         </svg>
       </header>
       {closed && <ClosedNotice hours={hours!} />}
+      {friendCard && <div className="friend-wrap">{friendCard}</div>}
       {banner && (
         <p className="promo-banner" role="note">
           <Icon name="megaphone" size={18} /> {banner}
