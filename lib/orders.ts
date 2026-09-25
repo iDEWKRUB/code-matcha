@@ -1,6 +1,6 @@
 import "server-only";
 import QRCode from "qrcode";
-import { SHOP, pointsEarned } from "./config";
+import { pointsEarned } from "./config";
 import type { MenuItem, Order, Payment, ShopSettings, Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
@@ -16,16 +16,29 @@ export async function getMenu(): Promise<MenuItem[]> {
 }
 
 export async function getSettings(): Promise<ShopSettings> {
-  const { data, error } = await db().from("shop_settings").select("banner,banner_active").eq("id", 1).maybeSingle();
+  const { data, error } = await db()
+    .from("shop_settings")
+    .select("banner,banner_active,open_time,close_time,slot_minutes,slot_capacity,accepting")
+    .eq("id", 1)
+    .maybeSingle();
   if (error) throw error;
-  return { banner: data?.banner ?? "", bannerActive: data?.banner_active ?? false };
+  return {
+    banner: data?.banner ?? "",
+    bannerActive: data?.banner_active ?? false,
+    openTime: data?.open_time ?? "10:30",
+    closeTime: data?.close_time ?? "17:00",
+    slotMinutes: data?.slot_minutes ?? 15,
+    slotCapacity: data?.slot_capacity ?? 8,
+    accepting: data?.accepting ?? true,
+  };
 }
 
 // ออเดอร์ที่ยังใช้ที่ในช่องเวลา: ไม่ถูกยกเลิก และไม่ใช่รอชำระที่หมดเวลาแล้ว
 const holdsSlot = (o: { status: string; expires_at: string | null }) =>
   o.status !== "cancelled" && !(o.status === "awaiting_payment" && o.expires_at && new Date(o.expires_at) < new Date());
 
-export async function getTodaySlots(): Promise<Slot[]> {
+export async function getTodaySlots(s: ShopSettings): Promise<Slot[]> {
+  if (!s.accepting) return [];
   const now = nowInShop();
   const { data, error } = await db()
     .from("orders")
@@ -35,9 +48,9 @@ export async function getTodaySlots(): Promise<Slot[]> {
   if (error) throw error;
   const used = new Map<string, number>();
   for (const r of data.filter(holdsSlot)) used.set(r.pickup_time, (used.get(r.pickup_time) ?? 0) + r.cups);
-  return slotTimes()
-    .filter((t) => isBookable(t, now.minutes))
-    .map((time) => ({ time, remaining: Math.max(0, SHOP.slotCapacity - (used.get(time) ?? 0)) }));
+  return slotTimes(s)
+    .filter((t) => isBookable(t, now.minutes, s))
+    .map((time) => ({ time, remaining: Math.max(0, s.slotCapacity - (used.get(time) ?? 0)) }));
 }
 
 // ออเดอร์ที่จ่ายแล้วและยังไม่เสร็จ ที่ต้องทำก่อน (เวลารับเร็วกว่า หรือเวลาเดียวกันแต่สั่งก่อน)

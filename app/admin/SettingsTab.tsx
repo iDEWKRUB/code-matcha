@@ -53,8 +53,17 @@ const json = (method: string, body?: unknown) => ({
 });
 
 export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload: () => void }) {
-  const [settings, setSettings] = useState<ShopSettings>({ banner: "", bannerActive: false });
+  const [settings, setSettings] = useState<ShopSettings>({
+    banner: "",
+    bannerActive: false,
+    openTime: "10:30",
+    closeTime: "17:00",
+    slotMinutes: 15,
+    slotCapacity: 8,
+    accepting: true,
+  });
   const [bannerMsg, setBannerMsg] = useState("");
+  const [hoursMsg, setHoursMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [formErr, setFormErr] = useState("");
   const [saving, setSaving] = useState(false);
@@ -68,8 +77,18 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
 
   async function saveBanner() {
     setBannerMsg("");
-    const r = await fetch("/api/admin/settings", json("PUT", settings));
+    const r = await fetch("/api/admin/settings", json("PUT", { banner: settings.banner, bannerActive: settings.bannerActive }));
     setBannerMsg(r.ok ? "บันทึกแล้ว ลูกค้าจะเห็นเมื่อเปิดหน้าสั่งครั้งถัดไป" : "บันทึกไม่สำเร็จ");
+  }
+
+  async function saveHours(patch: Partial<ShopSettings>) {
+    setHoursMsg(null);
+    const r = await fetch("/api/admin/settings", json("PUT", patch));
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) {
+      setSettings(j);
+      setHoursMsg({ ok: true, text: "บันทึกแล้ว มีผลกับหน้าสั่งทันที" });
+    } else setHoursMsg({ ok: false, text: j.error ?? "บันทึกไม่สำเร็จ" });
   }
 
   async function quick(m: MenuItem, patch: Partial<MenuItem>) {
@@ -131,6 +150,71 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
 
   return (
     <div className="settings">
+      <section className="panel">
+        <header className="panel-head">
+          <div>
+            <h2>
+              <Icon name="clock" size={20} /> เวลาเปิด–ปิดร้าน
+            </h2>
+            <p>ลูกค้าเลือกเวลารับได้เฉพาะรอบในช่วงนี้ · ปิดรับชั่วคราวได้ทันทีด้วยสวิตช์</p>
+          </div>
+          <button
+            className="toggle"
+            role="switch"
+            aria-checked={settings.accepting}
+            onClick={() => saveHours({ accepting: !settings.accepting })}
+          >
+            <span className="knob" aria-hidden="true" />
+            {settings.accepting ? "เปิดรับออเดอร์" : "ปิดรับออเดอร์"}
+          </button>
+        </header>
+        <div className="hours">
+          <label>
+            รอบรับแรก
+            <input className="text" type="time" value={settings.openTime} onChange={(e) => setSettings({ ...settings, openTime: e.target.value })} />
+          </label>
+          <label>
+            ปิดรับ (รอบสุดท้ายก่อนเวลานี้)
+            <input className="text" type="time" value={settings.closeTime} onChange={(e) => setSettings({ ...settings, closeTime: e.target.value })} />
+          </label>
+          <label>
+            ระยะห่างแต่ละรอบ
+            <select className="text" value={settings.slotMinutes} onChange={(e) => setSettings({ ...settings, slotMinutes: Number(e.target.value) })}>
+              {[10, 15, 20, 30, 60].map((m) => (
+                <option key={m} value={m}>
+                  ทุก {m} นาที
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            แก้วสูงสุดต่อรอบ
+            <input
+              className="text"
+              inputMode="numeric"
+              value={settings.slotCapacity}
+              onChange={(e) => setSettings({ ...settings, slotCapacity: Number(e.target.value.replace(/\D/g, "")) || 0 })}
+            />
+          </label>
+        </div>
+        <div className="panel-row">
+          <button
+            className="btn primary-sm"
+            onClick={() =>
+              saveHours({
+                openTime: settings.openTime,
+                closeTime: settings.closeTime,
+                slotMinutes: settings.slotMinutes,
+                slotCapacity: settings.slotCapacity,
+              })
+            }
+          >
+            บันทึกเวลาร้าน
+          </button>
+          {hoursMsg && <span className={hoursMsg.ok ? "hint-ok" : "err"}>{hoursMsg.text}</span>}
+        </div>
+      </section>
+
       <section className="panel">
         <header>
           <h2>
@@ -235,12 +319,8 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           <p>ค่าเหล่านี้อยู่ในโค้ด (lib/config.ts) ถ้าต้องการเปลี่ยนให้แจ้งผู้ดูแลระบบ</p>
         </header>
         <dl>
-          <dt>เวลารับเครื่องดื่ม</dt>
-          <dd>
-            {SHOP.open}–{SHOP.close} น. ทุก {SHOP.slotMinutes} นาที
-          </dd>
-          <dt>แก้วสูงสุดต่อรอบ</dt>
-          <dd>{SHOP.slotCapacity} แก้ว</dd>
+          <dt>ต้องสั่งล่วงหน้าอย่างน้อย</dt>
+          <dd>{SHOP.leadMinutes} นาที</dd>
           <dt>จองคิวระหว่างรอจ่าย</dt>
           <dd>{SHOP.holdMinutes} นาที</dd>
           <dt>สะสมแต้ม</dt>

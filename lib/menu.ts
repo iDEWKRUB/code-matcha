@@ -17,7 +17,15 @@ export type MenuItem = {
   sort: number;
 };
 
-export type ShopSettings = { banner: string; bannerActive: boolean };
+export type ShopSettings = {
+  banner: string;
+  bannerActive: boolean;
+  openTime: string; // รอบรับแรก HH:MM
+  closeTime: string; // รอบสุดท้ายต้องก่อนเวลานี้
+  slotMinutes: number;
+  slotCapacity: number; // แก้วสูงสุดต่อรอบ
+  accepting: boolean; // สวิตช์เปิด/ปิดรับออเดอร์
+};
 
 // แบบหน้าตาแก้วการ์ตูนที่เลือกให้เมนูใหม่ได้ (ต้องตรงกับสูตรใน app/Cup.tsx)
 export const LOOKS = [

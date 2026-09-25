@@ -213,6 +213,17 @@ textarea, input.text { width: 100%; border: 1px solid var(--edge); border-radius
 .banner-preview { border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; font-weight: 600; font-size: 14px; background: #f1f2ec; color: var(--stone); border: 1px dashed var(--edge); }
 .banner-preview[data-on="true"] { background: linear-gradient(90deg, #c23b22, #e0663f); color: #fff; border-color: transparent; }
 .hint-ok { color: var(--matcha); font-size: 14px; margin: 10px 0 0; }
+.panel-row .hint-ok, .panel-row .err { margin: 0; }
+.hours { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.hours label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.closed-note { position: relative; z-index: 1; margin: -18px 16px 14px; border-radius: 18px; padding: 16px; background: #fff4f0; border: 2px solid #e8a595; box-shadow: 0 12px 24px -16px rgba(194,59,34,.7); display: flex; gap: 14px; align-items: center; }
+.closed-note .closed-ico { width: 48px; height: 48px; border-radius: 50%; background: var(--seal); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.closed-note b { display: block; font-size: 17px; color: var(--seal); line-height: 1.3; }
+.closed-note span:not(.closed-ico) { display: block; font-size: 14px; margin-top: 2px; }
+.closed-note small { display: block; color: var(--stone); font-size: 12px; margin-top: 4px; }
+.closed-note.compact { margin: 0; padding: 12px; box-shadow: none; }
+.closed-note.compact .closed-ico { width: 38px; height: 38px; }
+.closed-note.compact b { font-size: 15px; }
 .btn { min-height: 42px; border-radius: 12px; padding: 0 16px; font-weight: 700; font-size: 14px; }
 .btn.primary-sm { background: var(--matcha); color: #fff; }
 .btn.primary-sm:disabled { opacity: .45; }

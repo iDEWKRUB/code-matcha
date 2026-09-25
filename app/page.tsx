@@ -27,6 +27,7 @@ import Seal from "./Seal";
 const tint = (id: string) => ({ "--tint": tintOf(id) }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
+type Hours = { accepting: boolean; openTime: string; closeTime: string };
 type Done = { no: number; pickupTime: string; total: number; discount: number; free?: boolean };
 
 // ย่อรูปสลิปก่อนอัปโหลด (รูปจากมือถือมักใหญ่หลาย MB)
@@ -42,6 +43,30 @@ async function shrink(file: File): Promise<Blob> {
   } catch {
     return file;
   }
+}
+
+// แจ้งให้ชัดว่าตอนนี้สั่งไม่ได้เพราะอะไร และเปิดอีกทีเมื่อไร
+function ClosedNotice({ hours, compact = false }: { hours: Hours; compact?: boolean }) {
+  return (
+    <div className={`closed-note${compact ? " compact" : ""}`} role="status">
+      <span className="closed-ico">
+        <Icon name="clock" size={compact ? 20 : 26} />
+      </span>
+      <div>
+        <b>{hours.accepting ? "หมดเวลาสั่งของวันนี้แล้ว" : "ร้านปิดรับออเดอร์ชั่วคราว"}</b>
+        <span>
+          {hours.accepting ? (
+            <>
+              เปิดรับออเดอร์ทุกวัน <strong>{hours.openTime}–{hours.closeTime} น.</strong>
+            </>
+          ) : (
+            "ร้านจะเปิดรับอีกครั้งเร็ว ๆ นี้"
+          )}
+        </span>
+        {!compact && <small>ดูเมนูไว้ก่อนได้ แล้วกลับมาสั่งตอนร้านเปิดนะ</small>}
+      </div>
+    </div>
+  );
 }
 
 const mmss = (ms: number) => {
@@ -71,6 +96,7 @@ export default function OrderPage() {
   const [done, setDone] = useState<Done | null>(null);
   const [points, setPoints] = useState(0);
   const [banner, setBanner] = useState("");
+  const [hours, setHours] = useState<Hours | null>(null);
   const [usePoints, setUsePoints] = useState(false);
   const liff = useRef<Liff | null>(null);
 
@@ -87,16 +113,17 @@ export default function OrderPage() {
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
     if (!r.ok) throw new Error("โหลดเมนูไม่สำเร็จ");
-    const j = (await r.json()) as { menu: MenuItem[]; slots: Slot[]; banner: string };
+    const j = (await r.json()) as { menu: MenuItem[]; slots: Slot[]; banner: string; hours: Hours };
     setMenu(j.menu);
     setSlots(j.slots);
     setBanner(j.banner ?? "");
+    setHours(j.hours ?? null);
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
         if (liffId) {
           const l = (await import("@line/liff")).default;
           await l.init({ liffId });
@@ -153,6 +180,7 @@ export default function OrderPage() {
   const usable = Math.min(points, total) >= POINTS.minRedeem ? Math.min(points, total) : 0;
   const pointsToUse = usePoints ? usable : 0;
   const payAmount = total - pointsToUse;
+  const closed = !!hours && slots.length === 0;
 
   function open(it: MenuItem) {
     setEdit(it);
@@ -384,6 +412,7 @@ export default function OrderPage() {
           <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
         </svg>
       </header>
+      {closed && <ClosedNotice hours={hours!} />}
       {banner && (
         <p className="promo-banner" role="note">
           <Icon name="megaphone" size={18} /> {banner}
@@ -416,7 +445,7 @@ export default function OrderPage() {
                   ) : (
                     <b>฿{m.price}</b>
                   )}
-                  {m.available && <span className="plus" aria-hidden="true">+</span>}
+                  {m.available && !closed && <span className="plus" aria-hidden="true">+</span>}
                 </div>
               </button>
             </li>
@@ -535,12 +564,13 @@ export default function OrderPage() {
               </div>
               <button
                 className="primary"
+                disabled={closed}
                 onClick={() => {
                   setCart([...cart, { itemId: edit.id, ...opts }]);
                   setEdit(null);
                 }}
               >
-                ใส่ตะกร้า ฿{linePrice(edit, { itemId: edit.id, ...opts })}
+                {closed ? "ตอนนี้ร้านปิดรับออเดอร์" : `ใส่ตะกร้า ฿${linePrice(edit, { itemId: edit.id, ...opts })}`}
               </button>
             </div>
           </div>
@@ -580,7 +610,7 @@ export default function OrderPage() {
 
             <div className="lg">เวลารับที่ร้าน (วันนี้)</div>
             {slots.length === 0 ? (
-              <p className="ds">วันนี้ไม่มีรอบรับเหลือแล้ว</p>
+              hours ? <ClosedNotice hours={hours} compact /> : <p className="ds">วันนี้ไม่มีรอบรับเหลือแล้ว</p>
             ) : (
               <div className="slots">
                 {slots.map((s) => {
@@ -633,7 +663,9 @@ export default function OrderPage() {
             <button className="primary" style={{ marginTop: 16, minHeight: 56 }} disabled={!pickup || sending} onClick={submit}>
               {sending
                 ? "กำลังส่ง…"
-                : !pickup
+                : closed
+                  ? "หมดเวลาสั่งแล้ว"
+                  : !pickup
                   ? "เลือกเวลารับก่อน"
                   : payAmount === 0
                     ? `ใช้ ${pointsToUse} แต้ม ยืนยันสั่ง`

@@ -29,12 +29,15 @@ export const toMinutes = (t: string) => {
 const hhmm = (m: number) =>
   `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
-export function slotTimes() {
+export type Hours = { openTime: string; closeTime: string; slotMinutes: number };
+
+// รอบรับตั้งแต่เวลาเปิด ถึงก่อนเวลาปิด
+export function slotTimes(h: Hours) {
   const out: string[] = [];
-  for (let m = toMinutes(SHOP.open); m < toMinutes(SHOP.close); m += SHOP.slotMinutes) out.push(hhmm(m));
+  for (let m = toMinutes(h.openTime); m < toMinutes(h.closeTime); m += h.slotMinutes) out.push(hhmm(m));
   return out;
 }
 
-export function isBookable(time: string, nowMinutes: number) {
-  return slotTimes().includes(time) && toMinutes(time) >= nowMinutes + SHOP.leadMinutes;
+export function isBookable(time: string, nowMinutes: number, h: Hours) {
+  return slotTimes(h).includes(time) && toMinutes(time) >= nowMinutes + SHOP.leadMinutes;
 }

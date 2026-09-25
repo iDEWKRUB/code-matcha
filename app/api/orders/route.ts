@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { POINTS, SHOP } from "@/lib/config";
 import { pushText, verifyIdToken } from "@/lib/line";
 import { MAX_QTY, MILKS, POWDERS, SWEET, hasPowder, lineDetail, linePrice, type CartLine, type OrderItem } from "@/lib/menu";
-import { getMenu, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
+import { getMenu, getSettings, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
 
@@ -55,10 +55,12 @@ export async function POST(req: Request) {
     total += price;
     cups += line.qty;
   }
-  if (cups > SHOP.slotCapacity) return fail(`สั่งได้สูงสุด ${SHOP.slotCapacity} แก้วต่อรอบรับ`);
+  const shop = await getSettings();
+  if (!shop.accepting) return fail("ร้านปิดรับออเดอร์ชั่วคราว", 409);
+  if (cups > shop.slotCapacity) return fail(`สั่งได้สูงสุด ${shop.slotCapacity} แก้วต่อรอบรับ`);
 
   const now = nowInShop();
-  if (typeof pickupTime !== "string" || !isBookable(pickupTime, now.minutes))
+  if (typeof pickupTime !== "string" || !isBookable(pickupTime, now.minutes, shop))
     return fail("เวลารับนี้ไม่ว่างแล้ว เลือกเวลาอื่น", 409);
 
   const cleanNote = typeof note === "string" ? note.trim().slice(0, 200) : "";
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
   const { data, error } = await db().rpc("place_order", {
     p_date: now.date,
     p_time: pickupTime,
-    p_capacity: SHOP.slotCapacity,
+    p_capacity: shop.slotCapacity,
     p_user: user.userId,
     p_name: user.name,
     p_items: items,
