@@ -49,6 +49,20 @@ function beep() {
 export default function Board() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
+  const [collapsed, setCollapsed] = useState(false);
+
+  // จำว่าย่อแถบเมนูไว้หรือไม่ (เฉพาะเครื่องนี้)
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("adm-collapsed") === "1");
+    } catch {}
+  }, []);
+  function toggleSide() {
+    setCollapsed(!collapsed);
+    try {
+      localStorage.setItem("adm-collapsed", collapsed ? "0" : "1");
+    } catch {}
+  }
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [stats, setStats] = useState<Stats>({ orders: 0, revenue: 0, cups: 0 });
@@ -95,7 +109,7 @@ export default function Board() {
   const current = TABS.find((t) => t.id === tab)!;
 
   return (
-    <div className="adm">
+    <div className={`adm${collapsed ? " collapsed" : ""}`}>
       <aside className="adm-side">
         <div className="adm-brand">
           <Seal size={38} />
@@ -104,9 +118,21 @@ export default function Board() {
             <small>หลังร้าน</small>
           </div>
         </div>
+        <button
+          className="adm-collapse"
+          onClick={toggleSide}
+          aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
+          title={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
+          aria-expanded={!collapsed}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          <span>ย่อแถบเมนู</span>
+        </button>
         <nav className="adm-nav" aria-label="เมนูหลังร้าน">
           {TABS.map((t) => (
-            <button key={t.id} aria-current={tab === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>
+            <button key={t.id} aria-current={tab === t.id ? "page" : undefined} onClick={() => setTab(t.id)} title={t.label}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 {t.icon}
               </svg>
@@ -116,8 +142,11 @@ export default function Board() {
             </button>
           ))}
         </nav>
-        <button className="adm-logout" onClick={logout}>
-          ออกจากระบบ
+        <button className="adm-logout" onClick={logout} title="ออกจากระบบ">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />
+          </svg>
+          <span>ออกจากระบบ</span>
         </button>
       </aside>
 
