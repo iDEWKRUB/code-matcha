@@ -18,6 +18,7 @@ type Recipe = {
   tint: string;
   bottom?: { color: string; label: string }; // ชั้นล่างสุด เช่น ซอสสตรอว์เบอร์รี่
   foamCap?: boolean; // ฟองมัทฉะตีเย็นด้านบน
+  premixed?: string; // เทแบบคนมาแล้วทั้งแก้ว (ไม่เห็นสีนม) + ชื่อที่ใช้ในคำบรรยาย
 };
 
 const RECIPES: Record<string, Recipe> = {
@@ -26,7 +27,16 @@ const RECIPES: Record<string, Recipe> = {
   "ceremonial-latte": { base: "milk", top: "#3f6b1f", topLabel: "มัทฉะเกรดพิธี", mixed: "#8fb060", layered: true, tint: "#dbe8c6" },
   "hojicha-latte": { base: "milk", top: "#8a5a35", topLabel: "โฮจิฉะ", mixed: "#c49a74", layered: true, tint: "#f1e4d3" },
   "yuzu-sparkling": { base: "soda", top: "#6f9a35", topLabel: "มัทฉะ", mixed: "#b5c957", layered: true, tint: "#fbf0c4" },
-  "cold-whisk-latte": { base: "milk", top: "#8fb33a", topLabel: "มัทฉะตีเย็น", mixed: "#a3c23c", layered: false, tint: "#eef3cf", foamCap: true },
+  "cold-whisk-latte": {
+    base: "milk",
+    top: "#c9dc6a",
+    topLabel: "ฟองมัทฉะตีเย็น",
+    mixed: "#a3c23c",
+    layered: false,
+    tint: "#eef3cf",
+    foamCap: true,
+    premixed: "มัทฉะลาเต้ที่คนแล้ว",
+  },
   "coconut-matcha": { base: "coconut", top: "#6f9a35", topLabel: "มัทฉะ", mixed: "#a8c46e", layered: true, tint: "#e9f3e1" },
   "strawberry-matcha": {
     base: "milk",
@@ -89,11 +99,11 @@ export default function Cup(props: Props) {
   const r = RECIPES[itemId] ?? FALLBACK;
   const hot = temp === "hot";
   const g = hot ? { body: MUG, top: 118, bottom: 236, layer: 160 } : { body: GLASS, top: 92, bottom: 234, layer: 138 };
-  const base = r.base === "milk" ? MILK_COLOR[milk ?? "fresh"] ?? MILK_COLOR.fresh : BASE_COLOR[r.base];
   // ผงยาเมะสีเข้มกว่า, เพิ่มช็อตเข้มขึ้นอีก
   const depth = (powder === "yame" ? 0.88 : 1) * (extraShot ? 0.8 : 1);
   const top = shade(r.top, depth);
   const mixed = shade(r.mixed, 0.4 + depth * 0.6);
+  const base = r.premixed ? mixed : r.base === "milk" ? MILK_COLOR[milk ?? "fresh"] ?? MILK_COLOR.fresh : BASE_COLOR[r.base];
   const layered = r.layered && !hot;
   const latteArt = hot && r.base === "milk";
   const wave = `M0 ${g.layer} ${"q12.5 9 25 0 ".repeat(8)}V${g.top} H0 Z`;
@@ -101,8 +111,9 @@ export default function Cup(props: Props) {
   const bottomWave = `M0 ${bottomY} ${"q12.5 -9 25 0 ".repeat(8)}V${g.bottom + 4} H0 Z`;
   const cream = softCream && !hot;
 
-  const baseLabel =
-    r.base === "milk" ? MILKS.find((m) => m.id === milk)?.label ?? "นม" : r.base === "water" ? (hot ? "น้ำอุ่น" : "น้ำ") : BASE_LABEL[r.base];
+  const baseLabel = r.premixed
+    ? r.premixed
+    : r.base === "milk" ? MILKS.find((m) => m.id === milk)?.label ?? "นม" : r.base === "water" ? (hot ? "น้ำอุ่น" : "น้ำ") : BASE_LABEL[r.base];
   const steps: [string, number][] = [
     [r.bottom ? `ใส่${r.bottom.label}และ${baseLabel}…` : `เท${baseLabel}…`, 0.05],
     [`ใส่${r.topLabel}…`, 1.1],
@@ -148,7 +159,7 @@ export default function Cup(props: Props) {
             ) : (
               <g className="blend" style={{ animationDelay: "1.55s" }}>
                 <rect x="0" y={g.top} width="200" height={g.bottom - g.top + 4} fill={mixed} />
-                {r.foamCap && !hot && <path d={`M0 ${g.top + 16} ${"q12.5 5 25 0 ".repeat(8)}V${g.top} H0 Z`} fill={shade(r.mixed, depth * 1.3)} />}
+                {r.foamCap && !hot && <path d={`M0 ${g.top + 16} ${"q12.5 5 25 0 ".repeat(8)}V${g.top} H0 Z`} fill={shade(r.mixed, depth * 1.12)} />}
               </g>
             )}
             {r.base === "soda" &&
