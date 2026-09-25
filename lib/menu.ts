@@ -18,7 +18,9 @@ export type CartLine = {
   temp: Temp;
   sweet: number;
   milk: string | null;
+  powder: string | null;
   extraShot: boolean;
+  softCream: boolean;
   qty: number;
 };
 
@@ -47,14 +49,26 @@ export const MILKS = [
   { id: "oat", label: "นมโอ๊ต", price: 15 },
   { id: "almond", label: "นมอัลมอนด์", price: 15 },
 ];
+export const POWDERS = [
+  { id: "uji", label: "อุจิ เกียวโต", short: "ผงอุจิ", price: 0 },
+  { id: "nishio", label: "นิชิโอะ ไอจิ", short: "ผงนิชิโอะ", price: 0 },
+  { id: "yame", label: "ยาเมะ ฟุกุโอกะ", short: "ผงยาเมะ", price: 30 },
+];
+// เมนูที่ไม่ให้เลือกผงมัทฉะ (ไม่ใช่มัทฉะ หรือกำหนดเกรดผงไว้แล้ว)
+const NO_POWDER = new Set(["hojicha-latte", "ceremonial-latte"]);
+export const hasPowder = (item: MenuItem) => !NO_POWDER.has(item.id);
+
 export const SWEET = [0, 25, 50, 75, 100];
 export const SHOT_PRICE = 20;
+export const SOFT_CREAM_PRICE = 15;
 export const MAX_QTY = 10;
 export const TEMP_LABEL: Record<Temp, string> = { iced: "เย็น", hot: "ร้อน" };
 
 export function linePrice(item: MenuItem, l: CartLine) {
   const milk = item.milk ? MILKS.find((m) => m.id === l.milk)?.price ?? 0 : 0;
-  return (item.price + milk + (l.extraShot ? SHOT_PRICE : 0)) * l.qty;
+  const powder = hasPowder(item) ? POWDERS.find((p) => p.id === l.powder)?.price ?? 0 : 0;
+  const addons = (l.extraShot ? SHOT_PRICE : 0) + (l.softCream ? SOFT_CREAM_PRICE : 0);
+  return (item.price + milk + powder + addons) * l.qty;
 }
 
 export function lineDetail(l: CartLine) {
@@ -62,7 +76,9 @@ export function lineDetail(l: CartLine) {
     TEMP_LABEL[l.temp],
     l.sweet === 0 ? "ไม่หวาน" : `หวาน ${l.sweet}%`,
     l.milk && MILKS.find((m) => m.id === l.milk)?.label,
+    l.powder && POWDERS.find((p) => p.id === l.powder)?.short,
     l.extraShot && "+ช็อตมัทฉะ",
+    l.softCream && "+ท็อปซอฟต์ครีม",
   ]
     .filter(Boolean)
     .join(", ");

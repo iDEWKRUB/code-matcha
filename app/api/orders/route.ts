@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { SHOP } from "@/lib/config";
 import { verifyIdToken, pushText } from "@/lib/line";
-import { MAX_QTY, MILKS, SWEET, lineDetail, linePrice, type CartLine, type OrderItem } from "@/lib/menu";
+import { MAX_QTY, MILKS, POWDERS, SWEET, hasPowder, lineDetail, linePrice, type CartLine, type OrderItem } from "@/lib/menu";
 import { getMenu } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
@@ -39,12 +39,16 @@ export async function POST(req: Request) {
       temp: raw.temp as CartLine["temp"],
       sweet: Number(raw.sweet),
       milk: item.milk ? String(raw.milk) : null,
+      powder: hasPowder(item) ? String(raw.powder) : null,
       extraShot: raw.extraShot === true,
+      softCream: raw.softCream === true,
       qty: Number(raw.qty),
     };
     if (!item.temps.includes(line.temp)) return fail("อุณหภูมิไม่ถูกต้อง");
     if (!SWEET.includes(line.sweet)) return fail("ระดับความหวานไม่ถูกต้อง");
     if (item.milk && !MILKS.some((m) => m.id === line.milk)) return fail("ชนิดนมไม่ถูกต้อง");
+    if (line.powder !== null && !POWDERS.some((p) => p.id === line.powder)) return fail("ผงมัทฉะไม่ถูกต้อง");
+    if (line.softCream && line.temp !== "iced") return fail("ท็อปซอฟต์ครีมได้เฉพาะเครื่องดื่มเย็น");
     if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > MAX_QTY) return fail("จำนวนไม่ถูกต้อง");
     const price = linePrice(item, line);
     items.push({ name: item.name, qty: line.qty, detail: lineDetail(line), price });

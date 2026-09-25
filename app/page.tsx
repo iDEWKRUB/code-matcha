@@ -5,9 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   MAX_QTY,
   MILKS,
+  POWDERS,
   SHOT_PRICE,
+  SOFT_CREAM_PRICE,
   SWEET,
   TEMP_LABEL,
+  hasPowder,
   lineDetail,
   linePrice,
   type CartLine,
@@ -96,7 +99,15 @@ export default function OrderPage() {
 
   function open(it: MenuItem) {
     setEdit(it);
-    setOpts({ temp: it.temps[0], sweet: 50, milk: it.milk ? "fresh" : null, extraShot: false, qty: 1 });
+    setOpts({
+      temp: it.temps[0],
+      sweet: 50,
+      milk: it.milk ? "fresh" : null,
+      powder: hasPowder(it) ? POWDERS[0].id : null,
+      extraShot: false,
+      softCream: false,
+      qty: 1,
+    });
   }
 
   async function openCheckout() {
@@ -265,7 +276,9 @@ export default function OrderPage() {
                 temp={opts.temp}
                 milk={opts.milk}
                 sweet={opts.sweet}
+                powder={opts.powder}
                 extraShot={opts.extraShot}
+                softCream={opts.softCream}
                 animate
                 size={150}
               />
@@ -279,7 +292,7 @@ export default function OrderPage() {
                 <div className="lg">อุณหภูมิ</div>
                 <div className="chips">
                   {edit.temps.map((t) => (
-                    <button key={t} className="chip" aria-pressed={opts.temp === t} onClick={() => setOpts({ ...opts, temp: t })}>
+                    <button key={t} className="chip" aria-pressed={opts.temp === t} onClick={() => setOpts({ ...opts, temp: t, softCream: t === "iced" && opts.softCream })}>
                       {TEMP_LABEL[t]}
                     </button>
                   ))}
@@ -316,12 +329,35 @@ export default function OrderPage() {
               </>
             )}
 
-            <label className="row">
+            {opts.powder && (
+              <>
+                <div className="lg">ผงมัทฉะ</div>
+                <div className="chips">
+                  {POWDERS.map((p) => (
+                    <button key={p.id} className="chip" aria-pressed={opts.powder === p.id} onClick={() => setOpts({ ...opts, powder: p.id })}>
+                      {p.label}
+                      {p.price > 0 && <em>+{p.price}</em>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="lg">ท็อปปิ้ง</div>
+            <label className="row" style={{ marginTop: 0 }}>
               <span>
                 เพิ่มช็อตมัทฉะ <span style={{ fontWeight: 400, color: "var(--stone)" }}>+{SHOT_PRICE}</span>
               </span>
               <input type="checkbox" checked={opts.extraShot} onChange={(e) => setOpts({ ...opts, extraShot: e.target.checked })} />
             </label>
+            {opts.temp === "iced" && (
+              <label className="row" style={{ marginTop: 0 }}>
+                <span>
+                  ท็อปซอฟต์ครีม <span style={{ fontWeight: 400, color: "var(--stone)" }}>+{SOFT_CREAM_PRICE}</span>
+                </span>
+                <input type="checkbox" checked={opts.softCream} onChange={(e) => setOpts({ ...opts, softCream: e.target.checked })} />
+              </label>
+            )}
 
             <div className="buy">
               <div className="stepper">

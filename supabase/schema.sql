@@ -85,5 +85,8 @@ insert into menu_items (id, name, jp, description, price, temps, milk, available
   ('matcha-latte', 'มัทฉะลาเต้', '抹茶ラテ', 'มัทฉะเกรดพรีเมียมกับนมที่เลือกได้', 120, '{iced,hot}', true, true, 2),
   ('ceremonial-latte', 'เซเรโมเนียลลาเต้', '濃茶ラテ', 'มัทฉะเกรดพิธีชงชา รสเข้ม อูมามิชัด', 150, '{iced,hot}', true, true, 3),
   ('hojicha-latte', 'โฮจิฉะลาเต้', 'ほうじ茶ラテ', 'ชาเขียวคั่ว หอมกลิ่นไฟ คาเฟอีนต่ำ', 110, '{iced,hot}', true, true, 4),
-  ('yuzu-sparkling', 'มัทฉะยูซุโซดา', '柚子抹茶ソーダ', 'มัทฉะชั้นบนโซดายูซุ สดชื่น', 130, '{iced}', false, true, 5)
+  ('yuzu-sparkling', 'มัทฉะยูซุโซดา', '柚子抹茶ソーダ', 'มัทฉะชั้นบนโซดายูซุ สดชื่น', 130, '{iced}', false, true, 5),
+  ('cold-whisk-latte', 'Cold Whisk Latte', '冷やし点て抹茶ラテ', 'มัทฉะตีเย็นจนเป็นฟองนุ่ม ลอยบนนมเย็น', 130, '{iced}', true, true, 6),
+  ('coconut-matcha', 'มัทฉะน้ำมะพร้าว', 'ココナッツ抹茶', 'น้ำมะพร้าวหอมหวานธรรมชาติ ตัดกับมัทฉะเข้ม สดชื่น', 130, '{iced}', false, true, 7),
+  ('strawberry-matcha', 'สตรอว์เบอร์รี่มัทฉะ', '苺抹茶ラテ', 'ซอสสตรอว์เบอร์รี่ นมสด และมัทฉะ สามชั้น', 140, '{iced}', true, true, 8)
 on conflict (id) do nothing;
