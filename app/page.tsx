@@ -14,7 +14,10 @@ import {
   type MenuItem,
   type Slot,
 } from "@/lib/menu";
+import Cup, { tintOf } from "./Cup";
 import Seal from "./Seal";
+
+const tint = (id: string) => ({ "--tint": tintOf(id) }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
 type Done = { no: number; pickupTime: string; total: number; ahead: number };
@@ -202,33 +205,39 @@ export default function OrderPage() {
 
   return (
     <main className="app">
-      <header className="app-h">
-        <Seal size={44} />
-        <div>
-          <b>CODE-MACHA</b>
-          <small>สวัสดี {name}</small>
+      <header className="hero">
+        <div className="hero-in">
+          <span className="hero-seal">
+            <Seal size={52} />
+          </span>
+          <div>
+            <p className="hero-jp">いらっしゃいませ</p>
+            <h1>CODE-MACHA</h1>
+            <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
+          </div>
         </div>
+        <svg className="wave" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
+        </svg>
       </header>
 
-      <ul className="menu">
+      <ul className="grid">
         {menu.map((m) => {
           const n = cart.filter((l) => l.itemId === m.id).reduce((a, l) => a + l.qty, 0);
           return (
             <li key={m.id}>
-              <button onClick={() => open(m)} disabled={!m.available}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p className="jp">{m.jp}</p>
-                  <p className="nm">{m.name}</p>
-                  <p className="ds">{m.available ? m.description : "หมดวันนี้"}</p>
+              <button className="card" style={tint(m.id)} onClick={() => open(m)} disabled={!m.available}>
+                <div className="card-art">
+                  <Cup itemId={m.id} temp={m.temps[0]} milk={m.milk ? "fresh" : null} size={104} />
+                  {n > 0 && <span className="badge">{n}</span>}
+                  {!m.available && <span className="soldout">หมดวันนี้</span>}
                 </div>
-                <div className="pr">
-                  ฿{m.price}
-                  {n > 0 && (
-                    <>
-                      <br />
-                      <span className="pill">{n} แก้ว</span>
-                    </>
-                  )}
+                <p className="jp">{m.jp}</p>
+                <p className="nm">{m.name}</p>
+                <p className="ds">{m.description}</p>
+                <div className="card-f">
+                  <b>฿{m.price}</b>
+                  {m.available && <span className="plus" aria-hidden="true">+</span>}
                 </div>
               </button>
             </li>
@@ -238,7 +247,7 @@ export default function OrderPage() {
       <p className="hint">ชำระเงินที่หน้าร้านตอนรับเครื่องดื่ม</p>
 
       {cups > 0 && !checkout && !edit && (
-        <button className="cartbar" onClick={openCheckout}>
+        <button key={cups} className="cartbar bump" onClick={openCheckout}>
           <span>ตะกร้า {cups} แก้ว</span>
           <span>฿{total}</span>
         </button>
@@ -249,6 +258,18 @@ export default function OrderPage() {
           <div className="backdrop" onClick={close} />
           <div className="sheet" role="dialog" aria-label="เลือกตัวเลือก">
             <div className="grab" />
+            <div className="sheet-art" style={tint(edit.id)}>
+              <Cup
+                key={`${edit.id}-${opts.temp}-${opts.milk}`}
+                itemId={edit.id}
+                temp={opts.temp}
+                milk={opts.milk}
+                sweet={opts.sweet}
+                extraShot={opts.extraShot}
+                animate
+                size={150}
+              />
+            </div>
             <p className="jp" style={{ fontSize: 14 }}>{edit.jp}</p>
             <h2>{edit.name}</h2>
             <p className="ds">{edit.description}</p>

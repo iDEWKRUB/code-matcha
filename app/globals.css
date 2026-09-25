@@ -131,4 +131,72 @@ textarea, input.text { width: 100%; border: 1px solid var(--edge); border-radius
 .login { max-width: 360px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 32px 16px; }
 .login h1 { font-size: 20px; margin: 0; display: flex; gap: 12px; align-items: center; }
 
-@media (prefers-reduced-motion: reduce) { .sheet, .stamp, .ticket.fresh { animation: none; } }
+/* ---------- หน้าเมนูแบบการ์ด ---------- */
+.hero { position: relative; background: linear-gradient(155deg, #3f5f26, #7c9a3e); color: #fff; padding: 28px 20px 48px; overflow: hidden; }
+.hero::before { content: "抹茶"; position: absolute; right: -8px; top: -14px; font-family: var(--mincho); font-weight: 800; font-size: 96px; opacity: .08; writing-mode: vertical-rl; }
+.hero-in { position: relative; display: flex; gap: 14px; align-items: center; }
+.hero-seal { display: inline-flex; animation: floaty 3.5s ease-in-out infinite; }
+@keyframes floaty { 50% { transform: translateY(-5px) rotate(-3deg); } }
+.hero h1 { margin: 0; font-size: 26px; letter-spacing: .03em; line-height: 1.2; }
+.hero p { margin: 2px 0 0; font-size: 14px; opacity: .92; }
+.hero .hero-jp { font-family: var(--mincho); font-size: 13px; opacity: .8; margin: 0; }
+.wave { position: absolute; left: 0; bottom: -1px; width: 100%; height: 28px; }
+.wave path { fill: var(--foam); }
+.grid { list-style: none; margin: 0; padding: 4px 16px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { width: 100%; height: 100%; text-align: left; background: #fff; border-radius: 22px; padding: 10px 12px 12px; box-shadow: 0 8px 20px -12px rgba(28,36,25,.45); display: flex; flex-direction: column; transition: transform .15s ease; }
+.card:active { transform: scale(.97); }
+.card-art { position: relative; background: var(--tint); border-radius: 16px; display: grid; place-items: center; padding: 8px 0 2px; margin-bottom: 10px; }
+.card .nm { font-size: 15px; }
+.card .ds { font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-f { margin-top: auto; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+.card-f b { font-size: 17px; }
+.plus { width: 32px; height: 32px; border-radius: 50%; background: var(--matcha); color: #fff; display: grid; place-items: center; font-size: 20px; font-weight: 600; line-height: 1; }
+.badge { position: absolute; top: 8px; right: 8px; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--seal); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.card:disabled .card-art .cup-wrap { filter: grayscale(1); opacity: .5; }
+.soldout { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-10deg); border: 3px solid var(--seal); color: var(--seal); background: rgba(255,255,255,.85); border-radius: 6px; padding: 2px 10px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.sheet-art { background: var(--tint); border-radius: 20px; padding: 12px 0 10px; margin-bottom: 14px; display: flex; justify-content: center; }
+.cartbar.bump { animation: bump .45s ease; }
+@keyframes bump { 40% { transform: scale(1.05); } }
+
+/* ---------- ถ้วยการ์ตูน ---------- */
+.cup-wrap { display: flex; flex-direction: column; align-items: center; }
+.cup { display: block; overflow: visible; }
+.cup .stream { opacity: 0; transform-box: fill-box; transform-origin: top; }
+.cup .vessel { opacity: 0; transform-box: fill-box; transform-origin: 70% 50%; }
+.cup .rise { transform-box: fill-box; transform-origin: bottom; }
+.cup .settle { transform-box: fill-box; transform-origin: top; }
+.cup .foam, .cup .pop, .cup .body-g, .cup .eyes { transform-box: fill-box; transform-origin: center bottom; }
+.cup .eyes { transform-origin: center; animation: blink 4.5s infinite; }
+.cup .bubble { fill: rgba(255,255,255,.85); animation: bubble 2.2s linear infinite; }
+.cup .steam path { fill: none; stroke: #aab29f; stroke-width: 4; stroke-linecap: round; opacity: 0; animation: steam 2.4s ease-in-out infinite; }
+.cup .pop { animation: pop .4s cubic-bezier(.3,1.6,.5,1) both; }
+.brew .stream { animation: stream 1s ease-in-out both; }
+.brew .vessel { animation: vessel 1.3s ease both; }
+.brew .rise { animation: rise .9s cubic-bezier(.3,.7,.4,1) both; }
+.brew .settle { animation: rise .6s ease-out both; }
+.brew .blend { animation: fadein .8s ease both; }
+.brew .foam { animation: foam .5s ease-out both; }
+.brew .ice { animation: ice .55s cubic-bezier(.3,1.5,.5,1) both; }
+.brew .body-g { animation: hop .5s ease 2.65s both; }
+@keyframes stream { 0% { opacity: 1; transform: scaleY(0); } 25%, 80% { opacity: 1; transform: scaleY(1); } 100% { opacity: 0; transform: scaleY(1); } }
+@keyframes vessel { 0% { opacity: 0; transform: translate(24px, -14px); } 18%, 78% { opacity: 1; transform: translate(-6px, -8px) rotate(-28deg); } 100% { opacity: 0; transform: translate(24px, -14px); } }
+@keyframes rise { from { transform: scaleY(0); } }
+@keyframes fadein { from { opacity: 0; } }
+@keyframes foam { from { opacity: 0; transform: scaleY(.2); } }
+@keyframes ice { from { opacity: 0; transform: translateY(-140px) rotate(-30deg); } }
+@keyframes hop { 40% { transform: translateY(-10px); } }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes bubble { 0% { opacity: 0; transform: translateY(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-90px); } }
+@keyframes steam { 0% { opacity: 0; transform: translateY(8px); } 40% { opacity: .8; } 100% { opacity: 0; transform: translateY(-14px); } }
+@keyframes pop { from { transform: scale(0); } }
+.brew-cap { position: relative; height: 24px; width: 100%; margin: 6px 0 0; text-align: center; font-weight: 600; font-size: 15px; color: var(--matcha); }
+.brew-cap .cap { position: absolute; inset: 0; opacity: 0; animation: cap .95s ease both; }
+.brew-cap .cap.last { opacity: 1; animation: capin .4s ease both; }
+@keyframes cap { 0% { opacity: 0; transform: translateY(6px); } 15%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
+@keyframes capin { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .stamp, .ticket.fresh, .hero-seal, .cup *, .brew-cap .cap { animation: none !important; }
+  .brew-cap .cap:not(.last) { display: none; }
+  .cup .steam path { opacity: .6; }
+}
