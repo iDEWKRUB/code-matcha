@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Order, OrderStatus } from "@/lib/menu";
+import Icon from "../Icon";
 
 export type Stats = { orders: number; revenue: number; cups: number };
 
@@ -99,7 +100,11 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                         </li>
                       ))}
                     </ul>
-                    {o.note && <p className="note">📝 {o.note}</p>}
+                    {o.note && (
+                      <p className="note">
+                        <Icon name="note" size={16} /> {o.note}
+                      </p>
+                    )}
                     {st === "payment_review" && o.hasSlip && (
                       <a className="slip" href={`/api/admin/orders/${o.id}/slip`} target="_blank" rel="noreferrer">
                         {/* eslint-disable-next-line @next/next/no-img-element */}

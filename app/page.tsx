@@ -21,6 +21,7 @@ import {
 } from "@/lib/menu";
 import { POINTS, pointsEarned } from "@/lib/config";
 import Cup, { tintOf } from "./Cup";
+import Icon from "./Icon";
 import Seal from "./Seal";
 
 const tint = (id: string) => ({ "--tint": tintOf(id) }) as React.CSSProperties;
@@ -374,7 +375,9 @@ export default function OrderPage() {
             <p className="hero-jp">いらっしゃいませ</p>
             <h1>CODE-MACHA</h1>
             <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
-            <span className="points-chip">🎁 แต้มสะสม {points.toLocaleString()} แต้ม</span>
+            <span className="points-chip">
+              <Icon name="gift" size={15} /> แต้มสะสม {points.toLocaleString()} แต้ม
+            </span>
           </div>
         </div>
         <svg className="wave" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
@@ -383,7 +386,7 @@ export default function OrderPage() {
       </header>
       {banner && (
         <p className="promo-banner" role="note">
-          📣 {banner}
+          <Icon name="megaphone" size={18} /> {banner}
         </p>
       )}
 
@@ -569,7 +572,7 @@ export default function OrderPage() {
                       if (!next.length) setCheckout(false);
                     }}
                   >
-                    ✕
+                    <Icon name="close" size={16} />
                   </button>
                 </li>
               ))}

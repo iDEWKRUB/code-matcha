@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { orderQrSvg, orderUrl } from "@/lib/qr";
+import Icon from "../Icon";
 import Seal from "../Seal";
 import PosterCups from "./PosterCups";
 
@@ -38,7 +39,9 @@ export default async function Poster() {
         </ol>
 
         <PosterCups />
-        <p className="poster-foot">🎁 ทุก ฿25 รับ 1 แต้ม ใช้แทนเงินสดได้ · {orderUrl().replace("https://", "")}</p>
+        <p className="poster-foot">
+          <Icon name="gift" size={13} /> ทุก ฿25 รับ 1 แต้ม ใช้แทนเงินสดได้ · {orderUrl().replace("https://", "")}
+        </p>
       </article>
     </main>
   );

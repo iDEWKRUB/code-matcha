@@ -20,6 +20,17 @@ button:disabled { cursor: not-allowed; }
 .seal { display: inline-flex; align-items: center; justify-content: center; background: var(--seal); color: #fff; border-radius: 4px; font-family: var(--mincho); font-weight: 800; line-height: 1; flex-shrink: 0; }
 .seal span { writing-mode: vertical-rl; letter-spacing: .05em; }
 
+.ico { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; vertical-align: -0.2em; }
+.ico.filled { fill: currentColor; }
+.panel h2 { display: flex; align-items: center; gap: 8px; }
+.panel h2 .ico { color: var(--matcha); }
+.star { display: grid; place-items: center; }
+.note { display: flex; gap: 6px; align-items: flex-start; }
+.note .ico { margin-top: 2px; color: var(--matcha); }
+.points-chip { display: inline-flex !important; align-items: center; gap: 6px; }
+.promo-banner { display: flex; align-items: center; gap: 8px; }
+.lines .x, .drawer .x { display: grid; place-items: center; }
+
 /* ---------- ลูกค้า ---------- */
 .app { max-width: 520px; margin: 0 auto; min-height: 100dvh; padding-top: env(safe-area-inset-top, 0px); }
 header.app-h { display: flex; gap: 12px; align-items: center; padding: 24px 20px; }

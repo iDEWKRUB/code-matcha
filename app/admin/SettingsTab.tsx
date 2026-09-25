@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { POINTS, SHOP } from "@/lib/config";
 import { LOOKS, lookOf, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
 import Cup, { tintOf } from "../Cup";
+import Icon from "../Icon";
 import { Price } from "./MenuTab";
 
 type Draft = {
@@ -132,7 +133,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
     <div className="settings">
       <section className="panel">
         <header>
-          <h2>📣 ป้ายประกาศโปรโมชั่น</h2>
+          <h2>
+            <Icon name="megaphone" size={20} /> ป้ายประกาศโปรโมชั่น
+          </h2>
           <p>แสดงเป็นแถบบนหน้าสั่งของลูกค้า เช่น &ldquo;วันนี้ Cold Whisk ลด 20 บาท!&rdquo;</p>
         </header>
         <div className="banner-preview" data-on={settings.bannerActive}>
@@ -164,7 +167,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
 
       <section className="panel">
         <header>
-          <h2>📱 QR สแกนสั่ง</h2>
+          <h2>
+            <Icon name="qr" size={20} /> QR สแกนสั่ง
+          </h2>
           <p>ลูกค้าสแกนด้วยกล้องมือถือ จะเปิดหน้าสั่งใน LINE ทันที วางไว้ที่เคาน์เตอร์หรือหน้าร้าน</p>
         </header>
         <div className="qr-panel">
@@ -182,7 +187,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       <section className="panel">
         <header className="panel-head">
           <div>
-            <h2>🍵 จัดการเมนู</h2>
+            <h2>
+              <Icon name="cup" size={20} /> จัดการเมนู
+            </h2>
             <p>ตั้งราคาโปรเพื่อทำโปรโมชั่นรายเมนู · กดดาวเพื่อติดป้าย &ldquo;แนะนำ&rdquo; และให้ขึ้นก่อนเมนูอื่น</p>
           </div>
           <button className="btn primary-sm" onClick={() => edit(EMPTY)}>
@@ -210,7 +217,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                 aria-pressed={m.recommended}
                 onClick={() => quick(m, { recommended: !m.recommended })}
               >
-                ★
+                <Icon name="star" size={20} filled={m.recommended} />
               </button>
               <button className="btn ghost-sm" onClick={() => edit(toDraft(m))}>
                 แก้ไข
@@ -222,7 +229,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
 
       <section className="panel info">
         <header>
-          <h2>🏪 ข้อมูลร้าน</h2>
+          <h2>
+            <Icon name="store" size={20} /> ข้อมูลร้าน
+          </h2>
           <p>ค่าเหล่านี้อยู่ในโค้ด (lib/config.ts) ถ้าต้องการเปลี่ยนให้แจ้งผู้ดูแลระบบ</p>
         </header>
         <dl>
@@ -248,7 +257,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
             <header>
               <h2>{draft.id ? "แก้ไขเมนู" : "เพิ่มเมนูใหม่"}</h2>
               <button className="x" aria-label="ปิด" onClick={() => setDraft(null)}>
-                ✕
+                <Icon name="close" size={18} />
               </button>
             </header>
             <div className="drawer-art" style={{ "--tint": tintOf(previewLook) } as React.CSSProperties}>
@@ -293,7 +302,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
               </label>
               <label className="check">
                 <input type="checkbox" checked={draft.recommended} onChange={(e) => set("recommended", e.target.checked)} />
-                เมนูแนะนำ ★
+                เมนูแนะนำ
               </label>
               <label>
                 หน้าตาแก้วการ์ตูน
