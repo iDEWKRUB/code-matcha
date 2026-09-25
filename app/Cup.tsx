@@ -26,7 +26,7 @@ const RECIPES: Record<string, Recipe> = {
   "ceremonial-latte": { base: "milk", top: "#3f6b1f", topLabel: "มัทฉะเกรดพิธี", mixed: "#8fb060", layered: true, tint: "#dbe8c6" },
   "hojicha-latte": { base: "milk", top: "#8a5a35", topLabel: "โฮจิฉะ", mixed: "#c49a74", layered: true, tint: "#f1e4d3" },
   "yuzu-sparkling": { base: "soda", top: "#6f9a35", topLabel: "มัทฉะ", mixed: "#b5c957", layered: true, tint: "#fbf0c4" },
-  "cold-whisk-latte": { base: "milk", top: "#7aa63a", topLabel: "มัทฉะตีเย็น", mixed: "#a9c47a", layered: true, tint: "#e4f0d2", foamCap: true },
+  "cold-whisk-latte": { base: "milk", top: "#8fb33a", topLabel: "มัทฉะตีเย็น", mixed: "#a3c23c", layered: false, tint: "#eef3cf", foamCap: true },
   "coconut-matcha": { base: "coconut", top: "#6f9a35", topLabel: "มัทฉะ", mixed: "#a8c46e", layered: true, tint: "#e9f3e1" },
   "strawberry-matcha": {
     base: "milk",
@@ -146,7 +146,10 @@ export default function Cup(props: Props) {
                 {r.foamCap && <rect x="0" y={g.top} width="200" height="16" fill={shade(r.top, depth * 1.35)} />}
               </g>
             ) : (
-              <rect className="blend" x="0" y={g.top} width="200" height={g.bottom - g.top + 4} fill={mixed} style={{ animationDelay: "1.55s" }} />
+              <g className="blend" style={{ animationDelay: "1.55s" }}>
+                <rect x="0" y={g.top} width="200" height={g.bottom - g.top + 4} fill={mixed} />
+                {r.foamCap && !hot && <path d={`M0 ${g.top + 16} ${"q12.5 5 25 0 ".repeat(8)}V${g.top} H0 Z`} fill={shade(r.mixed, depth * 1.3)} />}
+              </g>
             )}
             {r.base === "soda" &&
               [60, 85, 110, 135, 72, 124].map((x, i) => (
