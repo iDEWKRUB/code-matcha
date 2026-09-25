@@ -1,18 +1,24 @@
 import "server-only";
 import QRCode from "qrcode";
 import { SHOP, pointsEarned } from "./config";
-import type { MenuItem, Order, Payment, Slot } from "./menu";
+import type { MenuItem, Order, Payment, ShopSettings, Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
 import { isBookable, nowInShop, slotTimes } from "./time";
 
+export const MENU_COLUMNS =
+  "id,name,jp,description,price,temps,milk,available,promoPrice:promo_price,recommended,look,sort";
+
 export async function getMenu(): Promise<MenuItem[]> {
-  const { data, error } = await db()
-    .from("menu_items")
-    .select("id,name,jp,description,price,temps,milk,available")
-    .order("sort");
+  const { data, error } = await db().from("menu_items").select(MENU_COLUMNS).order("sort");
   if (error) throw error;
-  return data as MenuItem[];
+  return data as unknown as MenuItem[];
+}
+
+export async function getSettings(): Promise<ShopSettings> {
+  const { data, error } = await db().from("shop_settings").select("banner,banner_active").eq("id", 1).maybeSingle();
+  if (error) throw error;
+  return { banner: data?.banner ?? "", bannerActive: data?.banner_active ?? false };
 }
 
 // ออเดอร์ที่ยังใช้ที่ในช่องเวลา: ไม่ถูกยกเลิก และไม่ใช่รอชำระที่หมดเวลาแล้ว

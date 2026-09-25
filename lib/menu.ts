@@ -11,7 +11,29 @@ export type MenuItem = {
   temps: Temp[];
   milk: boolean;
   available: boolean;
+  promoPrice: number | null; // ราคาโปร (null = ไม่มีโปร)
+  recommended: boolean;
+  look: string | null; // หน้าตาแก้วการ์ตูน (id ของสูตรใน Cup) null = ใช้ id เมนู
+  sort: number;
 };
+
+export type ShopSettings = { banner: string; bannerActive: boolean };
+
+// แบบหน้าตาแก้วการ์ตูนที่เลือกให้เมนูใหม่ได้ (ต้องตรงกับสูตรใน app/Cup.tsx)
+export const LOOKS = [
+  { id: "usucha", label: "เขียวทั้งแก้ว (มัทฉะเพียว)" },
+  { id: "matcha-latte", label: "ชั้นนม + มัทฉะ (ลาเต้)" },
+  { id: "ceremonial-latte", label: "ชั้นนม + มัทฉะเข้ม" },
+  { id: "cold-whisk-latte", label: "เขียวอมเหลือง + ฟอง" },
+  { id: "hojicha-latte", label: "ชั้นนม + โฮจิฉะ (น้ำตาล)" },
+  { id: "strawberry-matcha", label: "สตรอว์เบอร์รี่ 3 ชั้น" },
+  { id: "coconut-matcha", label: "น้ำมะพร้าว + มัทฉะ" },
+  { id: "yuzu-sparkling", label: "โซดายูซุ + มัทฉะ" },
+];
+export const LOOK_IDS = LOOKS.map((l) => l.id);
+export const lookOf = (item: Pick<MenuItem, "id" | "look">) => item.look ?? item.id;
+
+export const basePrice = (item: MenuItem) => item.promoPrice ?? item.price;
 
 export type CartLine = {
   itemId: string;
@@ -88,7 +110,7 @@ export function linePrice(item: MenuItem, l: CartLine) {
   const milk = item.milk ? MILKS.find((m) => m.id === l.milk)?.price ?? 0 : 0;
   const powder = hasPowder(item) ? POWDERS.find((p) => p.id === l.powder)?.price ?? 0 : 0;
   const addons = (l.extraShot ? SHOT_PRICE : 0) + (l.softCream ? SOFT_CREAM_PRICE : 0);
-  return (item.price + milk + powder + addons) * l.qty;
+  return (basePrice(item) + milk + powder + addons) * l.qty;
 }
 
 export function lineDetail(l: CartLine) {

@@ -2,22 +2,35 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MenuItem, Order, OrderStatus } from "@/lib/menu";
+import type { MenuItem, Order } from "@/lib/menu";
 import Seal from "../Seal";
+import MenuTab from "./MenuTab";
+import OrdersTab, { type Stats } from "./OrdersTab";
+import SettingsTab from "./SettingsTab";
 
 const POLL_MS = 5000;
-const COLS: [OrderStatus, string][] = [
-  ["payment_review", "รอตรวจสลิป"],
-  ["pending", "ออเดอร์ใหม่ (จ่ายแล้ว)"],
-  ["preparing", "กำลังทำ"],
-  ["ready", "รอลูกค้ารับ"],
+type Tab = "orders" | "menu" | "settings";
+
+const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = [
+  {
+    id: "orders",
+    label: "ออเดอร์วันนี้",
+    hint: "อัปเดตอัตโนมัติทุก 5 วินาที",
+    icon: <path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-2 2-2-2-2 2-2-2-3 2V6a2 2 0 0 1 2-2Zm2 5h6M9 13h6" />,
+  },
+  {
+    id: "menu",
+    label: "เมนูที่ขายวันนี้",
+    hint: "กดสวิตช์เพื่อเปิด/ปิดการขายทันที",
+    icon: <path d="M6 8h11l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16.6M9 4c0 1 1 1 1 2M12 3c0 1 1 1 1 2" />,
+  },
+  {
+    id: "settings",
+    label: "ตั้งค่าร้าน",
+    hint: "เพิ่มเมนู โปรโมชั่น และเมนูแนะนำ",
+    icon: <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm7.4 3a7.4 7.4 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.2-1.3L14.3 2h-4l-.4 2.4a7.5 7.5 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.6l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2.2 1.3l.4 2.4h4l.4-2.4a7.5 7.5 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3Z" />,
+  },
 ];
-const ACTIONS: Partial<Record<OrderStatus, [OrderStatus, string][]>> = {
-  payment_review: [["pending", "ยอดเงินถูกต้อง"], ["cancelled", "สลิปไม่ถูกต้อง"]],
-  pending: [["preparing", "เริ่มทำ"], ["cancelled", "ยกเลิก"]],
-  preparing: [["ready", "พร้อมรับ (ส่ง LINE)"], ["cancelled", "ยกเลิก"]],
-  ready: [["completed", "ลูกค้ารับแล้ว"]],
-};
 
 function beep() {
   try {
@@ -35,11 +48,11 @@ function beep() {
 
 export default function Board() {
   const router = useRouter();
+  const [tab, setTab] = useState<Tab>("orders");
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [stats, setStats] = useState<Stats>({ orders: 0, revenue: 0, cups: 0 });
   const [fresh, setFresh] = useState<Set<number>>(new Set());
-  const [confirming, setConfirming] = useState<number | null>(null);
-  const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
   const seen = useRef<Set<number> | null>(null);
 
@@ -48,7 +61,7 @@ export default function Board() {
       const r = await fetch("/api/admin/board", { cache: "no-store" });
       if (r.status === 401) return router.refresh();
       if (!r.ok) throw new Error();
-      const j = (await r.json()) as { orders: Order[]; menu: MenuItem[] };
+      const j = (await r.json()) as { orders: Order[]; menu: MenuItem[]; stats: Stats };
       if (seen.current) {
         const added = j.orders.filter((o) => !seen.current!.has(o.id)).map((o) => o.id);
         if (added.length) {
@@ -59,6 +72,7 @@ export default function Board() {
       seen.current = new Set(j.orders.map((o) => o.id));
       setOrders(j.orders);
       setMenu(j.menu);
+      setStats(j.stats);
       setError("");
     } catch {
       setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กำลังลองใหม่…");
@@ -71,126 +85,60 @@ export default function Board() {
     return () => clearInterval(t);
   }, [load]);
 
-  async function move(o: Order, to: OrderStatus) {
-    if (to === "cancelled" && confirming !== o.id) {
-      setConfirming(o.id);
-      return;
-    }
-    setConfirming(null);
-    setBusy(o.id);
-    const r = await fetch(`/api/admin/orders/${o.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to }),
-    });
-    if (!r.ok) setError((await r.json().catch(() => ({}))).error ?? "อัปเดตไม่สำเร็จ");
-    setBusy(null);
-    load();
-  }
-
-  async function toggle(m: MenuItem) {
-    setMenu(menu.map((x) => (x.id === m.id ? { ...x, available: !m.available } : x)));
-    const r = await fetch(`/api/admin/menu/${m.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ available: !m.available }),
-    });
-    if (!r.ok) setError("บันทึกสถานะเมนูไม่สำเร็จ");
-    load();
-  }
-
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.refresh();
   }
 
+  const slips = orders.filter((o) => o.status === "payment_review").length;
+  const soldOut = menu.filter((m) => !m.available).length;
+  const current = TABS.find((t) => t.id === tab)!;
+
   return (
-    <main className="admin">
-      <header>
-        <Seal size={36} />
-        <h1>ออเดอร์วันนี้</h1>
-        <small>อัปเดตทุก 5 วินาที</small>
-        <button className="link" onClick={logout}>ออกจากระบบ</button>
-      </header>
-      {error && <p className="banner" role="alert">{error}</p>}
-
-      <div className="cols">
-        {COLS.map(([st, title]) => {
-          const list = orders.filter((o) => o.status === st);
-          return (
-            <section key={st}>
-              <h2>
-                {title} <span>({list.length})</span>
-              </h2>
-              {list.length === 0 && <p className="empty">ไม่มีออเดอร์</p>}
-              <ul>
-                {list.map((o) => (
-                  <li key={o.id} className={`ticket ${st} ${fresh.has(o.id) ? "fresh" : ""}`}>
-                    <div className="th">
-                      <b>#{o.no}</b>
-                      <span>{o.pickupTime} น.</span>
-                    </div>
-                    <p className="who">
-                      {o.customerName} ฿{o.total}
-                      {o.discount > 0 && ` (ใช้แต้มลด ฿${o.discount})`}
-                    </p>
-                    <ul className="its">
-                      {o.items.map((i, k) => (
-                        <li key={k}>
-                          <b>
-                            {i.qty}× {i.name}
-                          </b>
-                          <small>{i.detail}</small>
-                        </li>
-                      ))}
-                    </ul>
-                    {o.note && <p className="note">📝 {o.note}</p>}
-                    {st === "payment_review" && o.hasSlip && (
-                      <a className="slip" href={`/api/admin/orders/${o.id}/slip`} target="_blank" rel="noreferrer">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/api/admin/orders/${o.id}/slip?v=${o.id}`} alt={`สลิปออเดอร์ #${o.no}`} loading="lazy" />
-                        <span>ยอดที่ต้องได้รับ ฿{o.total} · แตะเพื่อขยาย</span>
-                      </a>
-                    )}
-                    <div className="tacts">
-                      {confirming === o.id ? (
-                        <>
-                          <button className="danger" disabled={busy === o.id} onClick={() => move(o, "cancelled")}>
-                            ยืนยันยกเลิก (แจ้งลูกค้า)
-                          </button>
-                          <button onClick={() => setConfirming(null)}>ไม่ใช่</button>
-                        </>
-                      ) : (
-                        ACTIONS[st]?.map(([to, label], k) => (
-                          <button key={to} className={k === 0 ? "p" : ""} disabled={busy === o.id} onClick={() => move(o, to)}>
-                            {label}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          );
-        })}
-      </div>
-
-      <section className="stock">
-        <h2>เมนูที่ขายวันนี้</h2>
-        <ul>
-          {menu.map((m) => (
-            <li key={m.id}>
-              <span>
-                {m.name} <span style={{ color: "var(--stone)" }}>฿{m.price}</span>
-              </span>
-              <button className="switch" aria-pressed={m.available} onClick={() => toggle(m)}>
-                {m.available ? "มีขาย" : "หมด"}
-              </button>
-            </li>
+    <div className="adm">
+      <aside className="adm-side">
+        <div className="adm-brand">
+          <Seal size={38} />
+          <div>
+            <b>CODE-MACHA</b>
+            <small>หลังร้าน</small>
+          </div>
+        </div>
+        <nav className="adm-nav" aria-label="เมนูหลังร้าน">
+          {TABS.map((t) => (
+            <button key={t.id} aria-current={tab === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {t.icon}
+              </svg>
+              <span>{t.label}</span>
+              {t.id === "orders" && slips > 0 && <em className="dot-badge">{slips}</em>}
+              {t.id === "menu" && soldOut > 0 && <em className="dot-badge muted">{soldOut} หมด</em>}
+            </button>
           ))}
-        </ul>
-      </section>
-    </main>
+        </nav>
+        <button className="adm-logout" onClick={logout}>
+          ออกจากระบบ
+        </button>
+      </aside>
+
+      <main className="adm-main">
+        <header className="adm-head">
+          <div>
+            <h1>{current.label}</h1>
+            <p>{current.hint}</p>
+          </div>
+          <span className={`live${error ? " off" : ""}`}>{error ? "ออฟไลน์" : "ออนไลน์"}</span>
+        </header>
+        {error && (
+          <p className="banner" role="alert">
+            {error}
+          </p>
+        )}
+
+        {tab === "orders" && <OrdersTab orders={orders} stats={stats} fresh={fresh} reload={load} onError={setError} />}
+        {tab === "menu" && <MenuTab menu={menu} setMenu={setMenu} reload={load} onError={setError} />}
+        {tab === "settings" && <SettingsTab menu={menu} reload={load} />}
+      </main>
+    </div>
   );
 }

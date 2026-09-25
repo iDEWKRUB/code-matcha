@@ -11,6 +11,7 @@ import {
   SWEET,
   TEMP_LABEL,
   hasPowder,
+  lookOf,
   lineDetail,
   linePrice,
   type CartLine,
@@ -68,6 +69,7 @@ export default function OrderPage() {
   const [needLogin, setNeedLogin] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
   const [points, setPoints] = useState(0);
+  const [banner, setBanner] = useState("");
   const [usePoints, setUsePoints] = useState(false);
   const liff = useRef<Liff | null>(null);
 
@@ -84,9 +86,10 @@ export default function OrderPage() {
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
     if (!r.ok) throw new Error("โหลดเมนูไม่สำเร็จ");
-    const j = (await r.json()) as { menu: MenuItem[]; slots: Slot[] };
+    const j = (await r.json()) as { menu: MenuItem[]; slots: Slot[]; banner: string };
     setMenu(j.menu);
     setSlots(j.slots);
+    setBanner(j.banner ?? "");
   }, []);
 
   useEffect(() => {
@@ -378,23 +381,38 @@ export default function OrderPage() {
           <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
         </svg>
       </header>
+      {banner && (
+        <p className="promo-banner" role="note">
+          📣 {banner}
+        </p>
+      )}
 
       <ul className="grid">
         {menu.map((m) => {
           const n = cart.filter((l) => l.itemId === m.id).reduce((a, l) => a + l.qty, 0);
           return (
             <li key={m.id}>
-              <button className="card" style={tint(m.id)} onClick={() => open(m)} disabled={!m.available}>
+              <button className="card" style={tint(lookOf(m))} onClick={() => open(m)} disabled={!m.available}>
                 <div className="card-art">
-                  <Cup itemId={m.id} temp={m.temps[0]} milk={m.milk ? "fresh" : null} size={104} />
+                  <Cup itemId={lookOf(m)} temp={m.temps[0]} milk={m.milk ? "fresh" : null} size={104} />
                   {n > 0 && <span className="badge">{n}</span>}
                   {!m.available && <span className="soldout">หมดวันนี้</span>}
+                  <div className="flags">
+                    {m.recommended && <span className="flag rec">แนะนำ</span>}
+                    {m.promoPrice !== null && <span className="flag sale">โปร</span>}
+                  </div>
                 </div>
                 <p className="jp">{m.jp}</p>
                 <p className="nm">{m.name}</p>
                 <p className="ds">{m.description}</p>
                 <div className="card-f">
-                  <b>฿{m.price}</b>
+                  {m.promoPrice !== null ? (
+                    <span className="price">
+                      <s>฿{m.price}</s> <b className="promo">฿{m.promoPrice}</b>
+                    </span>
+                  ) : (
+                    <b>฿{m.price}</b>
+                  )}
                   {m.available && <span className="plus" aria-hidden="true">+</span>}
                 </div>
               </button>
@@ -416,10 +434,10 @@ export default function OrderPage() {
           <div className="backdrop" onClick={close} />
           <div className="sheet" role="dialog" aria-label="เลือกตัวเลือก">
             <div className="grab" />
-            <div className="sheet-art" style={tint(edit.id)}>
+            <div className="sheet-art" style={tint(lookOf(edit))}>
               <Cup
                 key={`${edit.id}-${opts.temp}-${opts.milk}`}
-                itemId={edit.id}
+                itemId={lookOf(edit)}
                 temp={opts.temp}
                 milk={opts.milk}
                 sweet={opts.sweet}
