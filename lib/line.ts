@@ -43,7 +43,7 @@ async function callLine(path: string, body: unknown): Promise<SendResult> {
 }
 
 // LINE ส่งหาได้เฉพาะคนที่เป็นเพื่อน (โปรไฟล์ดูได้เฉพาะเพื่อน: 404 = ยังไม่แอด/บล็อก)
-async function isFriend(userId: string) {
+export async function isFriend(userId: string) {
   const res = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
     headers: { Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}` },
     cache: "no-store",

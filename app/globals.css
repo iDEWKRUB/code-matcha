@@ -248,6 +248,9 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .friend-wrap .friend-card { margin-top: 0; }
 .friend-ico { width: 42px; height: 42px; border-radius: 50%; background: #06c755; color: #fff; display: grid; place-items: center; flex-shrink: 0; }
 .friend-card > div { flex: 1; min-width: 180px; }
+.friend-card.must { background: #e3f8ea; border: 2px solid #06c755; box-shadow: 0 10px 24px -16px rgba(6,199,85,.8); }
+.friend-card.must b { font-size: 16px; }
+.primary.friend-btn { background: #06c755; }
 .friend-card b { display: block; font-size: 15px; }
 .friend-card span:not(.friend-ico) { display: block; font-size: 12px; color: var(--stone); margin-top: 2px; line-height: 1.5; }
 .friend-card button { flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 999px; background: #06c755; color: #fff; font-weight: 700; font-size: 14px; }

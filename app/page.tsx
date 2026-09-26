@@ -130,14 +130,21 @@ export default function OrderPage() {
     else window.open(url, "_blank");
   }
 
+  // ร้านบังคับให้เป็นเพื่อนก่อนสั่ง (เซิร์ฟเวอร์ตรวจซ้ำอีกชั้น)
+  const mustAddFriend = SHOP.requireFriend && isFriend === false;
+
   const friendCard = isFriend === false && (
-    <div className="friend-card" role="note">
+    <div className={`friend-card${mustAddFriend ? " must" : ""}`} role="note">
       <span className="friend-ico">
         <Icon name="bell" size={22} />
       </span>
       <div>
-        <b>เพิ่มร้านเป็นเพื่อนเพื่อรับแจ้งเตือน</b>
-        <span>ไม่งั้นจะไม่ได้รับข้อความตอนร้านยืนยันการจ่าย และตอนเครื่องดื่มพร้อมรับ</span>
+        <b>{mustAddFriend ? "เพิ่มร้านเป็นเพื่อนก่อนสั่ง" : "เพิ่มร้านเป็นเพื่อนเพื่อรับแจ้งเตือน"}</b>
+        <span>
+          {mustAddFriend
+            ? "ร้านจะแจ้งทาง LINE ตอนยืนยันการจ่ายและตอนออเดอร์พร้อม กดเพิ่มเพื่อนแล้วกลับมาสั่งได้เลย"
+            : "ไม่งั้นจะไม่ได้รับข้อความตอนร้านยืนยันการจ่าย และตอนเครื่องดื่มพร้อมรับ"}
+        </span>
       </div>
       <button onClick={addFriend}>เพิ่มเพื่อน</button>
     </div>
@@ -302,6 +309,7 @@ export default function OrderPage() {
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
+      if (r.status === 403) setIsFriend(false); // เซิร์ฟเวอร์บอกว่ายังไม่ได้เป็นเพื่อน
       if (r.status === 409) {
         if (String(j.error).includes("โค้ด") || String(j.error).includes("ลูกค้าใหม่")) {
           setPromo(null);
@@ -733,16 +741,22 @@ export default function OrderPage() {
                 <span>{opts.qty}</span>
                 <button disabled={opts.qty >= MAX_QTY} aria-label="เพิ่มจำนวน" onClick={() => setOpts({ ...opts, qty: opts.qty + 1 })}>+</button>
               </div>
-              <button
-                className="primary"
-                disabled={closed}
-                onClick={() => {
-                  setCart([...cart, { itemId: edit.id, ...opts }]);
-                  setEdit(null);
-                }}
-              >
-                {closed ? "ตอนนี้ร้านปิดรับออเดอร์" : `ใส่ตะกร้า ฿${linePrice(edit, { itemId: edit.id, ...opts })}`}
-              </button>
+              {mustAddFriend && !closed ? (
+                <button className="primary friend-btn" onClick={addFriend}>
+                  เพิ่มเพื่อนก่อนสั่ง
+                </button>
+              ) : (
+                <button
+                  className="primary"
+                  disabled={closed}
+                  onClick={() => {
+                    setCart([...cart, { itemId: edit.id, ...opts }]);
+                    setEdit(null);
+                  }}
+                >
+                  {closed ? "ตอนนี้ร้านปิดรับออเดอร์" : `ใส่ตะกร้า ฿${linePrice(edit, { itemId: edit.id, ...opts })}`}
+                </button>
+              )}
             </div>
           </div>
         </>
@@ -906,6 +920,11 @@ export default function OrderPage() {
             </dl>
             {payAmount > 0 && <p className="small">ออเดอร์นี้จะได้รับ {pointsEarned(payAmount)} แต้ม</p>}
 
+            {mustAddFriend && !closed ? (
+              <button className="primary friend-btn" style={{ marginTop: 16, minHeight: 56 }} onClick={addFriend}>
+                เพิ่ม Code-matcha เป็นเพื่อนก่อนสั่ง
+              </button>
+            ) : (
             <button className="primary" style={{ marginTop: 16, minHeight: 56 }} disabled={!ready || closed || sending} onClick={submit}>
               {sending
                 ? "กำลังส่ง…"
@@ -919,6 +938,7 @@ export default function OrderPage() {
                     ? `ใช้ ${pointsToUse} แต้ม ยืนยันสั่ง`
                     : `ไปชำระเงิน ฿${payAmount}`}
             </button>
+            )}
             {sendErr && <p className="err" role="alert">{sendErr}</p>}
             {needLogin && liff.current && (
               <button className="ghost" onClick={relogin}>เข้าสู่ระบบ LINE ใหม่</button>

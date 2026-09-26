@@ -3,7 +3,7 @@ import { POINTS, SHOP } from "@/lib/config";
 import { adminUri } from "@/lib/flex";
 import { promoDiscount } from "@/lib/promo";
 import { checkPromo } from "@/lib/promoServer";
-import { pushCard, verifyIdToken } from "@/lib/line";
+import { isFriend, pushCard, verifyIdToken } from "@/lib/line";
 import {
   MAX_QTY,
   MILKS,
@@ -30,6 +30,8 @@ export async function POST(req: Request) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const user = token ? await verifyIdToken(token) : null;
   if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
+  if (SHOP.requireFriend && user.userId !== "dev" && !(await isFriend(user.userId)))
+    return fail("กรุณาเพิ่ม Code-matcha เป็นเพื่อนใน LINE ก่อนสั่ง", 403);
 
   let body: {
     lines?: unknown;
