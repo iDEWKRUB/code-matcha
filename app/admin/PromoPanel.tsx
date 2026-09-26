@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SHOP } from "@/lib/config";
 import { normalizeCode, promoLabel, type PromoRule } from "@/lib/promo";
+import { toJpeg } from "html-to-image";
+import type { MenuItem } from "@/lib/menu";
 import Icon from "../Icon";
+import PromoArt, { THEMES, type Theme } from "./PromoArt";
 
 const json = (method: string, body?: unknown) => ({
   method,
@@ -38,7 +41,7 @@ const EMPTY: Form = {
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const digits = (s: string) => s.replace(/\D/g, "");
 
-export default function PromoPanel() {
+export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
   const [promos, setPromos] = useState<PromoRule[]>([]);
   const [form, setForm] = useState<Form | null>(null);
   const [err, setErr] = useState("");
@@ -53,6 +56,36 @@ export default function PromoPanel() {
     image: `${SHOP.siteUrl}/promo/omelette-29.png`,
   });
   const [uploading, setUploading] = useState(false);
+
+  // Gen รูปจากแม่แบบของร้าน
+  const [artItem, setArtItem] = useState("omelette-rice");
+  const [theme, setTheme] = useState<Theme>("orange");
+  const [showNew, setShowNew] = useState(true);
+  const [genning, setGenning] = useState(false);
+  const artRef = useRef<HTMLDivElement>(null);
+
+  async function gen() {
+    if (!artRef.current) return;
+    setGenning(true);
+    setSendMsg(null);
+    try {
+      await document.fonts.ready;
+      const dataUrl = await toJpeg(artRef.current, { width: 1040, height: 676, pixelRatio: 1, quality: 0.9, cacheBust: true });
+      const blob = await (await fetch(dataUrl)).blob();
+      const fd = new FormData();
+      fd.append("image", new File([blob], "promo.jpg", { type: "image/jpeg" }));
+      const r = await fetch("/api/admin/promo-image", { method: "POST", body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? "อัปโหลดไม่สำเร็จ");
+      setCard((x) => ({ ...x, image: j.url }));
+      setSendState("idle");
+      setSendMsg({ ok: true, text: "สร้างรูปโปรใหม่แล้ว" });
+    } catch (e) {
+      setSendMsg({ ok: false, text: e instanceof Error ? e.message : "สร้างรูปไม่สำเร็จ" });
+    } finally {
+      setGenning(false);
+    }
+  }
 
   // ย่อรูปให้กว้าง 1040px เป็น JPG (LINE รับไม่เกิน 1MB) แล้วอัปโหลด
   async function uploadImage(file: File | undefined) {
@@ -304,6 +337,7 @@ export default function PromoPanel() {
           </div>
 
           {/* ตัวอย่างการ์ด (หน้าตาใกล้เคียงใน LINE) */}
+          <div className="preview-col">
           <div className="flex-preview" aria-label="ตัวอย่างการ์ด">
             {card.image ? (
               <>
@@ -339,7 +373,51 @@ export default function PromoPanel() {
               {card.detail && <p>{card.detail}</p>}
             </div>
             <div className="fp-foot">สั่งเลย</div>
+            </div>
+
+            <div className="gen-box">
+              <b>
+                <Icon name="gift" size={16} /> สร้างรูปโปรจากรายละเอียดด้านซ้าย
+              </b>
+              <label>
+                ภาพเมนู
+                <select className="text" value={artItem} onChange={(e) => setArtItem(e.target.value)}>
+                  {menu.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="chips">
+                {(Object.keys(THEMES) as Theme[]).map((k) => (
+                  <button key={k} type="button" className="chip" aria-pressed={theme === k} onClick={() => setTheme(k)}>
+                    {THEMES[k].label}
+                  </button>
+                ))}
+              </div>
+              <label className="row" style={{ marginTop: 0, minHeight: 36 }}>
+                <span>ใส่ป้าย NEW</span>
+                <input type="checkbox" checked={showNew} onChange={(e) => setShowNew(e.target.checked)} />
+              </label>
+              <button className="btn primary-sm gen-btn" disabled={genning || !card.title} onClick={gen}>
+                {genning ? "กำลังสร้างรูป…" : "Gen รูปโปร"}
+              </button>
+            </div>
           </div>
+        </div>
+
+        {/* แม่แบบที่ใช้ถ่ายเป็นรูป (ซ่อนไว้นอกจอ) */}
+        <div className="gen-stage" aria-hidden="true">
+          <PromoArt
+            ref={artRef}
+            title={card.title}
+            subtitle={card.subtitle}
+            item={menu.find((m) => m.id === artItem) ?? menu[0] ?? null}
+            code={chosen ?? null}
+            theme={theme}
+            showNew={showNew}
+          />
         </div>
         <div className="panel-row">
           <button className="btn ghost-sm" disabled={sendState === "sending"} onClick={() => send(false)}>

@@ -310,7 +310,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
         {bannerMsg && <p className="hint-ok">{bannerMsg}</p>}
       </section>
 
-      <PromoPanel />
+      <PromoPanel menu={menu} />
       <MessageLog />
 
       <section className="panel">
