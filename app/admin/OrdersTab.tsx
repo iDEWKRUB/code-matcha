@@ -90,6 +90,11 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                     </div>
                     <p className="who">
                       {o.customerName} · <strong>฿{o.total}</strong>
+                      {o.promoDiscount > 0 && (
+                        <span className="tag">
+                          {o.promoCode} −฿{o.promoDiscount}
+                        </span>
+                      )}
                       {o.discount > 0 && <span className="tag">ใช้แต้ม −฿{o.discount}</span>}
                     </p>
                     <ul className="its">

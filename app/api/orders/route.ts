@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { POINTS, SHOP } from "@/lib/config";
 import { adminUri } from "@/lib/flex";
+import { promoDiscount } from "@/lib/promo";
+import { checkPromo } from "@/lib/promoServer";
 import { pushCard, verifyIdToken } from "@/lib/line";
 import {
   MAX_QTY,
@@ -29,7 +31,15 @@ export async function POST(req: Request) {
   const user = token ? await verifyIdToken(token) : null;
   if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
 
-  let body: { lines?: unknown; pickupTime?: unknown; note?: unknown; points?: unknown; service?: unknown; tableNo?: unknown };
+  let body: {
+    lines?: unknown;
+    pickupTime?: unknown;
+    note?: unknown;
+    points?: unknown;
+    service?: unknown;
+    tableNo?: unknown;
+    promoCode?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -103,11 +113,22 @@ export async function POST(req: Request) {
   const cleanNote = typeof note === "string" ? note.trim().slice(0, 200) : "";
   if (!process.env.PROMPTPAY_ID) return fail("ร้านยังไม่ได้ตั้งค่าการรับเงิน กรุณาติดต่อร้าน", 503);
 
-  // แต้มที่ใช้ (1 แต้ม = 1 บาท) ห้ามเกินยอด; ยอดคงเหลือตรวจอีกครั้งใน place_order
+  // โค้ดส่วนลด (ตรวจสิทธิ์ใหม่ที่เซิร์ฟเวอร์ทุกครั้ง) หักก่อนแต้ม
+  let promoCode: string | null = null;
+  let promoOff = 0;
+  if (typeof body.promoCode === "string" && body.promoCode.trim()) {
+    const r = await checkPromo(body.promoCode, user.userId, total);
+    if ("error" in r) return fail(r.error, 409);
+    promoCode = r.rule.code;
+    promoOff = promoDiscount(r.rule, total);
+  }
+  const afterPromo = total - promoOff;
+
+  // แต้มที่ใช้ (1 แต้ม = 1 บาท) ห้ามเกินยอดหลังหักโค้ด; ยอดคงเหลือตรวจอีกครั้งใน place_order
   const points = Number(body.points ?? 0);
-  if (!Number.isInteger(points) || points < 0 || points > total) return fail("จำนวนแต้มไม่ถูกต้อง");
+  if (!Number.isInteger(points) || points < 0 || points > afterPromo) return fail("จำนวนแต้มไม่ถูกต้อง");
   if (points > 0 && points < POINTS.minRedeem) return fail(`ใช้แต้มได้ครั้งละอย่างน้อย ${POINTS.minRedeem} แต้ม`);
-  const pay = total - points;
+  const pay = afterPromo - points;
 
   const { data, error } = await db().rpc("place_order", {
     p_date: now.date,
@@ -130,9 +151,12 @@ export async function POST(req: Request) {
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string; order_status: string };
-  if (service !== "pickup") {
-    const { error: svcErr } = await db().from("orders").update({ service, table_no: tableNo }).eq("id", row.order_id);
-    if (svcErr) console.error("set service failed", svcErr);
+  if (service !== "pickup" || promoCode) {
+    const { error: svcErr } = await db()
+      .from("orders")
+      .update({ service, table_no: tableNo, promo_code: promoCode, promo_discount: promoOff })
+      .eq("id", row.order_id);
+    if (svcErr) console.error("set service/promo failed", svcErr);
   }
   const when = whenText({ service, pickupTime: time, tableNo });
 
@@ -143,7 +167,7 @@ export async function POST(req: Request) {
     await Promise.all([
       pushCard(process.env.LINE_STAFF_GROUP_ID, {
         tone: "amber",
-        title: "ออเดอร์ใหม่ (ใช้แต้มจ่ายครบ)",
+        title: "ออเดอร์ใหม่ (ไม่ต้องชำระเงิน)",
         subtitle: "ไม่ต้องตรวจสลิป เริ่มทำได้เลย",
         rows: [
           ["ออเดอร์", `#${row.order_no}`, true],
@@ -156,8 +180,8 @@ export async function POST(req: Request) {
       }),
       pushCard(user.userId, {
         tone: "matcha",
-        title: "แลกแต้มสำเร็จ เข้าคิวแล้ว",
-        subtitle: `ใช้ ${points} แต้ม · ไม่ต้องชำระเงิน`,
+        title: points > 0 ? "แลกแต้มสำเร็จ เข้าคิวแล้ว" : "ใช้โค้ดสำเร็จ เข้าคิวแล้ว",
+        subtitle: [points > 0 && `ใช้ ${points} แต้ม`, promoCode && `โค้ด ${promoCode} −฿${promoOff}`, "ไม่ต้องชำระเงิน"].filter(Boolean).join(" · "),
         rows: [
           ["ออเดอร์", `#${row.order_no}`, true],
           ["วิธีรับ", when],
@@ -168,7 +192,7 @@ export async function POST(req: Request) {
         note: "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง",
       }),
     ]);
-    return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, service, tableNo, total: 0, discount: points });
+    return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, service, tableNo, total: 0, discount: points, promoCode, promoDiscount: promoOff });
   }
 
   // ยังไม่แจ้งร้าน: ออเดอร์จะเข้าคิวหลังร้านยืนยันสลิป
@@ -182,6 +206,8 @@ export async function POST(req: Request) {
       expires_at: row.order_expires,
       service,
       table_no: tableNo,
+      promo_code: promoCode,
+      promo_discount: promoOff,
     }),
   );
 }
@@ -193,7 +219,7 @@ export async function GET(req: Request) {
   if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
   const { data, error } = await db()
     .from("orders")
-    .select("id,daily_no,total,discount,pickup_time,expires_at,service,table_no")
+    .select("id,daily_no,total,discount,pickup_time,expires_at,service,table_no,promo_code,promo_discount")
     .eq("line_user_id", user.userId)
     .eq("pickup_date", nowInShop().date)
     .eq("status", "awaiting_payment")

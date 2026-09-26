@@ -25,6 +25,7 @@ import {
   type Slot,
 } from "@/lib/menu";
 import { POINTS, SHOP, pointsEarned } from "@/lib/config";
+import { promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
 import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
@@ -35,6 +36,7 @@ const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
 type Hours = { accepting: boolean; openTime: string; closeTime: string; openNow: boolean };
+type AppliedPromo = Pick<PromoRule, "code" | "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly">;
 type Done = { no: number; pickupTime: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean };
 
 const SERVICES: { id: Service; icon: IconName; title: string; sub: string }[] = [
@@ -141,6 +143,10 @@ export default function OrderPage() {
     </div>
   );
   const [usePoints, setUsePoints] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<AppliedPromo | null>(null);
+  const [promoErr, setPromoErr] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
   const liff = useRef<Liff | null>(null);
 
   // ออเดอร์ที่ค้างจ่าย + แต้มคงเหลือ
@@ -227,10 +233,33 @@ export default function OrderPage() {
     return it ? linePrice(it, l) : 0;
   };
   const total = cart.reduce((n, l) => n + priceOf(l), 0);
-  // ใช้แต้มได้เต็มที่ไม่เกินยอด และต้องถึงขั้นต่ำ
-  const usable = Math.min(points, total) >= POINTS.minRedeem ? Math.min(points, total) : 0;
+  // โค้ดส่วนลดหักก่อน แล้วค่อยใช้แต้มกับยอดที่เหลือ
+  const promoOff = promo ? promoDiscount(promo, total) : 0;
+  const afterPromo = total - promoOff;
+  const usable = Math.min(points, afterPromo) >= POINTS.minRedeem ? Math.min(points, afterPromo) : 0;
   const pointsToUse = usePoints ? usable : 0;
-  const payAmount = total - pointsToUse;
+  const payAmount = afterPromo - pointsToUse;
+
+  async function applyPromo() {
+    setPromoErr("");
+    setPromoBusy(true);
+    try {
+      const token = liff.current ? liff.current.getIDToken() : "dev";
+      const r = await fetch("/api/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code: promoInput, subtotal: total }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? "ใช้โค้ดไม่ได้");
+      setPromo(j as AppliedPromo);
+    } catch (e) {
+      setPromo(null);
+      setPromoErr(e instanceof Error ? e.message : "ใช้โค้ดไม่ได้");
+    } finally {
+      setPromoBusy(false);
+    }
+  }
   // ปิดจริง = ตอนนี้ไม่เปิดให้สั่งหน้าร้าน และไม่มีรอบให้สั่งล่วงหน้าเหลือ
   const closed = !!hours && !hours.openNow && slots.length === 0;
   const ready = service === "pickup" ? !!pickup : !!service;
@@ -269,12 +298,15 @@ export default function OrderPage() {
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, points: pointsToUse }),
+        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, points: pointsToUse, promoCode: promo?.code ?? "" }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
       if (r.status === 409) {
-        if (String(j.error).includes("แต้ม")) {
+        if (String(j.error).includes("โค้ด") || String(j.error).includes("ลูกค้าใหม่")) {
+          setPromo(null);
+          setPromoErr(j.error);
+        } else if (String(j.error).includes("แต้ม")) {
           setUsePoints(false);
           await loadMine().catch(() => {});
         } else {
@@ -287,6 +319,8 @@ export default function OrderPage() {
       setNote("");
       setPickup("");
       setUsePoints(false);
+      setPromo(null);
+      setPromoInput("");
       setCheckout(false);
       if (j.free) {
         setDone({ no: j.no, pickupTime: j.pickupTime, service: j.service, tableNo: j.tableNo, total: 0, discount: j.discount, free: true });
@@ -369,6 +403,11 @@ export default function OrderPage() {
         <h1>ชำระเงินเพื่อยืนยันออเดอร์ #{pay.no}</h1>
         <p className="sub">{whenText(pay)}</p>
         <p className="amount">฿{pay.total}</p>
+        {pay.promoDiscount > 0 && (
+          <p className="sub">
+            โค้ด {pay.promoCode} ลดไปแล้ว ฿{pay.promoDiscount}
+          </p>
+        )}
         {pay.discount > 0 && <p className="sub">ใช้ {pay.discount} แต้ม ลดไปแล้ว ฿{pay.discount}</p>}
         <div className="qr-card">
           <span className="pp">PromptPay</span>
@@ -792,6 +831,43 @@ export default function OrderPage() {
             <div className="lg">หมายเหตุถึงร้าน</div>
             <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ขอหลอดกระดาษ" value={note} onChange={(e) => setNote(e.target.value)} />
 
+            <div className="lg">โค้ดส่วนลด</div>
+            {promo ? (
+              <div className="promo-applied">
+                <span className="code-chip">{promo.code}</span>
+                <span>{promoOff > 0 ? `ลด ฿${promoOff}` : `ใช้ได้เมื่อซื้อครบ ฿${promo.minSpend}`}</span>
+                <button
+                  className="x"
+                  aria-label="ยกเลิกโค้ด"
+                  onClick={() => {
+                    setPromo(null);
+                    setPromoInput("");
+                  }}
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="promo-input">
+                <input
+                  className="text"
+                  placeholder="เช่น CMNEW10"
+                  autoCapitalize="characters"
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === "Enter" && promoInput && applyPromo()}
+                />
+                <button className="btn primary-sm" disabled={!promoInput || promoBusy} onClick={applyPromo}>
+                  {promoBusy ? "…" : "ใช้โค้ด"}
+                </button>
+              </div>
+            )}
+            {promoErr && (
+              <p className="err" role="alert">
+                {promoErr}
+              </p>
+            )}
+
             <div className="lg">
               แต้มสะสม<span>มี {points.toLocaleString()} แต้ม</span>
             </div>
@@ -813,6 +889,12 @@ export default function OrderPage() {
             <dl className="sum">
               <dt>ราคารวม</dt>
               <dd>฿{total}</dd>
+              {promoOff > 0 && (
+                <>
+                  <dt>โค้ด {promo?.code}</dt>
+                  <dd>−฿{promoOff}</dd>
+                </>
+              )}
               {pointsToUse > 0 && (
                 <>
                   <dt>ส่วนลดจากแต้ม</dt>

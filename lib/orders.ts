@@ -69,7 +69,7 @@ export async function queueAhead(date: string, pickupTime: string, no: number) {
 }
 
 export async function paymentFor(
-  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at" | "service" | "table_no">,
+  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at" | "service" | "table_no" | "promo_code" | "promo_discount">,
 ): Promise<Payment> {
   const id = process.env.PROMPTPAY_ID;
   if (!id) throw new Error("Missing environment variable PROMPTPAY_ID");
@@ -82,6 +82,8 @@ export async function paymentFor(
     pickupTime: r.pickup_time,
     service: r.service,
     tableNo: r.table_no,
+    promoCode: r.promo_code,
+    promoDiscount: r.promo_discount ?? 0,
     expiresAt: r.expires_at ?? "",
     qr,
   };
@@ -141,10 +143,12 @@ type OrderRow = {
   slip_path: string | null;
   service: Service;
   table_no: string;
+  promo_code: string | null;
+  promo_discount: number;
 };
 
 export const ORDER_COLUMNS =
-  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no";
+  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no,promo_code,promo_discount";
 
 export function toOrder(r: OrderRow): Order {
   return {
@@ -163,6 +167,8 @@ export function toOrder(r: OrderRow): Order {
     discount: r.discount,
     service: r.service ?? "pickup",
     tableNo: r.table_no ?? "",
+    promoCode: r.promo_code ?? null,
+    promoDiscount: r.promo_discount ?? 0,
   };
 }
 

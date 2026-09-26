@@ -21,6 +21,7 @@ export type Card = {
   items?: string[]; // รายการอาหาร/เครื่องดื่ม (แสดงเป็นบรรทัด)
   note?: string; // ข้อความเล็กท้ายการ์ด
   button?: { label: string; uri: string };
+  hero?: string; // รูปใหญ่ด้านบน (https) กดแล้วไปที่ลิงก์ของปุ่ม
 };
 
 const text = (t: string, o: Record<string, unknown> = {}) => ({ type: "text", text: t || " ", wrap: true, ...o });
@@ -55,21 +56,48 @@ export function bubble(c: Card) {
   }
   if (c.note) body.push(text(c.note, { size: "xs", color: "#6b7163", margin: "lg" }));
 
+  // การ์ดมีรูป: รูปอยู่บนสุด หัวข้อย้ายมาไว้ต้น body แทนแถบหัวสี
+  if (c.hero)
+    body.unshift({
+      type: "box",
+      layout: "vertical",
+      spacing: "xs",
+      margin: "none",
+      paddingBottom: c.rows?.length ? "12px" : "0px",
+      contents: [
+        text(c.title, { size: "xl", color: "#1c2419", weight: "bold" }),
+        ...(c.subtitle ? [text(c.subtitle, { size: "md", color, weight: "bold" })] : []),
+      ],
+    });
+
   return {
     type: "bubble",
     size: "mega",
-    header: {
-      type: "box",
-      layout: "vertical",
-      backgroundColor: color,
-      paddingAll: "18px",
-      spacing: "xs",
-      contents: [
-        text("暗号  CODE-MACHA", { size: "xxs", color: "#ffffffbb", weight: "bold" }),
-        text(c.title, { size: "lg", color: "#ffffff", weight: "bold" }),
-        ...(c.subtitle ? [text(c.subtitle, { size: "sm", color: "#ffffffdd" })] : []),
-      ],
-    },
+    ...(c.hero
+      ? {
+          hero: {
+            type: "image",
+            url: c.hero,
+            size: "full",
+            aspectRatio: "20:13",
+            aspectMode: "cover",
+            ...(c.button ? { action: { type: "uri", label: c.button.label, uri: c.button.uri } } : {}),
+          },
+        }
+      : {
+          header: {
+            type: "box",
+            layout: "vertical",
+            backgroundColor: color,
+            paddingAll: "18px",
+            spacing: "xs",
+            contents: [
+              text("暗号  CODE-MACHA", { size: "xxs", color: "#ffffffbb", weight: "bold" }),
+              text(c.title, { size: "lg", color: "#ffffff", weight: "bold" }),
+              ...(c.subtitle ? [text(c.subtitle, { size: "sm", color: "#ffffffdd" })] : []),
+            ],
+          },
+        }),
     body: { type: "box", layout: "vertical", paddingAll: "18px", backgroundColor: "#fbfcf6", contents: body.length ? body : [text(" ")] },
     ...(c.button
       ? {

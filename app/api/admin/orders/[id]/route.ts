@@ -53,6 +53,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       rows: [
         ["ออเดอร์", `#${no}`, true],
         ["วิธีรับ", rowWhen(current)],
+        ...(current.promo_discount > 0 ? ([[`โค้ด ${current.promo_code}`, `−฿${current.promo_discount}`]] as [string, string][]) : []),
         ...(current.discount > 0 ? ([["ส่วนลดแต้ม", `−฿${current.discount}`]] as [string, string][]) : []),
         ["ยอดชำระ", `฿${current.total}`],
         ["คิวก่อนหน้า", ahead ? `${ahead} คิว` : "ไม่มี ทำต่อเลย"],

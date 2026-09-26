@@ -99,6 +99,8 @@ export type Order = {
   id: number;
   service: Service;
   tableNo: string;
+  promoCode: string | null;
+  promoDiscount: number;
   no: number;
   pickupDate: string;
   pickupTime: string;
@@ -118,6 +120,8 @@ export type Payment = {
   id: number;
   service: Service;
   tableNo: string;
+  promoCode: string | null;
+  promoDiscount: number;
   no: number;
   total: number;
   discount: number;
