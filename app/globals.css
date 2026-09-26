@@ -318,6 +318,19 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .fp-body p { margin: 0; color: var(--stone); font-size: 12px; }
 .fp-foot { margin: 0 12px 12px; background: #d9822b; color: #fff; text-align: center; border-radius: 8px; padding: 9px; font-weight: 700; font-size: 14px; }
 @media (max-width: 760px) { .broadcast { grid-template-columns: 1fr; } }
+.log-filter { margin-bottom: 12px; }
+.log-wrap { overflow-x: auto; }
+.log { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+.log th { text-align: left; font-size: 12px; color: var(--stone); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--hair); }
+.log td { padding: 10px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+.log td small { display: block; color: var(--stone); font-size: 12px; margin-top: 2px; }
+.log td.t { white-space: nowrap; color: var(--stone); font-variant-numeric: tabular-nums; }
+.log tr.bad td { background: #fff5f2; }
+.log .kind { margin-left: 6px; font-size: 11px; background: #fdf1d8; color: #8a6200; border-radius: 6px; padding: 1px 6px; }
+.log .muted { color: var(--stone); }
+.log .st { font-weight: 700; font-size: 13px; }
+.log .st.ok { color: var(--matcha); }
+.log .st.no { color: var(--seal); }
 .tops-edit { display: grid; gap: 8px; }
 .top-row { display: grid; grid-template-columns: 96px 1fr 64px 32px; gap: 6px; align-items: center; }
 .top-row.head span { font-size: 12px; color: var(--stone); font-weight: 600; }

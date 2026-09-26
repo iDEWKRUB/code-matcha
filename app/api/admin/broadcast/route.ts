@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { altText, bubble, orderUri, type Card } from "@/lib/flex";
+import { broadcastCard } from "@/lib/line";
 import { promoLabel } from "@/lib/promo";
 import { listPromos } from "@/lib/promoServer";
 
@@ -47,9 +48,13 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as Body;
   const card = await buildCard(b);
   if ("error" in card) return NextResponse.json(card, { status: 400 });
+  if (b.send === true) {
+    const r = await broadcastCard(card);
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: 502 });
+    return NextResponse.json({ ok: true, sent: true });
+  }
   const messages = [{ type: "flex", altText: altText(card), contents: bubble(card) }];
-  const url = b.send === true ? "https://api.line.me/v2/bot/message/broadcast" : "https://api.line.me/v2/bot/message/validate/broadcast";
-  const r = await fetch(url, { method: "POST", headers: H(), body: JSON.stringify({ messages }) });
+  const r = await fetch("https://api.line.me/v2/bot/message/validate/broadcast", { method: "POST", headers: H(), body: JSON.stringify({ messages }) });
   if (!r.ok) return NextResponse.json({ error: `LINE ตอบกลับ: ${await r.text()}` }, { status: 502 });
-  return NextResponse.json({ ok: true, sent: b.send === true, card });
+  return NextResponse.json({ ok: true, sent: false });
 }

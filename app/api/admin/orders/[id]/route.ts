@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { orderUri } from "@/lib/flex";
+import { orderUri, type Card } from "@/lib/flex";
 import { pushCard } from "@/lib/line";
 import type { OrderStatus } from "@/lib/menu";
 import { ORDER_COLUMNS, earnPoints, itemLines, pointsBalance, queueAhead, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
@@ -40,13 +40,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!updated?.length) return NextResponse.json({ error: "ออเดอร์ถูกอัปเดตไปแล้ว" }, { status: 409 });
 
   const no = current.daily_no;
+  const notify = (c: Card) => pushCard(current.line_user_id, c, { name: current.customer_name, orderNo: no });
   if (to === "pending") {
     const earned = await earnPoints(current);
     const [ahead, balance] = await Promise.all([
       queueAhead(current.pickup_date, current.pickup_time, no),
       pointsBalance(current.line_user_id),
     ]);
-    await pushCard(current.line_user_id, {
+    await notify({
       tone: "matcha",
       title: "ร้านได้รับชำระเงินแล้ว",
       subtitle: `ออเดอร์ #${no} เข้าคิวเรียบร้อย`,
@@ -66,7 +67,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (to === "ready") {
     const served = current.service === "dine_in" && current.table_no;
-    await pushCard(current.line_user_id, {
+    await notify({
       tone: "ready",
       title: current.service === "dine_in" ? "ออเดอร์พร้อมแล้ว!" : "ออเดอร์พร้อมรับแล้ว!",
       subtitle: served ? `ร้านจะนำไปเสิร์ฟที่โต๊ะ ${current.table_no}` : `แจ้งเลข #${no} ที่เคาน์เตอร์ได้เลย`,
@@ -82,7 +83,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // แต้มที่ใช้คืนอัตโนมัติ (ออเดอร์ cancelled ไม่นับ) ส่วนแต้มที่ได้จากออเดอร์นี้ดึงคืน
     const paid = current.status !== "payment_review";
     if (paid) await revokeEarned(current.id);
-    await pushCard(current.line_user_id, {
+    await notify({
       tone: "danger",
       title: paid ? "ร้านต้องยกเลิกออเดอร์" : "ตรวจไม่พบยอดโอน",
       subtitle: paid ? "ขออภัยในความไม่สะดวก" : "ออเดอร์นี้จึงถูกยกเลิก",

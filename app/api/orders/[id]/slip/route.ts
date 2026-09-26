@@ -59,7 +59,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ["วิธีรับ", rowWhen(order)],
       ],
       button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
-    });
+    }, { orderNo: order.daily_no });
 
   return NextResponse.json({ ok: true, no: order.daily_no, pickupTime: order.pickup_time, total: order.total });
 }

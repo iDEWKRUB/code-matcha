@@ -177,7 +177,7 @@ export async function POST(req: Request) {
         items: lines,
         note: cleanNote ? `หมายเหตุ: ${cleanNote}` : undefined,
         button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
-      }),
+      }, { orderNo: row.order_no }),
       pushCard(user.userId, {
         tone: "matcha",
         title: points > 0 ? "แลกแต้มสำเร็จ เข้าคิวแล้ว" : "ใช้โค้ดสำเร็จ เข้าคิวแล้ว",
@@ -190,7 +190,7 @@ export async function POST(req: Request) {
         ],
         items: lines,
         note: "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง",
-      }),
+      }, { name: user.name, orderNo: row.order_no }),
     ]);
     return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, service, tableNo, total: 0, discount: points, promoCode, promoDiscount: promoOff });
   }

@@ -6,6 +6,7 @@ import { FOOD_LOOKS, LOOKS, type Kind, type MenuItem, type ShopSettings, type Te
 import Icon from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
+import MessageLog from "./MessageLog";
 import PromoPanel from "./PromoPanel";
 
 type DraftTopping = { id?: string; label: string; price: string; group?: string };
@@ -310,6 +311,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       </section>
 
       <PromoPanel />
+      <MessageLog />
 
       <section className="panel">
         <header>
