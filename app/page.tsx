@@ -10,27 +10,38 @@ import {
   SOFT_CREAM_PRICE,
   SWEET,
   TEMP_LABEL,
+  defaultChoices,
+  freeToppings,
   hasPowder,
   lookOf,
+  optionGroups,
   lineDetail,
   linePrice,
   type CartLine,
   type MenuItem,
   type Payment,
+  type Service,
+  whenText,
   type Slot,
 } from "@/lib/menu";
 import { POINTS, SHOP, pointsEarned } from "@/lib/config";
 import Cup from "./Cup";
 import Food from "./Food";
-import Icon from "./Icon";
+import Icon, { type IconName } from "./Icon";
 import MenuArt, { artTint } from "./MenuArt";
 import Seal from "./Seal";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
-type Hours = { accepting: boolean; openTime: string; closeTime: string };
-type Done = { no: number; pickupTime: string; total: number; discount: number; free?: boolean };
+type Hours = { accepting: boolean; openTime: string; closeTime: string; openNow: boolean };
+type Done = { no: number; pickupTime: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean };
+
+const SERVICES: { id: Service; icon: IconName; title: string; sub: string }[] = [
+  { id: "dine_in", icon: "bowl", title: "ทานที่ร้าน", sub: "อยู่ร้านแล้ว ทำให้เลย" },
+  { id: "takeaway", icon: "bag", title: "รับกลับบ้าน", sub: "รอรับที่เคาน์เตอร์" },
+  { id: "pickup", icon: "clock", title: "สั่งล่วงหน้า", sub: "เลือกเวลามารับ" },
+];
 
 // ย่อรูปสลิปก่อนอัปโหลด (รูปจากมือถือมักใหญ่หลาย MB)
 async function shrink(file: File): Promise<Blob> {
@@ -91,6 +102,8 @@ export default function OrderPage() {
   const [opts, setOpts] = useState<Opts | null>(null);
   const [checkout, setCheckout] = useState(false);
   const [pickup, setPickup] = useState("");
+  const [service, setService] = useState<Service | null>(null);
+  const [tableNo, setTableNo] = useState("");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState("");
@@ -218,7 +231,9 @@ export default function OrderPage() {
   const usable = Math.min(points, total) >= POINTS.minRedeem ? Math.min(points, total) : 0;
   const pointsToUse = usePoints ? usable : 0;
   const payAmount = total - pointsToUse;
-  const closed = !!hours && slots.length === 0;
+  // ปิดจริง = ตอนนี้ไม่เปิดให้สั่งหน้าร้าน และไม่มีรอบให้สั่งล่วงหน้าเหลือ
+  const closed = !!hours && !hours.openNow && slots.length === 0;
+  const ready = service === "pickup" ? !!pickup : !!service;
 
   function open(it: MenuItem) {
     setEdit(it);
@@ -230,7 +245,7 @@ export default function OrderPage() {
       powder: !food && hasPowder(it) ? POWDERS[0].id : null,
       extraShot: false,
       softCream: false,
-      toppings: [],
+      toppings: food ? defaultChoices(it) : [],
       qty: 1,
     });
   }
@@ -254,7 +269,7 @@ export default function OrderPage() {
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lines: cart, pickupTime: pickup, note, points: pointsToUse }),
+        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, points: pointsToUse }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
@@ -274,7 +289,7 @@ export default function OrderPage() {
       setUsePoints(false);
       setCheckout(false);
       if (j.free) {
-        setDone({ no: j.no, pickupTime: j.pickupTime, total: 0, discount: j.discount, free: true });
+        setDone({ no: j.no, pickupTime: j.pickupTime, service: j.service, tableNo: j.tableNo, total: 0, discount: j.discount, free: true });
         loadMine().catch(() => {});
         setPhase("done");
         return;
@@ -302,7 +317,7 @@ export default function OrderPage() {
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
       if (!r.ok) throw new Error(j.error ?? "ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้ง");
-      setDone({ no: pay.no, pickupTime: pay.pickupTime, total: pay.total, discount: pay.discount });
+      setDone({ no: pay.no, pickupTime: pay.pickupTime, service: pay.service, tableNo: pay.tableNo, total: pay.total, discount: pay.discount });
       setPay(null);
       setPhase("done");
     } catch (e) {
@@ -352,7 +367,7 @@ export default function OrderPage() {
       <main className="app pay">
         <Seal size={44} />
         <h1>ชำระเงินเพื่อยืนยันออเดอร์ #{pay.no}</h1>
-        <p className="sub">รับที่ร้านเวลา {pay.pickupTime} น.</p>
+        <p className="sub">{whenText(pay)}</p>
         <p className="amount">฿{pay.total}</p>
         {pay.discount > 0 && <p className="sub">ใช้ {pay.discount} แต้ม ลดไปแล้ว ฿{pay.discount}</p>}
         <div className="qr-card">
@@ -397,7 +412,7 @@ export default function OrderPage() {
           <>
             <h2>แลกแต้มสำเร็จ เข้าคิวแล้ว</h2>
             <p className="t">
-              ใช้ {done.discount} แต้ม · รับที่ร้าน <strong>{done.pickupTime} น.</strong>
+              ใช้ {done.discount} แต้ม · <strong>{whenText(done)}</strong>
               <br />
               แต้มคงเหลือ <strong>{points} แต้ม</strong>
               <br />
@@ -408,7 +423,7 @@ export default function OrderPage() {
           <>
             <h2>ส่งสลิปแล้ว รอร้านตรวจยอด</h2>
             <p className="t">
-              ยอด ฿{done.total} · รับที่ร้าน <strong>{done.pickupTime} น.</strong>
+              ยอด ฿{done.total} · <strong>{whenText(done)}</strong>
               <br />
               เมื่อร้านยืนยันการชำระเงิน จะแจ้งทาง LINE พร้อมจำนวนคิว
               <br />
@@ -523,7 +538,12 @@ export default function OrderPage() {
             <div className="grab" />
             <div className="sheet-art" style={tint(artTint(edit))}>
               {edit.kind === "food" ? (
-                <Food look={lookOf(edit)} toppings={opts.toppings} size={150} />
+                <Food
+                  look={lookOf(edit)}
+                  toppings={opts.toppings.filter((id) => freeToppings(edit).some((t) => t.id === id))}
+                  choices={opts.toppings}
+                  size={150}
+                />
               ) : (
                 <Cup
                   key={`${edit.id}-${opts.temp}-${opts.milk}`}
@@ -543,13 +563,38 @@ export default function OrderPage() {
             <h2>{edit.name}</h2>
             <p className="ds">{edit.description}</p>
 
-            {edit.kind === "food" && edit.toppings.length > 0 && (
+            {edit.kind === "food" &&
+              optionGroups(edit).map((g) => (
+                <div key={g.name}>
+                  <div className="lg">
+                    {g.name}
+                    <span>เลือก 1 อย่าง</span>
+                  </div>
+                  <div className="chips">
+                    {g.options.map((o) => (
+                      <button
+                        key={o.id}
+                        className="chip"
+                        aria-pressed={opts.toppings.includes(o.id)}
+                        onClick={() =>
+                          setOpts({ ...opts, toppings: [...opts.toppings.filter((x) => !g.options.some((y) => y.id === x)), o.id] })
+                        }
+                      >
+                        {o.label}
+                        {o.price > 0 && <em>+{o.price}</em>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+            {edit.kind === "food" && freeToppings(edit).length > 0 && (
               <>
                 <div className="lg">
                   ท็อปปิ้ง<span>เลือกได้หลายอย่าง</span>
                 </div>
                 <div className="chips">
-                  {edit.toppings.map((t) => {
+                  {freeToppings(edit).map((t) => {
                     const on = opts.toppings.includes(t.id);
                     return (
                       <button
@@ -695,10 +740,41 @@ export default function OrderPage() {
               ))}
             </ul>
 
-            <div className="lg">เวลารับที่ร้าน (วันนี้)</div>
-            {slots.length === 0 ? (
-              hours ? <ClosedNotice hours={hours} compact /> : <p className="ds">วันนี้ไม่มีรอบรับเหลือแล้ว</p>
+            <div className="lg">รับอย่างไร</div>
+            {closed && hours ? (
+              <ClosedNotice hours={hours} compact />
             ) : (
+              <div className="services" role="radiogroup" aria-label="วิธีรับ">
+                {SERVICES.map((s) => {
+                  const off = s.id === "pickup" ? slots.length === 0 : !hours?.openNow;
+                  return (
+                    <button
+                      key={s.id}
+                      role="radio"
+                      aria-checked={service === s.id}
+                      className="service"
+                      disabled={off}
+                      onClick={() => setService(s.id)}
+                    >
+                      <Icon name={s.icon} size={24} />
+                      <b>{s.title}</b>
+                      <small>{off ? (s.id === "pickup" ? "หมดรอบวันนี้" : "ร้านยังไม่เปิด") : s.sub}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {service === "dine_in" && (
+              <label className="table-no">
+                เลขโต๊ะ <span>(ถ้ามี ร้านจะนำไปเสิร์ฟ)</span>
+                <input className="text" inputMode="numeric" maxLength={10} placeholder="เช่น 3" value={tableNo} onChange={(e) => setTableNo(e.target.value)} />
+              </label>
+            )}
+
+            {service === "pickup" && slots.length > 0 && (
+              <>
+              <div className="lg">เลือกเวลามารับ (วันนี้)</div>
               <div className="slots">
                 {slots.map((s) => {
                   const full = s.remaining < cups;
@@ -710,6 +786,7 @@ export default function OrderPage() {
                   );
                 })}
               </div>
+              </>
             )}
 
             <div className="lg">หมายเหตุถึงร้าน</div>
@@ -734,7 +811,7 @@ export default function OrderPage() {
             )}
 
             <dl className="sum">
-              <dt>ราคาเครื่องดื่ม</dt>
+              <dt>ราคารวม</dt>
               <dd>฿{total}</dd>
               {pointsToUse > 0 && (
                 <>
@@ -747,13 +824,15 @@ export default function OrderPage() {
             </dl>
             {payAmount > 0 && <p className="small">ออเดอร์นี้จะได้รับ {pointsEarned(payAmount)} แต้ม</p>}
 
-            <button className="primary" style={{ marginTop: 16, minHeight: 56 }} disabled={!pickup || sending} onClick={submit}>
+            <button className="primary" style={{ marginTop: 16, minHeight: 56 }} disabled={!ready || closed || sending} onClick={submit}>
               {sending
                 ? "กำลังส่ง…"
                 : closed
                   ? "หมดเวลาสั่งแล้ว"
-                  : !pickup
-                  ? "เลือกเวลารับก่อน"
+                  : !service
+                  ? "เลือกวิธีรับก่อน"
+                  : !ready
+                  ? "เลือกเวลามารับก่อน"
                   : payAmount === 0
                     ? `ใช้ ${pointsToUse} แต้ม ยืนยันสั่ง`
                     : `ไปชำระเงิน ฿${payAmount}`}
@@ -762,7 +841,9 @@ export default function OrderPage() {
             {needLogin && liff.current && (
               <button className="ghost" onClick={relogin}>เข้าสู่ระบบ LINE ใหม่</button>
             )}
-            <p className="small">ถัดไปจะแสดง QR พร้อมเพย์ ระบบจองเวลารับไว้ให้ 10 นาที</p>
+            <p className="small">
+              {service === "pickup" ? "ถัดไปจะแสดง QR พร้อมเพย์ ระบบจองเวลารับไว้ให้ 10 นาที" : "ถัดไปจะแสดง QR พร้อมเพย์ จ่ายแล้วร้านเริ่มทำทันที"}
+            </p>
           </div>
         </>
       )}

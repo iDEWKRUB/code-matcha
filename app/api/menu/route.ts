@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMenu, getSettings, getTodaySlots } from "@/lib/orders";
+import { getMenu, getSettings, getTodaySlots, openNow } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export async function GET() {
     menu,
     slots,
     banner: settings.bannerActive ? settings.banner : "",
-    hours: { accepting: settings.accepting, openTime: settings.openTime, closeTime: settings.closeTime },
+    hours: { accepting: settings.accepting, openTime: settings.openTime, closeTime: settings.closeTime, openNow: openNow(settings) },
     payReady: !!process.env.PROMPTPAY_ID,
   });
 }

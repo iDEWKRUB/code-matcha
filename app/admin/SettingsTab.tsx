@@ -7,7 +7,7 @@ import Icon from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
 
-type DraftTopping = { id?: string; label: string; price: string };
+type DraftTopping = { id?: string; label: string; price: string; group?: string };
 type Draft = {
   id: string | null; // null = เมนูใหม่
   kind: Kind;
@@ -50,7 +50,7 @@ const toDraft = (m: MenuItem): Draft => ({
   milk: m.milk,
   recommended: m.recommended,
   look: m.look ?? "",
-  toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price) })),
+  toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price), group: t.group ?? "" })),
 });
 
 // เมนูจำลองจากฟอร์ม ใช้วาดภาพตัวอย่าง
@@ -174,7 +174,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       milk: food ? false : draft.milk,
       recommended: draft.recommended,
       look: draft.look === "" ? null : draft.look,
-      toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0) })) : [],
+      toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0), group: t.group ?? "" })) : [],
     };
     if (body.promoPrice !== null && body.promoPrice >= body.price) {
       setSaving(false);
@@ -455,10 +455,27 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                 </>
               ) : (
                 <fieldset className="tops-edit">
-                  <legend>ท็อปปิ้งที่ลูกค้าเลือกได้ (ใส่ 0 = ฟรี)</legend>
+                  <legend>ตัวเลือกและท็อปปิ้ง</legend>
+                  <p className="tops-help">
+                    ใส่ <b>ชื่อกลุ่ม</b> เดียวกัน = ลูกค้าเลือกได้ 1 อย่าง (อันแรกเป็นค่าเริ่มต้น) เช่น &ldquo;จำนวนไข่&rdquo; · เว้นว่าง = ท็อปปิ้งเลือกได้หลายอย่าง ·
+                    ราคา 0 = ฟรี
+                  </p>
+                  <div className="top-row head" aria-hidden="true">
+                    <span>กลุ่ม</span>
+                    <span>ชื่อตัวเลือก</span>
+                    <span>+บาท</span>
+                    <span />
+                  </div>
                   {draft.toppings.map((t, i) => (
                     <div key={t.id ?? i} className="top-row">
-                      <input className="text" placeholder="ชื่อท็อปปิ้ง" value={t.label} onChange={(e) => setTopping(i, { label: e.target.value })} />
+                      <input
+                        className="text"
+                        placeholder="(ท็อปปิ้ง)"
+                        aria-label={`กลุ่มของ ${t.label}`}
+                        value={t.group ?? ""}
+                        onChange={(e) => setTopping(i, { group: e.target.value })}
+                      />
+                      <input className="text" placeholder="ชื่อ" value={t.label} onChange={(e) => setTopping(i, { label: e.target.value })} />
                       <input
                         className="text price-in"
                         inputMode="numeric"
@@ -473,7 +490,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                     </div>
                   ))}
                   <button type="button" className="btn ghost-sm" onClick={() => set("toppings", [...draft.toppings, { label: "", price: "" }])}>
-                    + เพิ่มท็อปปิ้ง
+                    + เพิ่มตัวเลือก
                   </button>
                 </fieldset>
               )}

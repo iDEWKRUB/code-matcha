@@ -2,7 +2,17 @@
 
 export type Temp = "iced" | "hot";
 export type Kind = "drink" | "food";
-export type Topping = { id: string; label: string; price: number };
+// ตัวเลือกอาหาร: มี group = เลือกได้ 1 อย่างในกลุ่ม (อันแรกเป็นค่าเริ่มต้น), ไม่มี group = ท็อปปิ้งเลือกได้หลายอย่าง
+export type Topping = { id: string; label: string; price: number; group?: string };
+
+export function optionGroups(item: { toppings: Topping[] }) {
+  const groups = new Map<string, Topping[]>();
+  for (const t of item.toppings) if (t.group) groups.set(t.group, [...(groups.get(t.group) ?? []), t]);
+  return [...groups.entries()].map(([name, options]) => ({ name, options }));
+}
+export const freeToppings = (item: { toppings: Topping[] }) => item.toppings.filter((t) => !t.group);
+// ค่าเริ่มต้นของแต่ละกลุ่ม
+export const defaultChoices = (item: { toppings: Topping[] }) => optionGroups(item).map((g) => g.options[0].id);
 
 export type MenuItem = {
   kind: Kind;
@@ -74,8 +84,21 @@ export type OrderStatus =
   | "completed"
   | "cancelled";
 
+// วิธีรับ: pickup = สั่งล่วงหน้ามารับตามรอบ, dine_in / takeaway = ลูกค้าอยู่ที่ร้านแล้ว ทำให้เลย
+export type Service = "pickup" | "dine_in" | "takeaway";
+export const SERVICE_LABEL: Record<Service, string> = { pickup: "สั่งล่วงหน้า", dine_in: "ทานที่ร้าน", takeaway: "รับกลับบ้าน" };
+
+// ข้อความบอกว่ารับเมื่อไร/ที่ไหน ใช้ทั้งหน้าเว็บและข้อความ LINE
+export function whenText(o: { service?: Service; pickupTime: string; tableNo?: string }) {
+  if (o.service === "dine_in") return `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""} (ทำให้เลย)`;
+  if (o.service === "takeaway") return "รับกลับบ้าน · รอที่ร้าน (ทำให้เลย)";
+  return `มารับ ${o.pickupTime} น.`;
+}
+
 export type Order = {
   id: number;
+  service: Service;
+  tableNo: string;
   no: number;
   pickupDate: string;
   pickupTime: string;
@@ -93,6 +116,8 @@ export type Order = {
 // ข้อมูลสำหรับหน้าจ่ายเงินของลูกค้า
 export type Payment = {
   id: number;
+  service: Service;
+  tableNo: string;
   no: number;
   total: number;
   discount: number;
@@ -136,8 +161,13 @@ export function linePrice(item: MenuItem, l: CartLine) {
 
 export function lineDetail(item: MenuItem, l: CartLine) {
   if (item.kind === "food") {
-    const names = l.toppings.map((id) => item.toppings.find((t) => t.id === id)?.label).filter(Boolean);
-    return item.toppings.length ? (names.length ? `ท็อปปิ้ง: ${names.join(", ")}` : "ไม่ใส่ท็อปปิ้ง") : "";
+    const chosen = l.toppings.map((id) => item.toppings.find((t) => t.id === id)).filter((t): t is Topping => !!t);
+    const choices = chosen.filter((t) => t.group).map((t) => t.label);
+    const tops = chosen.filter((t) => !t.group).map((t) => t.label);
+    const hasFree = freeToppings(item).length > 0;
+    return [...choices, hasFree ? (tops.length ? `ท็อปปิ้ง: ${tops.join(", ")}` : "ไม่ใส่ท็อปปิ้ง") : ""]
+      .filter(Boolean)
+      .join(", ");
   }
   return [
     TEMP_LABEL[l.temp],

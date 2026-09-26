@@ -98,11 +98,46 @@ function ToppingArt({ id, i }: { id: string; i: number }) {
   }
 }
 
-function OmeletteRice({ toppings }: { toppings: string[] }) {
+// toppings = ท็อปปิ้งที่วางบนไข่, choices = ตัวเลือกแบบกลุ่ม (takeaway = ใส่กล่อง, egg2/egg3 = จำนวนไข่)
+function OmeletteRice({ toppings, choices }: { toppings: string[]; choices: string[] }) {
+  const box = choices.includes("takeaway");
+  const eggs = choices.includes("egg3") ? 3 : choices.includes("egg2") ? 2 : 1;
+  const s = 1 + (eggs - 1) * 0.06; // ไข่เยอะ ไข่เจียวฟูขึ้น
   return (
     <>
-      <ellipse cx="100" cy="214" rx="90" ry="23" fill="#fff" stroke={INK} strokeWidth="4" />
-      <ellipse cx="100" cy="212" rx="70" ry="14" fill="none" stroke="#e6e2d6" strokeWidth="3" />
+      {box ? (
+        // กล่องกระดาษใส่กลับบ้าน: ฝาหลัง
+        <path d="M28 150 L172 150 L186 110 L14 110 Z" fill="#c9a06a" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+      ) : (
+        <>
+          <ellipse cx="100" cy="214" rx="90" ry="23" fill="#fff" stroke={INK} strokeWidth="4" />
+          <ellipse cx="100" cy="212" rx="70" ry="14" fill="none" stroke="#e6e2d6" strokeWidth="3" />
+        </>
+      )}
+      <g transform={`translate(100 200) scale(${s}) translate(-100 -200)`}>
+        <OmeletteBody toppings={toppings} />
+      </g>
+      {box && (
+        <>
+          <path d="M12 184 L188 184 L178 238 L22 238 Z" fill="#d9b27c" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+          <path d="M60 204 h80" stroke="#b8905a" strokeWidth="3" strokeLinecap="round" />
+        </>
+      )}
+      {eggs > 1 && (
+        <g className="pop" key={eggs}>
+          <ellipse cx="172" cy="74" rx="17" ry="20" fill="#fffaf0" stroke={INK} strokeWidth="3" />
+          <text x="172" y="80" textAnchor="middle" fontSize="17" fontWeight="800" fill={INK}>
+            ×{eggs}
+          </text>
+        </g>
+      )}
+    </>
+  );
+}
+
+function OmeletteBody({ toppings }: { toppings: string[] }) {
+  return (
+    <>
       {/* กองข้าวสวยขอบหยัก โผล่รอบไข่เจียว */}
       <path
         d="M28 210 C24 198 30 188 40 186 C36 174 46 164 58 166 C62 154 76 150 86 154 C92 146 108 146 114 154 C124 150 138 154 142 166 C154 164 164 174 160 186 C170 188 176 198 172 210 Z"
@@ -134,11 +169,21 @@ function OmeletteRice({ toppings }: { toppings: string[] }) {
   );
 }
 
-export default function Food({ look, toppings = [], size = 160 }: { look: string; toppings?: string[]; size?: number }) {
+export default function Food({
+  look,
+  toppings = [],
+  choices = [],
+  size = 160,
+}: {
+  look: string;
+  toppings?: string[];
+  choices?: string[];
+  size?: number;
+}) {
   return (
     <div className="cup-wrap">
       <svg className="cup still" viewBox="0 0 200 250" width={size} height={size * 1.25} aria-hidden="true">
-        {look === "fries" ? <Fries /> : <OmeletteRice toppings={toppings} />}
+        {look === "fries" ? <Fries /> : <OmeletteRice toppings={toppings} choices={choices} />}
       </svg>
     </div>
   );

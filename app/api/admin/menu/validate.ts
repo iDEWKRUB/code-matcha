@@ -66,7 +66,8 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
       if (!label) return { error: "กรุณาใส่ชื่อท็อปปิ้งให้ครบ" };
       if (price === undefined) return { error: `ราคาท็อปปิ้ง "${label}" ไม่ถูกต้อง` };
       const id = typeof t.id === "string" && /^[a-z0-9-]{1,40}$/.test(t.id) ? t.id : `t-${Math.random().toString(36).slice(2, 8)}`;
-      tops.push({ id, label, price });
+      const group = text(t?.group, 30);
+      tops.push(group ? { id, label, price, group } : { id, label, price });
     }
     row.toppings = tops;
   }

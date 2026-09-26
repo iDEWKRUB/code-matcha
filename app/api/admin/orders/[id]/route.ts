@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { pushText } from "@/lib/line";
 import type { OrderStatus } from "@/lib/menu";
-import { ORDER_COLUMNS, earnPoints, pointsBalance, queueAhead, revokeEarned, type OrderRow } from "@/lib/orders";
+import { ORDER_COLUMNS, earnPoints, pointsBalance, queueAhead, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 
 const NEXT: Record<string, OrderStatus[]> = {
@@ -49,19 +49,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       current.line_user_id,
       [
         `✅ ร้านได้รับชำระเงิน ฿${current.total} แล้ว ออเดอร์ #${no} เข้าคิวเรียบร้อย`,
-        ...current.items.map((i) => `• ${i.qty}× ${i.name} (${i.detail})`),
+        ...current.items.map((i) => `• ${i.qty}× ${i.name}${i.detail ? ` (${i.detail})` : ""}`),
         current.discount > 0 && `ใช้แต้มลด ฿${current.discount}`,
-        `เวลารับ ${current.pickup_time} น.`,
+        rowWhen(current),
         ahead ? `ตอนนี้มีคิวก่อนหน้า ${ahead} คิว` : "ตอนนี้ไม่มีคิวก่อนหน้า",
         earned > 0 ? `🎁 ได้รับ ${earned} แต้ม (รวม ${balance} แต้ม)` : `แต้มสะสม ${balance} แต้ม`,
-        "เครื่องดื่มเสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง 🍵",
+        "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง 🍵",
       ]
         .filter(Boolean)
         .join("\n"),
     );
   }
   if (to === "ready")
-    await pushText(current.line_user_id, `🍵 เครื่องดื่มออเดอร์ #${no} พร้อมรับแล้ว\nแจ้งเลข #${no} ที่เคาน์เตอร์ได้เลย`);
+    await pushText(
+      current.line_user_id,
+      current.service === "dine_in"
+        ? `🍵 ออเดอร์ #${no} พร้อมแล้ว${current.table_no ? ` ร้านจะนำไปเสิร์ฟที่โต๊ะ ${current.table_no}` : "\nแจ้งเลข #" + no + " ที่เคาน์เตอร์ได้เลย"}`
+        : `🍵 ออเดอร์ #${no} พร้อมรับแล้ว\nแจ้งเลข #${no} ที่เคาน์เตอร์ได้เลย`,
+    );
   if (to === "cancelled") {
     // แต้มที่ใช้คืนอัตโนมัติ (ออเดอร์ cancelled ไม่นับ) ส่วนแต้มที่ได้จากออเดอร์นี้ดึงคืน
     const paid = current.status !== "payment_review";
@@ -71,7 +76,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       current.line_user_id,
       !paid
         ? `ร้านตรวจไม่พบยอดโอน ฿${current.total} สำหรับออเดอร์ #${no} จึงยกเลิกออเดอร์นี้\nหากโอนแล้วจริง ส่งสลิปในแชทนี้ ร้านจะตรวจสอบให้อีกครั้ง${refundPoints}`
-        : `ขออภัย ร้านต้องยกเลิกออเดอร์ #${no} (รับ ${current.pickup_time} น.)${
+        : `ขออภัย ร้านต้องยกเลิกออเดอร์ #${no} (${rowWhen(current)})${
             current.total > 0 ? `\nร้านจะติดต่อคืนเงิน ฿${current.total} ให้ทางแชทนี้` : ""
           }${refundPoints}`,
     );

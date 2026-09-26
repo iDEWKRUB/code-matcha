@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pushText, verifyIdToken } from "@/lib/line";
+import { rowWhen } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -19,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const id = Number((await params).id);
   const { data: order, error } = await db()
     .from("orders")
-    .select("id,daily_no,pickup_date,pickup_time,total,status,customer_name,slip_path")
+    .select("id,daily_no,pickup_date,pickup_time,total,status,customer_name,slip_path,service,table_no")
     .eq("id", id)
     .eq("line_user_id", user.userId)
     .maybeSingle();
@@ -48,7 +49,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (order.status === "awaiting_payment")
     await pushText(
       process.env.LINE_STAFF_GROUP_ID,
-      `💰 สลิปใหม่ #${order.daily_no} ฿${order.total} (${order.customer_name}) รับ ${order.pickup_time} น.\nตรวจยอดแล้วกดยืนยันในหน้าบาริสต้า`,
+      `💰 สลิปใหม่ #${order.daily_no} ฿${order.total} (${order.customer_name}) · ${rowWhen(order)}\nตรวจยอดแล้วกดยืนยันในหน้าบาริสต้า`,
     );
 
   return NextResponse.json({ ok: true, no: order.daily_no, pickupTime: order.pickup_time, total: order.total });

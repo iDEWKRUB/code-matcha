@@ -1,10 +1,10 @@
 import "server-only";
 import QRCode from "qrcode";
 import { pointsEarned } from "./config";
-import type { MenuItem, Order, Payment, ShopSettings, Slot } from "./menu";
+import { whenText, type MenuItem, type Order, type Payment, type Service, type ShopSettings, type Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
-import { isBookable, nowInShop, slotTimes } from "./time";
+import { isBookable, nowInShop, slotTimes, toMinutes } from "./time";
 
 export const MENU_COLUMNS =
   "id,name,jp,description,price,temps,milk,available,promoPrice:promo_price,recommended,look,sort,kind,toppings";
@@ -69,13 +69,33 @@ export async function queueAhead(date: string, pickupTime: string, no: number) {
 }
 
 export async function paymentFor(
-  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at">,
+  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at" | "service" | "table_no">,
 ): Promise<Payment> {
   const id = process.env.PROMPTPAY_ID;
   if (!id) throw new Error("Missing environment variable PROMPTPAY_ID");
   const qr = await QRCode.toDataURL(promptPayPayload(id, r.total), { margin: 1, width: 480, errorCorrectionLevel: "M" });
-  return { id: r.id, no: r.daily_no, total: r.total, discount: r.discount, pickupTime: r.pickup_time, expiresAt: r.expires_at ?? "", qr };
+  return {
+    id: r.id,
+    no: r.daily_no,
+    total: r.total,
+    discount: r.discount,
+    pickupTime: r.pickup_time,
+    service: r.service,
+    tableNo: r.table_no,
+    expiresAt: r.expires_at ?? "",
+    qr,
+  };
 }
+
+// ร้านเปิดอยู่ตอนนี้ไหม (สำหรับลูกค้าที่อยู่หน้าร้าน สั่งแล้วทำเลย)
+export function openNow(s: ShopSettings) {
+  const m = nowInShop().minutes;
+  return s.accepting && m >= toMinutes(s.openTime) && m < toMinutes(s.closeTime);
+}
+
+// ข้อความเวลารับ สำหรับ LINE (จากแถวในฐานข้อมูล)
+export const rowWhen = (r: Pick<OrderRow, "service" | "pickup_time" | "table_no">) =>
+  whenText({ service: r.service, pickupTime: r.pickup_time, tableNo: r.table_no });
 
 export async function pointsBalance(userId: string) {
   const { data, error } = await db().rpc("points_balance", { p_user: userId });
@@ -116,10 +136,12 @@ type OrderRow = {
   created_at: string;
   expires_at: string | null;
   slip_path: string | null;
+  service: Service;
+  table_no: string;
 };
 
 export const ORDER_COLUMNS =
-  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path";
+  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no";
 
 export function toOrder(r: OrderRow): Order {
   return {
@@ -136,6 +158,8 @@ export function toOrder(r: OrderRow): Order {
     createdAt: r.created_at,
     hasSlip: !!r.slip_path,
     discount: r.discount,
+    service: r.service ?? "pickup",
+    tableNo: r.table_no ?? "",
   };
 }
 

@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
 import { POINTS, SHOP } from "@/lib/config";
 import { pushText, verifyIdToken } from "@/lib/line";
-import { MAX_QTY, MILKS, POWDERS, SWEET, hasPowder, lineDetail, linePrice, type CartLine, type OrderItem } from "@/lib/menu";
-import { getMenu, getSettings, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
+import {
+  MAX_QTY,
+  MILKS,
+  POWDERS,
+  SWEET,
+  hasPowder,
+  lineDetail,
+  linePrice,
+  optionGroups,
+  whenText,
+  type CartLine,
+  type OrderItem,
+  type Service,
+} from "@/lib/menu";
+import { getMenu, getSettings, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
 
@@ -15,7 +28,7 @@ export async function POST(req: Request) {
   const user = token ? await verifyIdToken(token) : null;
   if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
 
-  let body: { lines?: unknown; pickupTime?: unknown; note?: unknown; points?: unknown };
+  let body: { lines?: unknown; pickupTime?: unknown; note?: unknown; points?: unknown; service?: unknown; tableNo?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -41,6 +54,9 @@ export async function POST(req: Request) {
       // อาหาร: ใช้แค่ท็อปปิ้ง (ต้องเป็นของเมนูนี้ ไม่ซ้ำ)
       const tops = Array.isArray(raw.toppings) ? [...new Set(raw.toppings.map(String))] : [];
       if (tops.some((id) => !item.toppings.some((t) => t.id === id))) return fail("ท็อปปิ้งไม่ถูกต้อง");
+      // ตัวเลือกแบบกลุ่ม ต้องเลือกกลุ่มละ 1 อย่างพอดี
+      for (const g of optionGroups(item))
+        if (g.options.filter((o) => tops.includes(o.id)).length !== 1) return fail(`กรุณาเลือก${g.name}`);
       line = { itemId: item.id, temp: item.temps[0] ?? "hot", sweet: 0, milk: null, powder: null, extraShot: false, softCream: false, toppings: tops, qty };
     } else {
       line = {
@@ -67,11 +83,21 @@ export async function POST(req: Request) {
   }
   const shop = await getSettings();
   if (!shop.accepting) return fail("ร้านปิดรับออเดอร์ชั่วคราว", 409);
-  if (cups > shop.slotCapacity) return fail(`สั่งได้สูงสุด ${shop.slotCapacity} แก้วต่อรอบรับ`);
 
+  // วิธีรับ: สั่งล่วงหน้าต้องเลือกรอบ / อยู่ที่ร้านแล้ว (ทานที่ร้าน, กลับบ้าน) ทำให้เลยตอนร้านเปิด
+  const service: Service = body.service === "dine_in" || body.service === "takeaway" ? body.service : "pickup";
+  const tableNo = service === "dine_in" && typeof body.tableNo === "string" ? body.tableNo.trim().slice(0, 10) : "";
   const now = nowInShop();
-  if (typeof pickupTime !== "string" || !isBookable(pickupTime, now.minutes, shop))
-    return fail("เวลารับนี้ไม่ว่างแล้ว เลือกเวลาอื่น", 409);
+  let time: string;
+  if (service === "pickup") {
+    if (cups > shop.slotCapacity) return fail(`สั่งได้สูงสุด ${shop.slotCapacity} รายการต่อรอบรับ`);
+    if (typeof pickupTime !== "string" || !isBookable(pickupTime, now.minutes, shop))
+      return fail("เวลารับนี้ไม่ว่างแล้ว เลือกเวลาอื่น", 409);
+    time = pickupTime;
+  } else {
+    if (!openNow(shop)) return fail(`ตอนนี้ร้านยังไม่เปิด (เปิด ${shop.openTime}–${shop.closeTime} น.)`, 409);
+    time = `${String(Math.floor(now.minutes / 60)).padStart(2, "0")}:${String(now.minutes % 60).padStart(2, "0")}`;
+  }
 
   const cleanNote = typeof note === "string" ? note.trim().slice(0, 200) : "";
   if (!process.env.PROMPTPAY_ID) return fail("ร้านยังไม่ได้ตั้งค่าการรับเงิน กรุณาติดต่อร้าน", 503);
@@ -84,8 +110,9 @@ export async function POST(req: Request) {
 
   const { data, error } = await db().rpc("place_order", {
     p_date: now.date,
-    p_time: pickupTime,
-    p_capacity: shop.slotCapacity,
+    p_time: time,
+    // ลูกค้าหน้าร้านไม่นับโควตารอบรับ
+    p_capacity: service === "pickup" ? shop.slotCapacity : 100000,
     p_user: user.userId,
     p_name: user.name,
     p_items: items,
@@ -102,15 +129,20 @@ export async function POST(req: Request) {
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string; order_status: string };
+  if (service !== "pickup") {
+    const { error: svcErr } = await db().from("orders").update({ service, table_no: tableNo }).eq("id", row.order_id);
+    if (svcErr) console.error("set service failed", svcErr);
+  }
+  const when = whenText({ service, pickupTime: time, tableNo });
 
   // ใช้แต้มจ่ายครบ: เข้าคิวทันที แจ้งร้านและลูกค้าเลย
   if (row.order_status === "pending") {
-    const itemLines = items.map((i) => `• ${i.qty}× ${i.name} (${i.detail})`);
-    const [ahead, balance] = await Promise.all([queueAhead(now.date, pickupTime, row.order_no), pointsBalance(user.userId)]);
+    const itemLines = items.map((i) => `• ${i.qty}× ${i.name}${i.detail ? ` (${i.detail})` : ""}`);
+    const [ahead, balance] = await Promise.all([queueAhead(now.date, time, row.order_no), pointsBalance(user.userId)]);
     await Promise.all([
       pushText(
         process.env.LINE_STAFF_GROUP_ID,
-        [`🍵 ออเดอร์ใหม่ #${row.order_no} (ใช้แต้มจ่ายครบ) รับ ${pickupTime} น.`, user.name, ...itemLines, cleanNote && `📝 ${cleanNote}`]
+        [`🍵 ออเดอร์ใหม่ #${row.order_no} (ใช้แต้มจ่ายครบ) · ${when}`, user.name, ...itemLines, cleanNote && `📝 ${cleanNote}`]
           .filter(Boolean)
           .join("\n"),
       ),
@@ -119,13 +151,13 @@ export async function POST(req: Request) {
         [
           `✅ ใช้ ${points} แต้มแลกออเดอร์ #${row.order_no} เรียบร้อย เข้าคิวแล้ว`,
           ...itemLines,
-          `เวลารับ ${pickupTime} น.`,
+          when,
           ahead ? `ตอนนี้มีคิวก่อนหน้า ${ahead} คิว` : "ตอนนี้ไม่มีคิวก่อนหน้า",
           `แต้มคงเหลือ ${balance} แต้ม`,
         ].join("\n"),
       ),
     ]);
-    return NextResponse.json({ free: true, no: row.order_no, pickupTime, total: 0, discount: points });
+    return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, service, tableNo, total: 0, discount: points });
   }
 
   // ยังไม่แจ้งร้าน: ออเดอร์จะเข้าคิวหลังร้านยืนยันสลิป
@@ -135,8 +167,10 @@ export async function POST(req: Request) {
       daily_no: row.order_no,
       total: pay,
       discount: points,
-      pickup_time: pickupTime,
+      pickup_time: time,
       expires_at: row.order_expires,
+      service,
+      table_no: tableNo,
     }),
   );
 }
@@ -148,7 +182,7 @@ export async function GET(req: Request) {
   if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
   const { data, error } = await db()
     .from("orders")
-    .select("id,daily_no,total,discount,pickup_time,expires_at")
+    .select("id,daily_no,total,discount,pickup_time,expires_at,service,table_no")
     .eq("line_user_id", user.userId)
     .eq("pickup_date", nowInShop().date)
     .eq("status", "awaiting_payment")

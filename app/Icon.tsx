@@ -22,7 +22,8 @@ const PATHS = {
   star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   bowl: <path d="M3 12h18a9 9 0 0 1-18 0Zm4-4c0-1 1-1 1-2M12 7c0-1 1-1 1-2M16 8c0-1 1-1 1-2M8 21h8" />,
-  bell:<path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0" />,
+  bag: <path d="M5 8h14l-1 12H6L5 8Zm4 0V6a3 3 0 0 1 6 0v2" />,
+  bell: <path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0" />,
   clock: (
     <>
       <circle cx="12" cy="12" r="9" />
