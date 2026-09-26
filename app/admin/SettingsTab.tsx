@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { POINTS, SHOP } from "@/lib/config";
-import { LOOKS, lookOf, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
-import Cup, { tintOf } from "../Cup";
+import { FOOD_LOOKS, LOOKS, type Kind, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
 import Icon from "../Icon";
+import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
 
+type DraftTopping = { id?: string; label: string; price: string };
 type Draft = {
   id: string | null; // null = เมนูใหม่
+  kind: Kind;
   name: string;
   jp: string;
   description: string;
@@ -18,10 +20,12 @@ type Draft = {
   milk: boolean;
   recommended: boolean;
   look: string;
+  toppings: DraftTopping[];
 };
 
 const EMPTY: Draft = {
   id: null,
+  kind: "drink",
   name: "",
   jp: "",
   description: "",
@@ -31,10 +35,12 @@ const EMPTY: Draft = {
   milk: true,
   recommended: false,
   look: "matcha-latte",
+  toppings: [],
 };
 
 const toDraft = (m: MenuItem): Draft => ({
   id: m.id,
+  kind: m.kind ?? "drink",
   name: m.name,
   jp: m.jp,
   description: m.description,
@@ -44,6 +50,25 @@ const toDraft = (m: MenuItem): Draft => ({
   milk: m.milk,
   recommended: m.recommended,
   look: m.look ?? "",
+  toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price) })),
+});
+
+// เมนูจำลองจากฟอร์ม ใช้วาดภาพตัวอย่าง
+const draftItem = (d: Draft): MenuItem => ({
+  id: d.id ?? "new",
+  kind: d.kind,
+  toppings: [],
+  name: d.name,
+  jp: d.jp,
+  description: d.description,
+  price: Number(d.price) || 0,
+  temps: d.temps.length ? d.temps : ["iced"],
+  milk: d.milk,
+  available: true,
+  promoPrice: null,
+  recommended: d.recommended,
+  look: d.look || null,
+  sort: 0,
 });
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -137,16 +162,19 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
     if (!draft) return;
     setSaving(true);
     setFormErr("");
+    const food = draft.kind === "food";
     const body = {
+      kind: draft.kind,
       name: draft.name,
       jp: draft.jp,
       description: draft.description,
       price: Number(draft.price),
       promoPrice: draft.promoPrice.trim() === "" ? null : Number(draft.promoPrice),
-      temps: draft.temps,
-      milk: draft.milk,
+      temps: food ? ["hot"] : draft.temps,
+      milk: food ? false : draft.milk,
       recommended: draft.recommended,
       look: draft.look === "" ? null : draft.look,
+      toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0) })) : [],
     };
     if (body.promoPrice !== null && body.promoPrice >= body.price) {
       setSaving(false);
@@ -177,7 +205,13 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => draft && setDraft({ ...draft, [k]: v });
   const toggleTemp = (t: Temp) =>
     draft && set("temps", draft.temps.includes(t) ? draft.temps.filter((x) => x !== t) : [...draft.temps, t]);
-  const previewLook = draft ? (draft.look || draft.id || "matcha-latte") : "";
+  const setTopping = (i: number, patch: Partial<DraftTopping>) =>
+    draft && set("toppings", draft.toppings.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  function setKind(kind: Kind) {
+    if (!draft || draft.kind === kind) return;
+    setDraft({ ...draft, kind, look: kind === "food" ? "omelette-rice" : "matcha-latte" });
+  }
+  const preview = draft ? draftItem(draft) : null;
 
   return (
     <div className="settings">
@@ -308,14 +342,15 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
         <ul className="mlist">
           {menu.map((m) => (
             <li key={m.id}>
-              <span className="thumb" style={{ "--tint": tintOf(lookOf(m)) } as React.CSSProperties}>
-                <Cup itemId={lookOf(m)} temp={m.temps[0]} milk={m.milk ? "fresh" : null} size={44} />
+              <span className="thumb" style={{ "--tint": artTint(m) } as React.CSSProperties}>
+                <MenuArt item={m} size={44} />
               </span>
               <div className="mlist-info">
                 <b>{m.name}</b>
                 <small>
-                  {m.temps.map((t) => (t === "iced" ? "เย็น" : "ร้อน")).join("/")}
-                  {m.milk ? " · เลือกนมได้" : ""}
+                  {m.kind === "food"
+                    ? `อาหาร${m.toppings?.length ? ` · ท็อปปิ้ง ${m.toppings.length} อย่าง` : ""}`
+                    : `${m.temps.map((t) => (t === "iced" ? "เย็น" : "ร้อน")).join("/")}${m.milk ? " · เลือกนมได้" : ""}`}
                   {!m.available ? " · หมดวันนี้" : ""}
                 </small>
               </div>
@@ -365,10 +400,20 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                 <Icon name="close" size={18} />
               </button>
             </header>
-            <div className="drawer-art" style={{ "--tint": tintOf(previewLook) } as React.CSSProperties}>
-              <Cup key={previewLook + draft.temps[0]} itemId={previewLook} temp={draft.temps[0] ?? "iced"} milk={draft.milk ? "fresh" : null} size={110} />
+            <div className="drawer-art" style={{ "--tint": artTint(preview!) } as React.CSSProperties}>
+              <MenuArt key={`${preview!.look}-${preview!.temps[0]}`} item={preview!} size={110} />
             </div>
             <div className="form">
+              <fieldset>
+                <legend>ประเภทเมนู</legend>
+                <div className="chips">
+                  {(["drink", "food"] as Kind[]).map((k) => (
+                    <button key={k} type="button" className="chip" aria-pressed={draft.kind === k} onClick={() => setKind(k)} disabled={!!draft.id && draft.kind !== k}>
+                      {k === "drink" ? "เครื่องดื่ม" : "อาหาร"}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
               <label>
                 ชื่อเมนู *
                 <input className="text" value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น มัทฉะลาเต้ส้มยูซุ" />
@@ -391,29 +436,56 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                   <input className="text" inputMode="numeric" value={draft.promoPrice} onChange={(e) => set("promoPrice", e.target.value.replace(/\D/g, ""))} />
                 </label>
               </div>
-              <fieldset>
-                <legend>ขายแบบ</legend>
-                <div className="chips">
-                  {(["iced", "hot"] as Temp[]).map((t) => (
-                    <button key={t} type="button" className="chip" aria-pressed={draft.temps.includes(t)} onClick={() => toggleTemp(t)}>
-                      {t === "iced" ? "เย็น" : "ร้อน"}
-                    </button>
+              {draft.kind === "drink" ? (
+                <>
+                  <fieldset>
+                    <legend>ขายแบบ</legend>
+                    <div className="chips">
+                      {(["iced", "hot"] as Temp[]).map((t) => (
+                        <button key={t} type="button" className="chip" aria-pressed={draft.temps.includes(t)} onClick={() => toggleTemp(t)}>
+                          {t === "iced" ? "เย็น" : "ร้อน"}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <label className="check">
+                    <input type="checkbox" checked={draft.milk} onChange={(e) => set("milk", e.target.checked)} />
+                    ลูกค้าเลือกชนิดนมได้ (นมสด / โอ๊ต / อัลมอนด์)
+                  </label>
+                </>
+              ) : (
+                <fieldset className="tops-edit">
+                  <legend>ท็อปปิ้งที่ลูกค้าเลือกได้ (ใส่ 0 = ฟรี)</legend>
+                  {draft.toppings.map((t, i) => (
+                    <div key={t.id ?? i} className="top-row">
+                      <input className="text" placeholder="ชื่อท็อปปิ้ง" value={t.label} onChange={(e) => setTopping(i, { label: e.target.value })} />
+                      <input
+                        className="text price-in"
+                        inputMode="numeric"
+                        placeholder="+บาท"
+                        aria-label={`ราคา ${t.label}`}
+                        value={t.price}
+                        onChange={(e) => setTopping(i, { price: e.target.value.replace(/\D/g, "") })}
+                      />
+                      <button type="button" className="x" aria-label={`ลบ ${t.label}`} onClick={() => set("toppings", draft.toppings.filter((_, j) => j !== i))}>
+                        <Icon name="close" size={16} />
+                      </button>
+                    </div>
                   ))}
-                </div>
-              </fieldset>
-              <label className="check">
-                <input type="checkbox" checked={draft.milk} onChange={(e) => set("milk", e.target.checked)} />
-                ลูกค้าเลือกชนิดนมได้ (นมสด / โอ๊ต / อัลมอนด์)
-              </label>
+                  <button type="button" className="btn ghost-sm" onClick={() => set("toppings", [...draft.toppings, { label: "", price: "" }])}>
+                    + เพิ่มท็อปปิ้ง
+                  </button>
+                </fieldset>
+              )}
               <label className="check">
                 <input type="checkbox" checked={draft.recommended} onChange={(e) => set("recommended", e.target.checked)} />
                 เมนูแนะนำ
               </label>
               <label>
-                หน้าตาแก้วการ์ตูน
+                ภาพการ์ตูน
                 <select className="text" value={draft.look} onChange={(e) => set("look", e.target.value)}>
                   {draft.id && <option value="">ตามเมนูเดิม</option>}
-                  {LOOKS.map((l) => (
+                  {(draft.kind === "food" ? FOOD_LOOKS : LOOKS).map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.label}
                     </option>

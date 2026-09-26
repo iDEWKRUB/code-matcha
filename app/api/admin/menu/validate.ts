@@ -52,6 +52,25 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
     row.look = b.look;
   }
 
+  if ("kind" in b) {
+    if (b.kind !== "drink" && b.kind !== "food") return { error: "ประเภทเมนูไม่ถูกต้อง" };
+    row.kind = b.kind;
+  }
+
+  if ("toppings" in b) {
+    if (!Array.isArray(b.toppings) || b.toppings.length > 20) return { error: "ท็อปปิ้งไม่ถูกต้อง" };
+    const tops = [];
+    for (const t of b.toppings as Row[]) {
+      const label = text(t?.label, 40);
+      const price = money(t?.price);
+      if (!label) return { error: "กรุณาใส่ชื่อท็อปปิ้งให้ครบ" };
+      if (price === undefined) return { error: `ราคาท็อปปิ้ง "${label}" ไม่ถูกต้อง` };
+      const id = typeof t.id === "string" && /^[a-z0-9-]{1,40}$/.test(t.id) ? t.id : `t-${Math.random().toString(36).slice(2, 8)}`;
+      tops.push({ id, label, price });
+    }
+    row.toppings = tops;
+  }
+
   if ("sort" in b) {
     if (!Number.isInteger(b.sort)) return { error: "ลำดับไม่ถูกต้อง" };
     row.sort = b.sort;

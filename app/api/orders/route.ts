@@ -34,24 +34,34 @@ export async function POST(req: Request) {
     const item = menu.get(String(raw?.itemId));
     if (!item) return fail("ไม่พบเมนูนี้");
     if (!item.available) return fail(`${item.name} หมดแล้ว`);
-    const line: CartLine = {
-      itemId: item.id,
-      temp: raw.temp as CartLine["temp"],
-      sweet: Number(raw.sweet),
-      milk: item.milk ? String(raw.milk) : null,
-      powder: hasPowder(item) ? String(raw.powder) : null,
-      extraShot: raw.extraShot === true,
-      softCream: raw.softCream === true,
-      qty: Number(raw.qty),
-    };
-    if (!item.temps.includes(line.temp)) return fail("อุณหภูมิไม่ถูกต้อง");
-    if (!SWEET.includes(line.sweet)) return fail("ระดับความหวานไม่ถูกต้อง");
-    if (item.milk && !MILKS.some((m) => m.id === line.milk)) return fail("ชนิดนมไม่ถูกต้อง");
-    if (line.powder !== null && !POWDERS.some((p) => p.id === line.powder)) return fail("ผงมัทฉะไม่ถูกต้อง");
-    if (line.softCream && line.temp !== "iced") return fail("ท็อปซอฟต์ครีมได้เฉพาะเครื่องดื่มเย็น");
-    if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > MAX_QTY) return fail("จำนวนไม่ถูกต้อง");
+    const qty = Number(raw.qty);
+    if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) return fail("จำนวนไม่ถูกต้อง");
+    let line: CartLine;
+    if (item.kind === "food") {
+      // อาหาร: ใช้แค่ท็อปปิ้ง (ต้องเป็นของเมนูนี้ ไม่ซ้ำ)
+      const tops = Array.isArray(raw.toppings) ? [...new Set(raw.toppings.map(String))] : [];
+      if (tops.some((id) => !item.toppings.some((t) => t.id === id))) return fail("ท็อปปิ้งไม่ถูกต้อง");
+      line = { itemId: item.id, temp: item.temps[0] ?? "hot", sweet: 0, milk: null, powder: null, extraShot: false, softCream: false, toppings: tops, qty };
+    } else {
+      line = {
+        itemId: item.id,
+        temp: raw.temp as CartLine["temp"],
+        sweet: Number(raw.sweet),
+        milk: item.milk ? String(raw.milk) : null,
+        powder: hasPowder(item) ? String(raw.powder) : null,
+        extraShot: raw.extraShot === true,
+        softCream: raw.softCream === true,
+        toppings: [],
+        qty,
+      };
+      if (!item.temps.includes(line.temp)) return fail("อุณหภูมิไม่ถูกต้อง");
+      if (!SWEET.includes(line.sweet)) return fail("ระดับความหวานไม่ถูกต้อง");
+      if (item.milk && !MILKS.some((m) => m.id === line.milk)) return fail("ชนิดนมไม่ถูกต้อง");
+      if (line.powder !== null && !POWDERS.some((p) => p.id === line.powder)) return fail("ผงมัทฉะไม่ถูกต้อง");
+      if (line.softCream && line.temp !== "iced") return fail("ท็อปซอฟต์ครีมได้เฉพาะเครื่องดื่มเย็น");
+    }
     const price = linePrice(item, line);
-    items.push({ name: item.name, qty: line.qty, detail: lineDetail(line), price });
+    items.push({ name: item.name, qty: line.qty, detail: lineDetail(item, line), price });
     total += price;
     cups += line.qty;
   }

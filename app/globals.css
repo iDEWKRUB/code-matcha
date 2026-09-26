@@ -230,6 +230,9 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .closed-note small { display: block; color: var(--stone); font-size: 12px; margin-top: 4px; }
 .closed-note.compact { margin: 0; padding: 12px; box-shadow: none; }
 .friend-wrap { margin: 0 16px 14px; }
+.menu-section + .menu-section { margin-top: 22px; }
+.section-title { display: flex; align-items: center; gap: 8px; margin: 6px 20px 10px; font-size: 18px; }
+.section-title .ico { color: var(--matcha); }
 .friend-card { width: 100%; max-width: 480px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: #eafaf0; border: 1.5px solid #9edcb5; text-align: left; margin-top: 16px; }
 .friend-wrap .friend-card { margin-top: 0; }
 .friend-ico { width: 42px; height: 42px; border-radius: 50%; background: #06c755; color: #fff; display: grid; place-items: center; flex-shrink: 0; }
@@ -274,6 +277,12 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .drawer .err { margin: 0 20px; }
 .drawer > footer { display: flex; gap: 10px; padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hair); }
 .drawer .grow { flex: 1; }
+.tops-edit { display: grid; gap: 8px; }
+.top-row { display: grid; grid-template-columns: 1fr 84px 36px; gap: 8px; align-items: center; }
+.top-row .text { min-height: 42px; padding: 8px 12px; }
+.top-row .x { width: 36px; height: 36px; border-radius: 50%; color: var(--stone); }
+.tops-edit .btn { justify-self: start; }
+.chip:disabled { opacity: .35; }
 
 @media (max-width: 860px) {
   .adm { grid-template-columns: minmax(0, 1fr); }

@@ -1,7 +1,7 @@
 "use client";
 
-import { lookOf, type MenuItem } from "@/lib/menu";
-import Cup, { tintOf } from "../Cup";
+import type { MenuItem } from "@/lib/menu";
+import MenuArt, { artTint } from "../MenuArt";
 
 type Props = {
   menu: MenuItem[];
@@ -44,8 +44,8 @@ export default function MenuTab({ menu, setMenu, reload, onError }: Props) {
       <ul className="menu-grid">
         {menu.map((m) => (
           <li key={m.id} className={`mcard${m.available ? "" : " off"}`}>
-            <div className="mcard-art" style={{ "--tint": tintOf(lookOf(m)) } as React.CSSProperties}>
-              <Cup itemId={lookOf(m)} temp={m.temps[0]} milk={m.milk ? "fresh" : null} size={84} />
+            <div className="mcard-art" style={{ "--tint": artTint(m) } as React.CSSProperties}>
+              <MenuArt item={m} size={84} />
               <div className="flags">
                 {m.recommended && <span className="flag rec">แนะนำ</span>}
                 {m.promoPrice !== null && <span className="flag sale">โปร</span>}

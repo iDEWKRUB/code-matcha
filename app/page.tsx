@@ -20,11 +20,13 @@ import {
   type Slot,
 } from "@/lib/menu";
 import { POINTS, SHOP, pointsEarned } from "@/lib/config";
-import Cup, { tintOf } from "./Cup";
+import Cup from "./Cup";
+import Food from "./Food";
 import Icon from "./Icon";
+import MenuArt, { artTint } from "./MenuArt";
 import Seal from "./Seal";
 
-const tint = (id: string) => ({ "--tint": tintOf(id) }) as React.CSSProperties;
+const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
 type Hours = { accepting: boolean; openTime: string; closeTime: string };
@@ -220,13 +222,15 @@ export default function OrderPage() {
 
   function open(it: MenuItem) {
     setEdit(it);
+    const food = it.kind === "food";
     setOpts({
       temp: it.temps[0],
-      sweet: 50,
-      milk: it.milk ? "fresh" : null,
-      powder: hasPowder(it) ? POWDERS[0].id : null,
+      sweet: food ? 0 : 50,
+      milk: !food && it.milk ? "fresh" : null,
+      powder: !food && hasPowder(it) ? POWDERS[0].id : null,
       extraShot: false,
       softCream: false,
+      toppings: [],
       qty: 1,
     });
   }
@@ -458,14 +462,23 @@ export default function OrderPage() {
         </p>
       )}
 
+      {(["drink", "food"] as const).map((kind) => {
+        const list = menu.filter((m) => (m.kind ?? "drink") === kind);
+        if (!list.length) return null;
+        return (
+          <section key={kind} className="menu-section">
+            <h2 className="section-title">
+              <Icon name={kind === "drink" ? "cup" : "bowl"} size={20} />
+              {kind === "drink" ? "เครื่องดื่ม" : "อาหาร"}
+            </h2>
       <ul className="grid">
-        {menu.map((m) => {
+        {list.map((m) => {
           const n = cart.filter((l) => l.itemId === m.id).reduce((a, l) => a + l.qty, 0);
           return (
             <li key={m.id}>
-              <button className="card" style={tint(lookOf(m))} onClick={() => open(m)} disabled={!m.available}>
+              <button className="card" style={tint(artTint(m))} onClick={() => open(m)} disabled={!m.available}>
                 <div className="card-art">
-                  <Cup itemId={lookOf(m)} temp={m.temps[0]} milk={m.milk ? "fresh" : null} size={104} />
+                  <MenuArt item={m} size={104} />
                   {n > 0 && <span className="badge">{n}</span>}
                   {!m.available && <span className="soldout">หมดวันนี้</span>}
                   <div className="flags">
@@ -491,11 +504,14 @@ export default function OrderPage() {
           );
         })}
       </ul>
+          </section>
+        );
+      })}
       <p className="hint">ชำระผ่านพร้อมเพย์ก่อน ออเดอร์จึงเข้าคิว</p>
 
       {cups > 0 && !checkout && !edit && (
         <button key={cups} className="cartbar bump" onClick={openCheckout}>
-          <span>ตะกร้า {cups} แก้ว</span>
+          <span>ตะกร้า {cups} รายการ</span>
           <span>฿{total}</span>
         </button>
       )}
@@ -505,24 +521,54 @@ export default function OrderPage() {
           <div className="backdrop" onClick={close} />
           <div className="sheet" role="dialog" aria-label="เลือกตัวเลือก">
             <div className="grab" />
-            <div className="sheet-art" style={tint(lookOf(edit))}>
-              <Cup
-                key={`${edit.id}-${opts.temp}-${opts.milk}`}
-                itemId={lookOf(edit)}
-                temp={opts.temp}
-                milk={opts.milk}
-                sweet={opts.sweet}
-                powder={opts.powder}
-                extraShot={opts.extraShot}
-                softCream={opts.softCream}
-                animate
-                size={150}
-              />
+            <div className="sheet-art" style={tint(artTint(edit))}>
+              {edit.kind === "food" ? (
+                <Food look={lookOf(edit)} toppings={opts.toppings} size={150} />
+              ) : (
+                <Cup
+                  key={`${edit.id}-${opts.temp}-${opts.milk}`}
+                  itemId={lookOf(edit)}
+                  temp={opts.temp}
+                  milk={opts.milk}
+                  sweet={opts.sweet}
+                  powder={opts.powder}
+                  extraShot={opts.extraShot}
+                  softCream={opts.softCream}
+                  animate
+                  size={150}
+                />
+              )}
             </div>
             <p className="jp" style={{ fontSize: 14 }}>{edit.jp}</p>
             <h2>{edit.name}</h2>
             <p className="ds">{edit.description}</p>
 
+            {edit.kind === "food" && edit.toppings.length > 0 && (
+              <>
+                <div className="lg">
+                  ท็อปปิ้ง<span>เลือกได้หลายอย่าง</span>
+                </div>
+                <div className="chips">
+                  {edit.toppings.map((t) => {
+                    const on = opts.toppings.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        className="chip"
+                        aria-pressed={on}
+                        onClick={() => setOpts({ ...opts, toppings: on ? opts.toppings.filter((x) => x !== t.id) : [...opts.toppings, t.id] })}
+                      >
+                        {t.label}
+                        <em>{t.price > 0 ? `+${t.price}` : "ฟรี"}</em>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {edit.kind !== "food" && (
+              <>
             {edit.temps.length > 1 && (
               <>
                 <div className="lg">อุณหภูมิ</div>
@@ -594,6 +640,8 @@ export default function OrderPage() {
                 <input type="checkbox" checked={opts.softCream} onChange={(e) => setOpts({ ...opts, softCream: e.target.checked })} />
               </label>
             )}
+              </>
+            )}
 
             <div className="buy">
               <div className="stepper">
@@ -629,7 +677,7 @@ export default function OrderPage() {
                     <p style={{ fontWeight: 600 }}>
                       {byId(l.itemId)?.name} <span style={{ fontWeight: 400, color: "var(--stone)" }}>x{l.qty}</span>
                     </p>
-                    <p className="ds">{lineDetail(l)}</p>
+                    <p className="ds">{byId(l.itemId) ? lineDetail(byId(l.itemId)!, l) : ""}</p>
                   </div>
                   <p style={{ fontWeight: 600 }}>฿{priceOf(l)}</p>
                   <button

@@ -1,8 +1,12 @@
 // ใช้ร่วมกันทั้งฝั่งหน้าเว็บและเซิร์ฟเวอร์
 
 export type Temp = "iced" | "hot";
+export type Kind = "drink" | "food";
+export type Topping = { id: string; label: string; price: number };
 
 export type MenuItem = {
+  kind: Kind;
+  toppings: Topping[]; // ท็อปปิ้งที่เลือกได้ (ใช้กับอาหาร)
   id: string;
   name: string;
   jp: string;
@@ -38,7 +42,11 @@ export const LOOKS = [
   { id: "coconut-matcha", label: "น้ำมะพร้าว + มัทฉะ" },
   { id: "yuzu-sparkling", label: "โซดายูซุ + มัทฉะ" },
 ];
-export const LOOK_IDS = LOOKS.map((l) => l.id);
+export const FOOD_LOOKS = [
+  { id: "omelette-rice", label: "ข้าวไข่เจียวบนจาน" },
+  { id: "fries", label: "เฟรนช์ฟรายส์ในกล่อง" },
+];
+export const LOOK_IDS = [...LOOKS, ...FOOD_LOOKS].map((l) => l.id);
 export const lookOf = (item: Pick<MenuItem, "id" | "look">) => item.look ?? item.id;
 
 export const basePrice = (item: MenuItem) => item.promoPrice ?? item.price;
@@ -51,6 +59,7 @@ export type CartLine = {
   powder: string | null;
   extraShot: boolean;
   softCream: boolean;
+  toppings: string[]; // id ท็อปปิ้ง (อาหาร)
   qty: number;
 };
 
@@ -115,13 +124,21 @@ export const MAX_QTY = 10;
 export const TEMP_LABEL: Record<Temp, string> = { iced: "เย็น", hot: "ร้อน" };
 
 export function linePrice(item: MenuItem, l: CartLine) {
+  if (item.kind === "food") {
+    const tops = l.toppings.reduce((n, id) => n + (item.toppings.find((t) => t.id === id)?.price ?? 0), 0);
+    return (basePrice(item) + tops) * l.qty;
+  }
   const milk = item.milk ? MILKS.find((m) => m.id === l.milk)?.price ?? 0 : 0;
   const powder = hasPowder(item) ? POWDERS.find((p) => p.id === l.powder)?.price ?? 0 : 0;
   const addons = (l.extraShot ? SHOT_PRICE : 0) + (l.softCream ? SOFT_CREAM_PRICE : 0);
   return (basePrice(item) + milk + powder + addons) * l.qty;
 }
 
-export function lineDetail(l: CartLine) {
+export function lineDetail(item: MenuItem, l: CartLine) {
+  if (item.kind === "food") {
+    const names = l.toppings.map((id) => item.toppings.find((t) => t.id === id)?.label).filter(Boolean);
+    return item.toppings.length ? (names.length ? `ท็อปปิ้ง: ${names.join(", ")}` : "ไม่ใส่ท็อปปิ้ง") : "";
+  }
   return [
     TEMP_LABEL[l.temp],
     l.sweet === 0 ? "ไม่หวาน" : `หวาน ${l.sweet}%`,
