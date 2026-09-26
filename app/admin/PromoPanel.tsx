@@ -41,7 +41,8 @@ const EMPTY: Form = {
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const digits = (s: string) => s.replace(/\D/g, "");
 
-export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
+// part = "codes": จัดการโค้ดส่วนลด / "broadcast": ส่งการ์ดโปร + Gen รูป
+export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "codes" | "broadcast" }) {
   const [promos, setPromos] = useState<PromoRule[]>([]);
   const [form, setForm] = useState<Form | null>(null);
   const [err, setErr] = useState("");
@@ -207,6 +208,7 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
 
   return (
     <>
+      {part === "codes" && (
       <section className="panel">
         <header className="panel-head">
           <div>
@@ -305,7 +307,9 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
           </div>
         )}
       </section>
+      )}
 
+      {part === "broadcast" && (
       <section className="panel">
         <header>
           <h2>
@@ -493,6 +497,7 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
         </div>
         {sendMsg && <p className={sendMsg.ok ? "hint-ok" : "err"}>{sendMsg.text}</p>}
       </section>
+      )}
     </>
   );
 }

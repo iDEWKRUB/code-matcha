@@ -206,6 +206,18 @@ textarea, input.text { width: 100%; border: 1px solid var(--edge); border-radius
 .toggle[aria-checked="true"] .knob::after { transform: translateX(18px); }
 
 .settings { display: grid; gap: 18px; max-width: 880px; }
+.sec-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.sec-nav button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; border-radius: 16px; background: #fff; text-align: left; box-shadow: 0 6px 18px -14px rgba(28,36,25,.5); border: 2px solid transparent; transition: border-color .15s, background .15s; }
+.sec-nav button:hover { border-color: var(--hair); }
+.sec-nav button[aria-current="page"] { border-color: var(--matcha); background: #f2f7e6; }
+.sec-ico { width: 44px; height: 44px; border-radius: 12px; background: #eef4dc; color: var(--matcha); display: grid; place-items: center; }
+.sec-nav button[aria-current="page"] .sec-ico { background: var(--matcha); color: #fff; }
+.sec-nav b { font-size: 16px; }
+.sec-nav small { font-size: 12px; color: var(--stone); line-height: 1.4; }
+@media (max-width: 700px) {
+  .sec-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sec-nav small { display: none; }
+}
 .panel { background: #fff; border-radius: 20px; padding: 20px 22px; box-shadow: 0 8px 20px -16px rgba(28,36,25,.6); }
 .panel h2 { margin: 0; font-size: 17px; }
 .panel header p { margin: 4px 0 14px; color: var(--stone); font-size: 14px; }

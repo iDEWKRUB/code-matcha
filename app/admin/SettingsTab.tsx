@@ -3,13 +3,21 @@
 import { useEffect, useState } from "react";
 import { POINTS, SHOP } from "@/lib/config";
 import { FOOD_LOOKS, LOOKS, type Kind, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
-import Icon from "../Icon";
+import Icon, { type IconName } from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
 import MessageLog from "./MessageLog";
 import PromoPanel from "./PromoPanel";
 
-type DraftTopping = { id?: string; label: string; price: string; group?: string };
+type Section = "shop" | "menu" | "promo" | "line";
+const SECTIONS: { id: Section; icon: IconName; label: string; hint: string }[] = [
+  { id: "shop", icon: "store", label: "ร้าน", hint: "เวลาเปิด–ปิด · QR · ข้อมูลร้าน" },
+  { id: "menu", icon: "cup", label: "เมนู", hint: "เพิ่ม/แก้เมนู · ราคาโปร · แนะนำ" },
+  { id: "promo", icon: "gift", label: "โปรโมชั่น", hint: "ป้ายประกาศ · โค้ดส่วนลด" },
+  { id: "line", icon: "megaphone", label: "ส่งข้อความ LINE", hint: "การ์ดโปร · Gen รูป · ประวัติ" },
+];
+
+type DraftTopping ={ id?: string; label: string; price: string; group?: string };
 type Draft = {
   id: string | null; // null = เมนูใหม่
   kind: Kind;
@@ -215,8 +223,36 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
   }
   const preview = draft ? draftItem(draft) : null;
 
+  // หมวดย่อยของหน้าตั้งค่า (จำหมวดล่าสุดไว้ในเครื่องนี้)
+  const [sec, setSec] = useState<Section>("shop");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("adm-settings-sec") as Section | null;
+      if (saved && SECTIONS.some((s) => s.id === saved)) setSec(saved);
+    } catch {}
+  }, []);
+  function pick(s: Section) {
+    setSec(s);
+    try {
+      localStorage.setItem("adm-settings-sec", s);
+    } catch {}
+  }
+
   return (
     <div className="settings">
+      <nav className="sec-nav" aria-label="หมวดตั้งค่า">
+        {SECTIONS.map((s) => (
+          <button key={s.id} aria-current={sec === s.id ? "page" : undefined} onClick={() => pick(s.id)}>
+            <span className="sec-ico">
+              <Icon name={s.icon} size={24} />
+            </span>
+            <b>{s.label}</b>
+            <small>{s.hint}</small>
+          </button>
+        ))}
+      </nav>
+
+      {sec === "shop" && (
       <section className="panel">
         <header className="panel-head">
           <div>
@@ -275,7 +311,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           {hoursMsg && <span className={hoursMsg.ok ? "hint-ok" : "err"}>{hoursMsg.text}</span>}
         </div>
       </section>
+      )}
 
+      {sec === "promo" && (
       <section className="panel">
         <header>
           <h2>
@@ -309,10 +347,17 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
         </div>
         {bannerMsg && <p className="hint-ok">{bannerMsg}</p>}
       </section>
+      )}
 
-      <PromoPanel menu={menu} />
-      <MessageLog />
+      {sec === "promo" && <PromoPanel menu={menu} part="codes" />}
+      {sec === "line" && (
+        <>
+          <PromoPanel menu={menu} part="broadcast" />
+          <MessageLog />
+        </>
+      )}
 
+      {sec === "shop" && (
       <section className="panel">
         <header>
           <h2>
@@ -331,7 +376,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           </div>
         </div>
       </section>
+      )}
 
+      {sec === "menu" && (
       <section className="panel">
         <header className="panel-head">
           <div>
@@ -375,7 +422,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           ))}
         </ul>
       </section>
+      )}
 
+      {sec === "shop" && (
       <section className="panel info">
         <header>
           <h2>
@@ -394,6 +443,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           </dd>
         </dl>
       </section>
+      )}
 
       {draft && (
         <>
