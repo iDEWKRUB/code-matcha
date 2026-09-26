@@ -6,7 +6,7 @@ import { normalizeCode, promoLabel, type PromoRule } from "@/lib/promo";
 import { toJpeg } from "html-to-image";
 import type { MenuItem } from "@/lib/menu";
 import Icon from "../Icon";
-import PromoArt, { THEMES, type Theme } from "./PromoArt";
+import PromoArt, { FORMATS, LAYOUTS, THEMES, type Format, type Layout, type Theme } from "./PromoArt";
 
 const json = (method: string, body?: unknown) => ({
   method,
@@ -59,8 +59,11 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
 
   // Gen รูปจากแม่แบบของร้าน
   const [artItem, setArtItem] = useState("omelette-rice");
+  const [artItem2, setArtItem2] = useState("matcha-latte");
   const [theme, setTheme] = useState<Theme>("orange");
-  const [showNew, setShowNew] = useState(true);
+  const [layout, setLayout] = useState<Layout>("classic");
+  const [format, setFormat] = useState<Format>("line");
+  const [badge, setBadge] = useState("NEW");
   const [genning, setGenning] = useState(false);
   const artRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +73,17 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
     setSendMsg(null);
     try {
       await document.fonts.ready;
-      const dataUrl = await toJpeg(artRef.current, { width: 1040, height: 676, pixelRatio: 1, quality: 0.9, cacheBust: true });
+      const { w, h } = FORMATS[format];
+      const dataUrl = await toJpeg(artRef.current, { width: w, height: h, pixelRatio: 1, quality: 0.9, cacheBust: true });
+      // รูปโซเชียล: ดาวน์โหลดไปโพสต์เอง (ไม่ใช้ในการ์ด LINE)
+      if (format !== "line") {
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `code-macha-${format}-${Date.now()}.jpg`;
+        a.click();
+        setSendMsg({ ok: true, text: "ดาวน์โหลดรูปแล้ว ไปโพสต์ IG / Facebook / VOOM ได้เลย" });
+        return;
+      }
       const blob = await (await fetch(dataUrl)).blob();
       const fd = new FormData();
       fd.append("image", new File([blob], "promo.jpg", { type: "image/jpeg" }));
@@ -180,6 +193,17 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
   }
 
   const chosen = promos.find((p) => p.code === card.code);
+  const artProps = {
+    title: card.title,
+    subtitle: card.subtitle,
+    item: menu.find((m) => m.id === artItem) ?? menu[0] ?? null,
+    item2: menu.find((m) => m.id === artItem2) ?? null,
+    code: chosen ?? null,
+    theme,
+    badge: badge.trim(),
+    layout,
+    format,
+  };
 
   return (
     <>
@@ -379,8 +403,24 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
               <b>
                 <Icon name="gift" size={16} /> สร้างรูปโปรจากรายละเอียดด้านซ้าย
               </b>
+              <span className="gen-label">แม่แบบ</span>
+              <div className="chips">
+                {(Object.keys(LAYOUTS) as Layout[]).map((k) => (
+                  <button key={k} type="button" className="chip" aria-pressed={layout === k} onClick={() => setLayout(k)}>
+                    {LAYOUTS[k]}
+                  </button>
+                ))}
+              </div>
+              <span className="gen-label">ขนาด</span>
+              <div className="chips">
+                {(Object.keys(FORMATS) as Format[]).map((k) => (
+                  <button key={k} type="button" className="chip" aria-pressed={format === k} onClick={() => setFormat(k)}>
+                    {FORMATS[k].label}
+                  </button>
+                ))}
+              </div>
               <label>
-                ภาพเมนู
+                ภาพเมนู{layout === "duo" ? " (ซ้าย)" : ""}
                 <select className="text" value={artItem} onChange={(e) => setArtItem(e.target.value)}>
                   {menu.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -389,6 +429,19 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
                   ))}
                 </select>
               </label>
+              {layout === "duo" && (
+                <label>
+                  ภาพเมนู (ขวา)
+                  <select className="text" value={artItem2} onChange={(e) => setArtItem2(e.target.value)}>
+                    {menu.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <span className="gen-label">โทนสี</span>
               <div className="chips">
                 {(Object.keys(THEMES) as Theme[]).map((k) => (
                   <button key={k} type="button" className="chip" aria-pressed={theme === k} onClick={() => setTheme(k)}>
@@ -396,28 +449,34 @@ export default function PromoPanel({ menu }: { menu: MenuItem[] }) {
                   </button>
                 ))}
               </div>
-              <label className="row" style={{ marginTop: 0, minHeight: 36 }}>
-                <span>ใส่ป้าย NEW</span>
-                <input type="checkbox" checked={showNew} onChange={(e) => setShowNew(e.target.checked)} />
+              <label>
+                ป้ายมุม (เว้นว่าง = ไม่ใส่)
+                <input className="text" maxLength={10} value={badge} onChange={(e) => setBadge(e.target.value)} />
               </label>
+              <div className="chips">
+                {["NEW", "HOT", "1 แถม 1", "ลด 20%", "ขายดี"].map((b) => (
+                  <button key={b} type="button" className="chip" aria-pressed={badge === b} onClick={() => setBadge(b)}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+
+              <span className="gen-label">ตัวอย่าง</span>
+              <div className="gen-thumb" style={{ aspectRatio: `${FORMATS[format].w} / ${FORMATS[format].h}` }}>
+                <div style={{ transform: `scale(${268 / FORMATS[format].w})`, transformOrigin: "top left" }}>
+                  <PromoArt {...artProps} />
+                </div>
+              </div>
               <button className="btn primary-sm gen-btn" disabled={genning || !card.title} onClick={gen}>
-                {genning ? "กำลังสร้างรูป…" : "Gen รูปโปร"}
+                {genning ? "กำลังสร้างรูป…" : format === "line" ? "Gen รูปโปร ใส่การ์ด LINE" : "Gen แล้วดาวน์โหลดรูป"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* แม่แบบที่ใช้ถ่ายเป็นรูป (ซ่อนไว้นอกจอ) */}
+        {/* แม่แบบขนาดจริงสำหรับถ่ายเป็นรูป (ซ่อนไว้นอกจอ) */}
         <div className="gen-stage" aria-hidden="true">
-          <PromoArt
-            ref={artRef}
-            title={card.title}
-            subtitle={card.subtitle}
-            item={menu.find((m) => m.id === artItem) ?? menu[0] ?? null}
-            code={chosen ?? null}
-            theme={theme}
-            showNew={showNew}
-          />
+          <PromoArt ref={artRef} {...artProps} />
         </div>
         <div className="panel-row">
           <button className="btn ghost-sm" disabled={sendState === "sending"} onClick={() => send(false)}>

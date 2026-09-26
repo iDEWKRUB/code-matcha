@@ -318,6 +318,8 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .gen-box .chips { gap: 6px; }
 .gen-box .chip { min-height: 36px; padding: 0 12px; font-size: 13px; }
 .gen-btn { width: 100%; background: #d9822b !important; }
+.gen-label { font-weight: 600; font-size: 13px; color: var(--stone); margin-bottom: -4px; }
+.gen-thumb { width: 268px; max-width: 100%; overflow: hidden; border-radius: 10px; border: 1px solid #f0cfa8; background: #fff; max-height: 480px; }
 .gen-stage { position: fixed; left: -20000px; top: 0; pointer-events: none; }
 .img-pick .upload { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
 .img-pick .upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
