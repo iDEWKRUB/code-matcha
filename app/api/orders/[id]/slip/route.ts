@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { pushText, verifyIdToken } from "@/lib/line";
+import { adminUri } from "@/lib/flex";
+import { pushCard, verifyIdToken } from "@/lib/line";
 import { rowWhen } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 
@@ -47,10 +48,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (order.slip_path) await db().storage.from("slips").remove([order.slip_path]);
 
   if (order.status === "awaiting_payment")
-    await pushText(
-      process.env.LINE_STAFF_GROUP_ID,
-      `💰 สลิปใหม่ #${order.daily_no} ฿${order.total} (${order.customer_name}) · ${rowWhen(order)}\nตรวจยอดแล้วกดยืนยันในหน้าบาริสต้า`,
-    );
+    await pushCard(process.env.LINE_STAFF_GROUP_ID, {
+      tone: "amber",
+      title: "สลิปใหม่รอตรวจ",
+      subtitle: "เช็กยอดในแอปธนาคารก่อนกดยืนยัน",
+      rows: [
+        ["ออเดอร์", `#${order.daily_no}`, true],
+        ["ลูกค้า", order.customer_name],
+        ["ยอดที่ต้องได้รับ", `฿${order.total}`, true],
+        ["วิธีรับ", rowWhen(order)],
+      ],
+      button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
+    });
 
   return NextResponse.json({ ok: true, no: order.daily_no, pickupTime: order.pickup_time, total: order.total });
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import crypto from "crypto";
 import { env } from "./env";
+import { altText, bubble, type Card } from "./flex";
 
 export type LineUser = { userId: string; name: string };
 
@@ -49,6 +50,25 @@ export async function pushText(to: string | undefined, text: string) {
 
 export async function replyText(replyToken: string, text: string) {
   await callLine("reply", { replyToken, messages: [{ type: "text", text }] });
+}
+
+const flexMessage = (c: Card) => ({ type: "flex", altText: altText(c), contents: bubble(c) });
+
+// ส่งการ์ด Flex (ล้มเหลวก็ไม่กระทบออเดอร์)
+export async function pushCard(to: string | undefined, c: Card) {
+  if (!to || to === "dev") {
+    console.log("[LINE card skipped]", to, altText(c));
+    return;
+  }
+  try {
+    await callLine("push", { to, messages: [flexMessage(c)] });
+  } catch (e) {
+    console.error("LINE push error", e);
+  }
+}
+
+export async function replyCard(replyToken: string, c: Card) {
+  await callLine("reply", { replyToken, messages: [flexMessage(c)] });
 }
 
 export function validSignature(body: string, signature: string | null) {

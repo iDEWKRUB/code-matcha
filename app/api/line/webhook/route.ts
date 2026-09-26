@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { orderLink, replyText, validSignature } from "@/lib/line";
+import { orderLink, replyCard, replyText, validSignature } from "@/lib/line";
 
 type LineEvent = {
   type: string;
@@ -26,8 +26,21 @@ export async function POST(req: Request) {
       continue;
     }
 
+    // ลูกค้าแอดเพื่อน/ทักแชท: ตอบการ์ดต้อนรับพร้อมปุ่มสั่ง (reply ไม่นับโควตา)
     if (src?.type === "user" && (e.type === "follow" || e.type === "message") && link) {
-      await replyText(e.replyToken, `สั่งมัทฉะล่วงหน้า แล้วมารับที่ร้านได้เลย 🍵\n${link}`);
+      await replyCard(e.replyToken, {
+        tone: "matcha",
+        title: e.type === "follow" ? "ยินดีต้อนรับสู่ CODE-MACHA" : "สั่งมัทฉะได้ที่นี่เลย",
+        subtitle: "สั่งล่วงหน้า ไม่ต้องต่อคิว",
+        rows: [
+          ["ทานที่ร้าน", "สั่งแล้วทำให้เลย"],
+          ["รับกลับบ้าน", "รอรับที่เคาน์เตอร์"],
+          ["สั่งล่วงหน้า", "เลือกเวลามารับ"],
+          ["สะสมแต้ม", "ทุก ฿25 = 1 แต้ม"],
+        ],
+        note: "จ่ายผ่านพร้อมเพย์ แล้วร้านจะแจ้งทาง LINE เมื่อพร้อม",
+        button: { label: "ดูเมนู / สั่งเลย", uri: link },
+      });
     }
   }
   return NextResponse.json({ ok: true });

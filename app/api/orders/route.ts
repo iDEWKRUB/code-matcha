@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { POINTS, SHOP } from "@/lib/config";
-import { pushText, verifyIdToken } from "@/lib/line";
+import { adminUri } from "@/lib/flex";
+import { pushCard, verifyIdToken } from "@/lib/line";
 import {
   MAX_QTY,
   MILKS,
@@ -15,7 +16,7 @@ import {
   type OrderItem,
   type Service,
 } from "@/lib/menu";
-import { getMenu, getSettings, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
+import { getMenu, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
 
@@ -137,25 +138,35 @@ export async function POST(req: Request) {
 
   // ใช้แต้มจ่ายครบ: เข้าคิวทันที แจ้งร้านและลูกค้าเลย
   if (row.order_status === "pending") {
-    const itemLines = items.map((i) => `• ${i.qty}× ${i.name}${i.detail ? ` (${i.detail})` : ""}`);
+    const lines = itemLines(items);
     const [ahead, balance] = await Promise.all([queueAhead(now.date, time, row.order_no), pointsBalance(user.userId)]);
     await Promise.all([
-      pushText(
-        process.env.LINE_STAFF_GROUP_ID,
-        [`🍵 ออเดอร์ใหม่ #${row.order_no} (ใช้แต้มจ่ายครบ) · ${when}`, user.name, ...itemLines, cleanNote && `📝 ${cleanNote}`]
-          .filter(Boolean)
-          .join("\n"),
-      ),
-      pushText(
-        user.userId,
-        [
-          `✅ ใช้ ${points} แต้มแลกออเดอร์ #${row.order_no} เรียบร้อย เข้าคิวแล้ว`,
-          ...itemLines,
-          when,
-          ahead ? `ตอนนี้มีคิวก่อนหน้า ${ahead} คิว` : "ตอนนี้ไม่มีคิวก่อนหน้า",
-          `แต้มคงเหลือ ${balance} แต้ม`,
-        ].join("\n"),
-      ),
+      pushCard(process.env.LINE_STAFF_GROUP_ID, {
+        tone: "amber",
+        title: "ออเดอร์ใหม่ (ใช้แต้มจ่ายครบ)",
+        subtitle: "ไม่ต้องตรวจสลิป เริ่มทำได้เลย",
+        rows: [
+          ["ออเดอร์", `#${row.order_no}`, true],
+          ["ลูกค้า", user.name],
+          ["วิธีรับ", when],
+        ],
+        items: lines,
+        note: cleanNote ? `หมายเหตุ: ${cleanNote}` : undefined,
+        button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
+      }),
+      pushCard(user.userId, {
+        tone: "matcha",
+        title: "แลกแต้มสำเร็จ เข้าคิวแล้ว",
+        subtitle: `ใช้ ${points} แต้ม · ไม่ต้องชำระเงิน`,
+        rows: [
+          ["ออเดอร์", `#${row.order_no}`, true],
+          ["วิธีรับ", when],
+          ["คิวก่อนหน้า", ahead ? `${ahead} คิว` : "ไม่มี ทำต่อเลย"],
+          ["แต้มคงเหลือ", `${balance} แต้ม`],
+        ],
+        items: lines,
+        note: "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง",
+      }),
     ]);
     return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, service, tableNo, total: 0, discount: points });
   }

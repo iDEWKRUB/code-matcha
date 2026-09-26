@@ -93,6 +93,9 @@ export function openNow(s: ShopSettings) {
   return s.accepting && m >= toMinutes(s.openTime) && m < toMinutes(s.closeTime);
 }
 
+// บรรทัดรายการในการ์ด LINE
+export const itemLines = (items: Order["items"]) => items.map((i) => `${i.qty}× ${i.name}${i.detail ? ` · ${i.detail}` : ""}`);
+
 // ข้อความเวลารับ สำหรับ LINE (จากแถวในฐานข้อมูล)
 export const rowWhen = (r: Pick<OrderRow, "service" | "pickup_time" | "table_no">) =>
   whenText({ service: r.service, pickupTime: r.pickup_time, tableNo: r.table_no });
