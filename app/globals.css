@@ -587,7 +587,6 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .mb-fixed::after { content: ""; position: absolute; left: 0; right: 0; bottom: -12px; height: 12px; background: linear-gradient(var(--foam), rgba(238,241,226,0)); pointer-events: none; }
 .mb-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
 .mb-scroll .mb-stats { margin-top: 2px; }
-.mb-loading { text-align: center; color: var(--stone); padding: 80px 0; }
 .mb-top { display: flex; align-items: center; gap: 12px; padding: 18px 0 16px; }
 .mb-top > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .mb-top b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -749,3 +748,41 @@ a.points-chip { color: inherit; text-decoration: none; }
 .mb-invite-enter input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .08em; }
 .mb-invite-enter button { padding: 0 16px; border-radius: 12px; background: var(--matcha); color: #fff; font-weight: 600; font-size: 14px; }
 .mb-invite-enter button:disabled { opacity: .4; }
+
+/* หน้าโหลด: ตีมัทฉะ */
+.loader { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; background: radial-gradient(circle at 50% 42%, #f6f8ec 0, var(--foam) 60%); }
+.ld-art { overflow: visible; }
+.ld-whisk { transform-box: view-box; transform-origin: 110px 30px; animation: whisk .55s ease-in-out infinite; }
+@keyframes whisk {
+  0% { transform: translateX(-26px) rotate(7deg); }
+  25% { transform: translateX(-9px) translateY(4px) rotate(2deg); }
+  50% { transform: translateX(26px) rotate(-7deg); }
+  75% { transform: translateX(9px) translateY(4px) rotate(-2deg); }
+  100% { transform: translateX(-26px) rotate(7deg); }
+}
+.ld-foam circle { transform-box: fill-box; transform-origin: center; animation: froth 1.1s ease-in-out infinite; }
+.ld-foam circle:nth-child(2) { animation-delay: .25s; }
+.ld-foam circle:nth-child(3) { animation-delay: .5s; }
+.ld-foam circle:nth-child(4) { animation-delay: .7s; }
+.ld-foam circle:nth-child(5) { animation-delay: .9s; }
+@keyframes froth { 0%, 100% { transform: scale(.4); opacity: .3; } 50% { transform: scale(1.15); opacity: 1; } }
+.ld-steam path { animation: steam 2.4s ease-in-out infinite; }
+.ld-steam path:nth-child(2) { animation-delay: 1.2s; }
+.ld-eyes { transform-box: fill-box; transform-origin: center; animation: blink 3.2s infinite; }
+.ld-spark path { transform-box: fill-box; transform-origin: center; animation: twinkle 1.8s ease-in-out infinite; }
+.ld-spark path:nth-child(2) { animation-delay: .9s; }
+@keyframes twinkle { 0%, 100% { transform: scale(.3); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
+.ld-cap { position: relative; height: 24px; width: 100%; max-width: 320px; margin: 4px 0 0; text-align: center; font-weight: 600; font-size: 16px; color: var(--matcha); }
+.ld-cap span { position: absolute; inset: 0; opacity: 0; animation: ldcap 6.4s ease-in-out infinite both; }
+.ld-cap .ld-one { opacity: 1; animation: none; }
+@keyframes ldcap { 0% { opacity: 0; transform: translateY(6px); } 4%, 21% { opacity: 1; transform: none; } 25%, 100% { opacity: 0; transform: translateY(-6px); } }
+.ld-dots { display: flex; gap: 6px; margin-top: 6px; }
+.ld-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--leaf); animation: lddot 1s ease-in-out infinite; }
+.ld-dots i:nth-child(2) { animation-delay: .15s; }
+.ld-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes lddot { 0%, 100% { transform: translateY(0); opacity: .4; } 50% { transform: translateY(-5px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .ld-whisk, .ld-foam circle, .ld-steam path, .ld-eyes, .ld-spark path, .ld-dots i { animation: none; }
+  .ld-cap span { animation: none; }
+  .ld-cap span:first-child { opacity: 1; }
+}

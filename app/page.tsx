@@ -30,6 +30,7 @@ import Cup from "./Cup";
 import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
 import MenuArt, { artTint } from "./MenuArt";
+import Loader from "./Loader";
 import Seal from "./Seal";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
@@ -180,6 +181,10 @@ export default function OrderPage() {
   useEffect(() => {
     (async () => {
       try {
+        // โหลดเมนูพร้อมกับล็อกอิน LINE (ไม่ต้องรอกัน) หน้าโหลดจะสั้นลง
+        const menuP = loadMenu();
+        menuP.catch(() => {});
+        let profileP: Promise<unknown> = Promise.resolve();
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
         if (liffId) {
           const l = (await import("@line/liff")).default;
@@ -189,7 +194,10 @@ export default function OrderPage() {
             return;
           }
           liff.current = l;
-          setName((await l.getProfile()).displayName);
+          profileP = l
+            .getProfile()
+            .then((p) => setName(p.displayName))
+            .catch(() => {});
           checkFriend();
         } else if (process.env.NODE_ENV !== "production") {
           setName("Dev (โหมดทดสอบ)");
@@ -209,9 +217,8 @@ export default function OrderPage() {
             .then((j) => j?.referrerName && setInvitedBy(j.referrerName))
             .catch(() => {});
         }
-        await loadMenu();
+        const [, pending] = await Promise.all([menuP, loadMine(), profileP]);
         // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
-        const pending = await loadMine();
         if (pending) {
           setPay(pending);
           setPhase("pay");
@@ -400,13 +407,7 @@ export default function OrderPage() {
     l.login({ redirectUri: location.href });
   }
 
-  if (phase === "loading")
-    return (
-      <main className="center">
-        <Seal size={56} />
-        กำลังโหลด…
-      </main>
-    );
+  if (phase === "loading") return <Loader />;
 
   if (phase === "error")
     return (

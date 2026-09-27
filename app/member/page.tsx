@@ -9,6 +9,7 @@ import Cup from "../Cup";
 import Icon from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import MerchArt, { MERCH_TINT } from "../MerchArt";
+import Loader from "../Loader";
 import Seal from "../Seal";
 import { REWARD_CATEGORIES, type RewardCategory } from "@/lib/rewards";
 
@@ -186,12 +187,7 @@ export default function MemberPage() {
         </p>
       </main>
     );
-  if (!m)
-    return (
-      <main className="app member">
-        <p className="mb-loading">กำลังเปิดบัตรสมาชิก…</p>
-      </main>
-    );
+  if (!m) return <Loader label="กำลังเปิดบัตรสมาชิก…" />;
 
   const { tier, next } = tierOf(m.earned);
   const progress = next ? Math.min(100, Math.round(((m.earned - tier.from) / (next.from - tier.from)) * 100)) : 100;
