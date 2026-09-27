@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { POINTS } from "@/lib/config";
-import type { Card } from "@/lib/flex";
+import { memberUri, type Card } from "@/lib/flex";
 import { orderLink, replyCard, replyText, validSignature } from "@/lib/line";
 import { basePrice } from "@/lib/menu";
 import { getMenu, getSettings, openNow, pointsBalance, rowWhen } from "@/lib/orders";
@@ -69,7 +69,8 @@ async function commandCard(cmd: string, userId: string, link: string): Promise<C
         ["ใช้แต้ม", `1 แต้ม = ฿1 (ขั้นต่ำ ${POINTS.minRedeem})`],
         ["หมดอายุ", "ไม่มีวันหมดอายุ"],
       ],
-      button: { label: "สั่งและใช้แต้ม", uri: link },
+      note: "แลกของขวัญ ดูคูปอง และประวัติแต้มได้ในบัตรสมาชิก",
+      button: { label: "เปิดบัตรสมาชิก", uri: memberUri() },
     };
   }
   if (cmd === "โปรโมชั่น") {

@@ -124,3 +124,5 @@ export const orderUri = () => {
   return id ? `https://liff.line.me/${id}` : SHOP.siteUrl;
 };
 export const adminUri = () => `${SHOP.siteUrl}/admin`;
+// บัตรสมาชิก (เปิดใน LINE ผ่าน LIFF path /member)
+export const memberUri = () => `${orderUri()}/member`;

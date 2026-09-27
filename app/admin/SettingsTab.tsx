@@ -6,14 +6,16 @@ import { FOOD_LOOKS, LOOKS, type Kind, type MenuItem, type ShopSettings, type Te
 import Icon, { type IconName } from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
+import MemberPanel from "./MemberPanel";
 import MessageLog from "./MessageLog";
 import PromoPanel from "./PromoPanel";
 
-type Section = "shop" | "menu" | "promo" | "line";
+type Section = "shop" | "menu" | "promo" | "member" | "line";
 const SECTIONS: { id: Section; icon: IconName; label: string; hint: string }[] = [
   { id: "shop", icon: "store", label: "ร้าน", hint: "เวลาเปิด–ปิด · QR · ข้อมูลร้าน" },
   { id: "menu", icon: "cup", label: "เมนู", hint: "เพิ่ม/แก้เมนู · ราคาโปร · แนะนำ" },
   { id: "promo", icon: "gift", label: "โปรโมชั่น", hint: "ป้ายประกาศ · โค้ดส่วนลด" },
+  { id: "member", icon: "star", label: "สมาชิก & ของขวัญ", hint: "คูปองรอรับ · ของขวัญแลกแต้ม" },
   { id: "line", icon: "megaphone", label: "ส่งข้อความ LINE", hint: "การ์ดโปร · Gen รูป · ประวัติ" },
 ];
 
@@ -350,6 +352,8 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       )}
 
       {sec === "promo" && <PromoPanel menu={menu} part="codes" />}
+      {sec === "member" && <MemberPanel menu={menu} />}
+
       {sec === "line" && (
         <>
           <PromoPanel menu={menu} part="broadcast" />

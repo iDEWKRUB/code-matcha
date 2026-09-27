@@ -13,3 +13,16 @@ export const SHOP = {
 // สะสมแต้ม: จ่ายทุก bahtPerPoint บาท ได้ 1 แต้ม, 1 แต้ม = ลด 1 บาท, ใช้ครั้งละอย่างน้อย minRedeem แต้ม
 export const POINTS = { bahtPerPoint: 25, minRedeem: 50 };
 export const pointsEarned = (paid: number) => Math.floor(paid / POINTS.bahtPerPoint);
+
+// ระดับบัตรสมาชิก ตามแต้มที่ "สะสมมาทั้งหมด" (ใช้แต้มแลกของแล้วระดับไม่ลด)
+export const TIERS = [
+  { id: "culinary", name: "Culinary", th: "สมาชิก", from: 0 },
+  { id: "premium", name: "Premium", th: "พรีเมียม", from: 100 },
+  { id: "ceremonial", name: "Ceremonial", th: "เซเรโมเนียล", from: 300 },
+] as const;
+export type Tier = (typeof TIERS)[number];
+export function tierOf(earned: number) {
+  let i = 0;
+  while (i + 1 < TIERS.length && earned >= TIERS[i + 1].from) i++;
+  return { tier: TIERS[i], next: TIERS[i + 1] ?? null };
+}

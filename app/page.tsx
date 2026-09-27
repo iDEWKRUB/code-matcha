@@ -507,9 +507,9 @@ export default function OrderPage() {
             <p className="hero-jp">いらっしゃいませ</p>
             <h1>CODE-MACHA</h1>
             <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
-            <span className="points-chip">
-              <Icon name="gift" size={15} /> แต้มสะสม {points.toLocaleString()} แต้ม
-            </span>
+            <a className="points-chip" href="/member">
+              <Icon name="gift" size={15} /> แต้มสะสม {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
+            </a>
           </div>
         </div>
         <svg className="wave" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
