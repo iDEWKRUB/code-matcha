@@ -8,7 +8,10 @@ export type Reward = {
   name: string;
   description: string;
   points: number;
+  category: "menu" | "merch";
   menuItemId: string | null;
+  look: string | null;
+  imageUrl: string | null;
   stock: number | null;
   active: boolean;
   sort: number;
@@ -32,7 +35,10 @@ type RewardRow = {
   name: string;
   description: string;
   points: number;
+  category: "menu" | "merch";
   menu_item_id: string | null;
+  look: string | null;
+  image_url: string | null;
   stock: number | null;
   active: boolean;
   sort: number;
@@ -48,7 +54,7 @@ type RedemptionRow = {
   customer_name: string;
 };
 
-const REWARD_COLUMNS = "id,name,description,points,menu_item_id,stock,active,sort";
+const REWARD_COLUMNS = "id,name,description,points,category,menu_item_id,look,image_url,stock,active,sort";
 const REDEMPTION_COLUMNS = "id,code,reward_name,points,status,created_at,given_at,customer_name";
 
 const toReward = (r: RewardRow): Reward => ({
@@ -56,7 +62,10 @@ const toReward = (r: RewardRow): Reward => ({
   name: r.name,
   description: r.description,
   points: r.points,
+  category: r.category,
   menuItemId: r.menu_item_id,
+  look: r.look,
+  imageUrl: r.image_url,
   stock: r.stock,
   active: r.active,
   sort: r.sort,
