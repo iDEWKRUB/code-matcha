@@ -843,7 +843,7 @@ export default function OrderPage() {
             )}
 
             <div className="lg">หมายเหตุถึงร้าน</div>
-            <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ขอหลอดกระดาษ" value={note} onChange={(e) => setNote(e.target.value)} />
+            <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ฝากไว้ใต้ตึก 1,2,3" value={note} onChange={(e) => setNote(e.target.value)} />
 
             <div className="lg">โค้ดส่วนลด</div>
             {promo ? (
