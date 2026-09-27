@@ -6,11 +6,12 @@ import type { MenuItem, Order } from "@/lib/menu";
 import Seal from "../Seal";
 import MenuTab from "./MenuTab";
 import OrdersTab, { type Stats } from "./OrdersTab";
+import CostTab from "./CostTab";
 import ReportTab from "./ReportTab";
 import SettingsTab from "./SettingsTab";
 
 const POLL_MS = 5000;
-type Tab = "orders" | "menu" | "report" | "settings";
+type Tab = "orders" | "menu" | "report" | "cost" | "settings";
 
 const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = [
   {
@@ -23,7 +24,9 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
     id: "menu",
     label: "เมนูที่ขายวันนี้",
     hint: "กดสวิตช์เพื่อเปิด/ปิดการขายทันที",
-    icon: <path d="M6 8h11l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16.6M9 4c0 1 1 1 1 2M12 3c0 1 1 1 1 2" />,
+    icon: (
+      <path d="M6 8h11l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16.6M9 4c0 1 1 1 1 2M12 3c0 1 1 1 1 2" />
+    ),
   },
   {
     id: "report",
@@ -32,10 +35,18 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
     icon: <path d="M4 4v15a1 1 0 0 0 1 1h15M8 16v-4M12 16V8M16 16v-6M20 16V6" />,
   },
   {
+    id: "cost",
+    label: "ต้นทุน & กำไร",
+    hint: "ต้นทุนรายเมนู · คลังวัตถุดิบ · ค่า GP เดลิเวอรี่",
+    icon: <path d="M12 3v18M16.5 7.5c0-1.9-2-3-4.5-3s-4.5 1.2-4.5 3.2c0 4.3 9 2.2 9 6.6 0 2-2 3.2-4.5 3.2s-4.5-1.1-4.5-3" />,
+  },
+  {
     id: "settings",
     label: "ตั้งค่าร้าน",
     hint: "ร้าน · เมนู · โปรโมชั่น · สมาชิก · ส่งข้อความ LINE",
-    icon: <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm7.4 3a7.4 7.4 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.2-1.3L14.3 2h-4l-.4 2.4a7.5 7.5 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.6l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2.2 1.3l.4 2.4h4l.4-2.4a7.5 7.5 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3Z" />,
+    icon: (
+      <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm7.4 3a7.4 7.4 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.2-1.3L14.3 2h-4l-.4 2.4a7.5 7.5 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.6l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2.2 1.3l.4 2.4h4l.4-2.4a7.5 7.5 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3Z" />
+    ),
   },
 ];
 
@@ -174,7 +185,8 @@ export default function Board() {
         {tab === "orders" && <OrdersTab orders={orders} stats={stats} fresh={fresh} reload={load} onError={setError} />}
         {tab === "menu" && <MenuTab menu={menu} setMenu={setMenu} reload={load} onError={setError} />}
         {tab === "report" && <ReportTab />}
-        {tab === "settings" &&<SettingsTab menu={menu} reload={load} />}
+        {tab === "cost" && <CostTab menu={menu} reload={load} />}
+        {tab === "settings" && <SettingsTab menu={menu} reload={load} />}
       </main>
     </div>
   );
