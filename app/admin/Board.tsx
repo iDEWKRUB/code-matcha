@@ -6,10 +6,11 @@ import type { MenuItem, Order } from "@/lib/menu";
 import Seal from "../Seal";
 import MenuTab from "./MenuTab";
 import OrdersTab, { type Stats } from "./OrdersTab";
+import ReportTab from "./ReportTab";
 import SettingsTab from "./SettingsTab";
 
 const POLL_MS = 5000;
-type Tab = "orders" | "menu" | "settings";
+type Tab = "orders" | "menu" | "report" | "settings";
 
 const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = [
   {
@@ -23,6 +24,12 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
     label: "เมนูที่ขายวันนี้",
     hint: "กดสวิตช์เพื่อเปิด/ปิดการขายทันที",
     icon: <path d="M6 8h11l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16.6M9 4c0 1 1 1 1 2M12 3c0 1 1 1 1 2" />,
+  },
+  {
+    id: "report",
+    label: "รายงานยอดขาย",
+    hint: "ยอดขายรายวัน · รายสัปดาห์ · รายเดือน",
+    icon: <path d="M4 4v15a1 1 0 0 0 1 1h15M8 16v-4M12 16V8M16 16v-6M20 16V6" />,
   },
   {
     id: "settings",
@@ -166,7 +173,8 @@ export default function Board() {
 
         {tab === "orders" && <OrdersTab orders={orders} stats={stats} fresh={fresh} reload={load} onError={setError} />}
         {tab === "menu" && <MenuTab menu={menu} setMenu={setMenu} reload={load} onError={setError} />}
-        {tab === "settings" && <SettingsTab menu={menu} reload={load} />}
+        {tab === "report" && <ReportTab />}
+        {tab === "settings" &&<SettingsTab menu={menu} reload={load} />}
       </main>
     </div>
   );
