@@ -124,6 +124,15 @@ export default function CostTab({ menu, reload }: { menu: MenuItem[]; reload: ()
   );
 }
 
+// ราคาบนแอปเดลิเวอรี่ (บวก GP จากราคา LINE) — ถ้าแต่ละแอป GP ต่างกันแสดงเป็นช่วง
+function appPrice(price: number, data: CostsPayload) {
+  if (!data.platforms.length) return "";
+  const ps = data.platforms.map((g) => Math.ceil(onlinePrice(price, gpRate(g, data.gpVat))));
+  const lo = Math.min(...ps);
+  const hi = Math.max(...ps);
+  return lo === hi ? baht(lo, 0) : `${baht(lo, 0)}–${baht(hi, 0)}`;
+}
+
 // ---------- ต้นทุนรายเมนู ----------
 function MenuCosts({
   menu,
@@ -158,7 +167,7 @@ function MenuCosts({
         <div className="stat">
           <span>กำไรเฉลี่ย</span>
           <b>{done.length ? `${avg.toFixed(0)}%` : "–"}</b>
-          <small>ของราคาขาย (ราคาปกติ)</small>
+          <small>ของราคาขายใน LINE</small>
         </div>
         <div className="stat">
           <span>กำไรน้อยสุด</span>
@@ -180,7 +189,10 @@ function MenuCosts({
               </span>
               <div className="cst-name">
                 <b>{m.name}</b>
-                <small>ราคาขาย {baht(m.price, 0)}</small>
+                <small>
+                  LINE {baht(m.price, 0)}
+                  {appPrice(m.price, data) && ` · แอป ${appPrice(m.price, data)}`}
+                </small>
               </div>
               {lines.length ? (
                 <>
@@ -434,7 +446,7 @@ function RecipeEditor({
             <b>{baht(cost)}</b>
           </div>
           <div>
-            <small>ราคาขาย</small>
+            <small>ราคาขายใน LINE</small>
             <b>{baht(p, 0)}</b>
           </div>
           <div>
@@ -442,15 +454,15 @@ function RecipeEditor({
             <b>{baht(p - cost)}</b>
           </div>
           <div>
-            <small>กำไร % ของราคาขาย</small>
+            <small>กำไร % (ราคา LINE)</small>
             <b>{margin.toFixed(1)}%</b>
             {cost > 0 && <Level m={margin} />}
           </div>
         </div>
 
         <section className="cst-box">
-          <h3>ช่วยตั้งราคาขาย</h3>
-          <p>อยากได้กำไรกี่ % ของราคาขาย (ร้านเครื่องดื่มส่วนใหญ่ตั้งเป้า 65–70%)</p>
+          <h3>ช่วยตั้งราคาขายใน LINE</h3>
+          <p>ราคานี้ยังไม่บวก GP · อยากได้กำไรกี่ % ของราคาขาย (ถ้าคิดเฉพาะวัตถุดิบ ร้านเครื่องดื่มมักตั้งเป้า 65–70% แต่ต้นทุนที่นี่รวมค่าแรงและค่าน้ำไฟแล้ว)</p>
           <div className="chips">
             {TARGETS.map((t) => (
               <button key={t} className="chip" aria-pressed={target === t} onClick={() => setTarget(t)}>
@@ -468,7 +480,7 @@ function RecipeEditor({
             </button>
           </div>
           <label className="cst-price">
-            ราคาขายหน้าร้าน
+            ราคาขายใน LINE / หน้าร้าน
             <input className="text" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} />
           </label>
           {Math.round(p) !== item.price && (
@@ -480,9 +492,9 @@ function RecipeEditor({
 
         {data.platforms.length > 0 && (
           <section className="cst-box">
-            <h3>ถ้าขายบนแอปเดลิเวอรี่</h3>
+            <h3>ราคาบนแอปเดลิเวอรี่ (บวก GP แล้ว)</h3>
             <p>
-              ราคาที่ควรตั้งบนแอป เพื่อให้ได้เงินเท่าขายหน้าร้าน {baht(p, 0)} {data.gpVat ? "(คิด GP รวม VAT 7%)" : ""}
+              ตั้งราคานี้บนแอป ร้านจะได้เงินเท่าขายใน LINE {baht(p, 0)} {data.gpVat ? "(คิด GP รวม VAT 7%)" : ""}
             </p>
             <table className="cst-table">
               <thead>
