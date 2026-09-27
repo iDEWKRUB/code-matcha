@@ -22,6 +22,17 @@ type Member = {
   coupons: Coupon[];
   rewards: Reward[];
   art: Record<string, MenuItem>;
+  referral: {
+    code: string;
+    url: string;
+    referrerPoints: number;
+    friendPoints: number;
+    friends: { name: string; rewarded: boolean }[];
+    earned: number;
+    referredBy: { name: string; status: string } | null;
+    canEnterCode: boolean;
+    shareMessage: unknown;
+  };
 };
 type View = "rewards" | "coupons" | "history";
 
@@ -58,6 +69,10 @@ export default function MemberPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [refCode, setRefCode] = useState("");
+  const [refBusy, setRefBusy] = useState(false);
+  const [refMsg, setRefMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const token = () => (liff.current ? liff.current.getIDToken() : "dev");
 
@@ -91,6 +106,55 @@ export default function MemberPage() {
       }
     })();
   }, [load]);
+
+  // ส่งการ์ดชวนเพื่อนผ่าน LINE (shareTargetPicker) ถ้าใช้ไม่ได้ เปิดหน้าแชร์ข้อความของ LINE แทน
+  async function share() {
+    if (!m) return;
+    const r = m.referral;
+    const text = `มาลองมัทฉะร้าน CODE-MACHA กัน! สั่งครั้งแรกผ่านลิงก์นี้ รับ ${r.friendPoints} แต้ม (โค้ด ${r.code})\n${r.url}`;
+    const l = liff.current;
+    try {
+      if (l?.isApiAvailable("shareTargetPicker")) {
+        await l.shareTargetPicker([r.shareMessage as never]);
+        return;
+      }
+    } catch {}
+    const url = `https://line.me/R/share?text=${encodeURIComponent(text)}`;
+    if (l?.isInClient()) l.openWindow({ url, external: false });
+    else window.open(url, "_blank");
+  }
+
+  async function copy() {
+    if (!m) return;
+    try {
+      await navigator.clipboard.writeText(m.referral.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setRefMsg({ ok: false, text: `คัดลอกไม่ได้ ลิงก์ของคุณคือ ${m.referral.url}` });
+    }
+  }
+
+  async function applyCode() {
+    setRefBusy(true);
+    setRefMsg(null);
+    try {
+      const r = await fetch("/api/member/referral", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ code: refCode, name }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? "ใช้โค้ดไม่สำเร็จ");
+      setRefMsg({ ok: true, text: `ใช้โค้ดของ ${j.referrerName} แล้ว สั่งครั้งแรกรับเพิ่ม ${m?.referral.friendPoints ?? 0} แต้ม` });
+      setRefCode("");
+      await load();
+    } catch (e) {
+      setRefMsg({ ok: false, text: e instanceof Error ? e.message : "ใช้โค้ดไม่สำเร็จ" });
+    } finally {
+      setRefBusy(false);
+    }
+  }
 
   async function redeem() {
     if (!pick) return;
@@ -245,6 +309,59 @@ export default function MemberPage() {
             ทุก ฿{POINTS.bahtPerPoint} ได้ 1 แต้ม · ใช้แทนเงินสดได้ 1 แต้ม = ฿1 (ครั้งละ {POINTS.minRedeem} แต้มขึ้นไป)
             หรือแลกของขวัญด้านล่าง
           </p>
+        </section>
+
+        <section className="mb-invite">
+          <div className="mb-invite-head">
+            <span className="mb-invite-ico">
+              <Icon name="gift" size={22} />
+            </span>
+            <div>
+              <b>ชวนเพื่อน รับ {m.referral.referrerPoints} แต้ม</b>
+              <small>
+                เพื่อนสั่งครั้งแรกผ่านลิงก์ของคุณ คุณได้ {m.referral.referrerPoints} แต้ม เพื่อนได้ {m.referral.friendPoints} แต้ม
+              </small>
+            </div>
+          </div>
+          <div className="mb-invite-code">
+            <small>โค้ดชวนของคุณ</small>
+            <code>{m.referral.code}</code>
+          </div>
+          <div className="mb-invite-btns">
+            <button className="mb-share" onClick={share}>
+              ส่งชวนเพื่อนใน LINE
+            </button>
+            <button className="mb-copy" onClick={copy}>
+              {copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+            </button>
+          </div>
+          {m.referral.friends.length > 0 && (
+            <p className="mb-invite-stat">
+              ชวนแล้ว {m.referral.friends.length} คน · สั่งแล้ว {m.referral.friends.filter((x) => x.rewarded).length} คน · ได้{" "}
+              {pts(m.referral.earned)} แต้ม
+            </p>
+          )}
+          {m.referral.referredBy?.status === "pending" && (
+            <p className="mb-invite-note">
+              คุณมาจากคำชวนของ {m.referral.referredBy.name} · สั่งครั้งแรกรับเพิ่ม {m.referral.friendPoints} แต้ม
+            </p>
+          )}
+          {m.referral.canEnterCode && (
+            <div className="mb-invite-enter">
+              <input
+                className="text"
+                placeholder="มีโค้ดจากเพื่อน? ใส่ตรงนี้"
+                value={refCode}
+                maxLength={8}
+                onChange={(e) => setRefCode(e.target.value.toUpperCase())}
+                aria-label="โค้ดชวนจากเพื่อน"
+              />
+              <button onClick={applyCode} disabled={refCode.trim().length < 4 || refBusy}>
+                ใช้โค้ด
+              </button>
+            </div>
+          )}
+          {refMsg && <p className={`mb-invite-msg${refMsg.ok ? "" : " bad"}`}>{refMsg.text}</p>}
         </section>
 
         <nav className="mb-tabs" role="tablist" aria-label="บัตรสมาชิก">

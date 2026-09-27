@@ -24,5 +24,5 @@ export async function POST(req: Request) {
     throw error;
   }
   const { customerName: _, ...coupon } = toCoupon(data);
-  return NextResponse.json({ coupon, member: await memberSummary(user.userId) });
+  return NextResponse.json({ coupon, member: await memberSummary(user.userId, user.name) });
 }

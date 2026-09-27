@@ -4,6 +4,7 @@ import { orderUri, type Card } from "@/lib/flex";
 import { pushCard } from "@/lib/line";
 import type { OrderStatus } from "@/lib/menu";
 import { ORDER_COLUMNS, earnPoints, itemLines, pointsBalance, queueAhead, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
+import { rewardReferral } from "@/lib/referral";
 import { db } from "@/lib/supabase";
 
 const NEXT: Record<string, OrderStatus[]> = {
@@ -43,6 +44,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const notify = (c: Card) => pushCard(current.line_user_id, c, { name: current.customer_name, orderNo: no });
   if (to === "pending") {
     const earned = await earnPoints(current);
+    const bonus = await rewardReferral(current); // ออเดอร์แรกของเพื่อนที่ถูกชวน
     const [ahead, balance] = await Promise.all([
       queueAhead(current.pickup_date, current.pickup_time, no),
       pointsBalance(current.line_user_id),
@@ -59,6 +61,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ["ยอดชำระ", `฿${current.total}`],
         ["คิวก่อนหน้า", ahead ? `${ahead} คิว` : "ไม่มี ทำต่อเลย"],
         ["แต้มสะสม", earned > 0 ? `+${earned} (รวม ${balance})` : `${balance} แต้ม`],
+        ...(bonus > 0 ? ([["โบนัสเพื่อนชวน", `+${bonus} แต้ม`, true]] as [string, string, boolean][]) : []),
       ],
       items: itemLines(current.items),
       note: "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง",

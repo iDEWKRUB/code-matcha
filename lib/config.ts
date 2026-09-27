@@ -26,3 +26,6 @@ export function tierOf(earned: number) {
   while (i + 1 < TIERS.length && earned >= TIERS[i + 1].from) i++;
   return { tier: TIERS[i], next: TIERS[i + 1] ?? null };
 }
+
+// ชวนเพื่อน: ได้แต้มเมื่อร้านยืนยันการจ่ายออเดอร์แรกของเพื่อน (ตั้ง 0 = ไม่ให้)
+export const REFERRAL = { referrerPoints: 20, friendPoints: 20 };

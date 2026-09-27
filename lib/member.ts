@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { MenuItem } from "./menu";
 import { getMenu } from "./orders";
+import { referralInfo } from "./referral";
 import { db } from "./supabase";
 
 export type Reward = {
@@ -124,8 +125,8 @@ const refunded = (r: LedgerRow) =>
 
 const LABEL: Record<string, string> = { earn: "ได้แต้มจากออเดอร์", redeem: "ใช้แต้มเป็นส่วนลด", adjust: "ร้านปรับแต้ม", reward: "แลกของขวัญ" };
 
-export async function memberSummary(userId: string) {
-  const [ledger, coupons, firstOrder, rewards, menu] = await Promise.all([
+export async function memberSummary(userId: string, name: string) {
+  const [ledger, coupons, firstOrder, rewards, menu, referral] = await Promise.all([
     db()
       .from("points_ledger")
       .select("delta,kind,note,created_at,orders(daily_no,status,expires_at,pickup_date)")
@@ -135,13 +136,14 @@ export async function memberSummary(userId: string) {
     db().from("orders").select("created_at").eq("line_user_id", userId).order("created_at").limit(1),
     listRewards(true),
     getMenu(),
+    referralInfo(userId, name),
   ]);
   if (ledger.error) throw ledger.error;
   if (coupons.error) throw coupons.error;
   if (firstOrder.error) throw firstOrder.error;
 
   const rows = (ledger.data as unknown as LedgerRow[]).filter((r) => !refunded(r));
-  const earned = rows.filter((r) => r.kind === "earn").reduce((n, r) => n + r.delta, 0);
+  const earned = rows.filter((r) => r.kind === "earn" || r.kind === "referral").reduce((n, r) => n + r.delta, 0);
   const used = -rows.filter((r) => r.delta < 0).reduce((n, r) => n + r.delta, 0);
   const balance = Math.max(0, rows.reduce((n, r) => n + r.delta, 0));
 
@@ -149,7 +151,7 @@ export async function memberSummary(userId: string) {
     at: r.created_at,
     delta: r.delta,
     kind: r.kind,
-    label: r.kind === "reward" ? `แลก ${r.note}` : r.orders ? `${LABEL[r.kind] ?? r.kind} #${r.orders.daily_no}` : (LABEL[r.kind] ?? r.kind),
+    label: r.kind === "reward" ? `แลก ${r.note}` : r.kind === "referral" ? r.note : r.orders ? `${LABEL[r.kind] ?? r.kind} #${r.orders.daily_no}` : (LABEL[r.kind] ?? r.kind),
   }));
 
   // รูปการ์ตูนของของขวัญ: ส่งเฉพาะเมนูที่ใช้
@@ -166,6 +168,7 @@ export async function memberSummary(userId: string) {
     coupons: (coupons.data as RedemptionRow[]).map(toCoupon).map(({ customerName: _, ...c }) => c),
     rewards: rewards.filter((r) => r.stock === null || r.stock > 0),
     art,
+    referral,
   };
 }
 

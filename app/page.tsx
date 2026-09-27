@@ -24,7 +24,7 @@ import {
   whenText,
   type Slot,
 } from "@/lib/menu";
-import { POINTS, SHOP, pointsEarned } from "@/lib/config";
+import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
 import { promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
 import Food from "./Food";
@@ -115,6 +115,7 @@ export default function OrderPage() {
   const [banner, setBanner] = useState("");
   const [hours, setHours] = useState<Hours | null>(null);
   const [isFriend, setIsFriend] = useState<boolean | null>(null); // null = ยังไม่รู้ / เช็กไม่ได้
+  const [invitedBy, setInvitedBy] = useState(""); // ชื่อเพื่อนที่ชวนมา (เปิดจากลิงก์ ?ref=)
 
   // LINE ส่งแจ้งเตือนได้เฉพาะคนที่เป็นเพื่อนกับ OA
   function checkFriend() {
@@ -194,6 +195,19 @@ export default function OrderPage() {
           setName("Dev (โหมดทดสอบ)");
         } else {
           throw new Error("ยังไม่ได้ตั้งค่า LIFF");
+        }
+        // เปิดจากลิงก์ชวนเพื่อน → ผูกคำชวนไว้ (ได้แต้มเมื่อร้านยืนยันการจ่ายออเดอร์แรก)
+        const ref = new URLSearchParams(location.search).get("ref");
+        if (ref) {
+          const token = liff.current ? liff.current.getIDToken() : "dev";
+          fetch("/api/member/referral", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ code: ref }),
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => j?.referrerName && setInvitedBy(j.referrerName))
+            .catch(() => {});
         }
         await loadMenu();
         // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
@@ -518,6 +532,11 @@ export default function OrderPage() {
       </header>
       {closed && <ClosedNotice hours={hours!} />}
       {friendCard && <div className="friend-wrap">{friendCard}</div>}
+      {invitedBy && (
+        <p className="promo-banner invite-banner" role="note">
+          <Icon name="gift" size={18} /> {invitedBy} ชวนคุณมา สั่งครั้งแรกรับเพิ่ม {REFERRAL.friendPoints} แต้ม
+        </p>
+      )}
       {banner && (
         <p className="promo-banner" role="note">
           <Icon name="megaphone" size={18} /> {banner}

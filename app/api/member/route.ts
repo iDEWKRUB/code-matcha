@@ -9,5 +9,5 @@ export async function GET(req: Request) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const user = token ? await verifyIdToken(token) : null;
   if (!user) return NextResponse.json({ error: "เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่" }, { status: 401 });
-  return NextResponse.json(await memberSummary(user.userId));
+  return NextResponse.json(await memberSummary(user.userId, user.name));
 }
