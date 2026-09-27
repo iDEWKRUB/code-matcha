@@ -30,6 +30,7 @@ type Draft = {
   promoPrice: string;
   temps: Temp[];
   milk: boolean;
+  grams: string; // กรัมผงมัทฉะ (ว่าง = ไม่ให้เลือกผง)
   recommended: boolean;
   look: string;
   toppings: DraftTopping[];
@@ -45,6 +46,7 @@ const EMPTY: Draft = {
   promoPrice: "",
   temps: ["iced"],
   milk: true,
+  grams: "",
   recommended: false,
   look: "matcha-latte",
   toppings: [],
@@ -60,6 +62,7 @@ const toDraft = (m: MenuItem): Draft => ({
   promoPrice: m.promoPrice === null ? "" : String(m.promoPrice),
   temps: m.temps,
   milk: m.milk,
+  grams: m.grams ? String(m.grams) : "",
   recommended: m.recommended,
   look: m.look ?? "",
   toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price), group: t.group ?? "" })),
@@ -76,6 +79,7 @@ const draftItem = (d: Draft): MenuItem => ({
   price: Number(d.price) || 0,
   temps: d.temps.length ? d.temps : ["iced"],
   milk: d.milk,
+  grams: d.kind === "food" ? null : Number(d.grams) || null,
   available: true,
   promoPrice: null,
   recommended: d.recommended,
@@ -184,6 +188,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       promoPrice: draft.promoPrice.trim() === "" ? null : Number(draft.promoPrice),
       temps: food ? ["hot"] : draft.temps,
       milk: food ? false : draft.milk,
+      matchaGrams: food ? null : draft.grams === "" ? null : Number(draft.grams),
       recommended: draft.recommended,
       look: draft.look === "" ? null : draft.look,
       toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0), group: t.group ?? "" })) : [],
@@ -510,6 +515,17 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                   <label className="check">
                     <input type="checkbox" checked={draft.milk} onChange={(e) => set("milk", e.target.checked)} />
                     ลูกค้าเลือกชนิดนมได้ (นมสด / โอ๊ต / อัลมอนด์)
+                  </label>
+                  <label className="grams-field">
+                    ผงมัทฉะที่ใช้ต่อแก้ว (กรัม)
+                    <input
+                      className="text"
+                      inputMode="decimal"
+                      placeholder="เว้นว่าง = ไม่ให้ลูกค้าเลือกผง"
+                      value={draft.grams}
+                      onChange={(e) => set("grams", e.target.value.replace(/[^\d.]/g, ""))}
+                    />
+                    <small>ใส่แล้วลูกค้าเลือกผงมัทฉะได้ ราคาบวกตามกรัม (ตั้งผงได้ที่ ต้นทุน & กำไร › ผงมัทฉะ)</small>
                   </label>
                 </>
               ) : (

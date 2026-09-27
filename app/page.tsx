@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   MAX_QTY,
   MILKS,
-  POWDERS,
+  powderExtra,
   SHOT_PRICE,
   SOFT_CREAM_PRICE,
   SWEET,
@@ -19,6 +19,7 @@ import {
   linePrice,
   type CartLine,
   type MenuItem,
+  type Powder,
   type Payment,
   type Service,
   whenText,
@@ -99,6 +100,7 @@ export default function OrderPage() {
   const [fatal, setFatal] = useState("");
   const [name, setName] = useState("");
   const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [powders, setPowders] = useState<Powder[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [edit, setEdit] = useState<MenuItem | null>(null);
@@ -171,8 +173,9 @@ export default function OrderPage() {
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
     if (!r.ok) throw new Error("โหลดเมนูไม่สำเร็จ");
-    const j = (await r.json()) as { menu: MenuItem[]; slots: Slot[]; banner: string; hours: Hours };
+    const j = (await r.json()) as { menu: MenuItem[]; powders: Powder[]; slots: Slot[]; banner: string; hours: Hours };
     setMenu(j.menu);
+    setPowders(j.powders ?? []);
     setSlots(j.slots);
     setBanner(j.banner ?? "");
     setHours(j.hours ?? null);
@@ -258,7 +261,7 @@ export default function OrderPage() {
   const cups = cart.reduce((n, l) => n + l.qty, 0);
   const priceOf = (l: CartLine) => {
     const it = byId(l.itemId);
-    return it ? linePrice(it, l) : 0;
+    return it ? linePrice(it, l, powders) : 0;
   };
   const total = cart.reduce((n, l) => n + priceOf(l), 0);
   // โค้ดส่วนลดหักก่อน แล้วค่อยใช้แต้มกับยอดที่เหลือ
@@ -299,7 +302,7 @@ export default function OrderPage() {
       temp: it.temps[0],
       sweet: food ? 0 : 50,
       milk: !food && it.milk ? "fresh" : null,
-      powder: !food && hasPowder(it) ? POWDERS[0].id : null,
+      powder: !food && hasPowder(it) && powders.length ? powders[0].id : null,
       extraShot: false,
       softCream: false,
       toppings: food ? defaultChoices(it) : [],
@@ -618,7 +621,7 @@ export default function OrderPage() {
                   temp={opts.temp}
                   milk={opts.milk}
                   sweet={opts.sweet}
-                  powder={opts.powder}
+                  powder={edit && opts.powder && powderExtra(edit, powders.find((p) => p.id === opts.powder) ?? { extraPerGram: 0 }) > 0 ? "rich" : null}
                   extraShot={opts.extraShot}
                   softCream={opts.softCream}
                   animate
@@ -725,15 +728,25 @@ export default function OrderPage() {
 
             {opts.powder && (
               <>
-                <div className="lg">ผงมัทฉะ</div>
-                <div className="chips">
-                  {POWDERS.map((p) => (
-                    <button key={p.id} className="chip" aria-pressed={opts.powder === p.id} onClick={() => setOpts({ ...opts, powder: p.id })}>
-                      {p.label}
-                      {p.price > 0 && <em>+{p.price}</em>}
-                    </button>
-                  ))}
+                <div className="lg">
+                  ผงมัทฉะ <span style={{ fontWeight: 400, color: "var(--stone)" }}>· ใช้ {edit.grams} กรัม</span>
                 </div>
+                <div className="chips">
+                  {powders.map((p) => {
+                    const extra = powderExtra(edit, p);
+                    return (
+                      <button key={p.id} className="chip" aria-pressed={opts.powder === p.id} onClick={() => setOpts({ ...opts, powder: p.id })}>
+                        {p.name}
+                        {extra > 0 && <em>+{extra}</em>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {powders.find((p) => p.id === opts.powder)?.note && (
+                  <p className="small" style={{ textAlign: "left", marginTop: 6 }}>
+                    {powders.find((p) => p.id === opts.powder)!.note}
+                  </p>
+                )}
               </>
             )}
 
@@ -774,7 +787,7 @@ export default function OrderPage() {
                     setEdit(null);
                   }}
                 >
-                  {closed ? "ตอนนี้ร้านปิดรับออเดอร์" : `ใส่ตะกร้า ฿${linePrice(edit, { itemId: edit.id, ...opts })}`}
+                  {closed ? "ตอนนี้ร้านปิดรับออเดอร์" : `ใส่ตะกร้า ฿${linePrice(edit, { itemId: edit.id, ...opts }, powders)}`}
                 </button>
               )}
             </div>
@@ -795,7 +808,7 @@ export default function OrderPage() {
                     <p style={{ fontWeight: 600 }}>
                       {byId(l.itemId)?.name} <span style={{ fontWeight: 400, color: "var(--stone)" }}>x{l.qty}</span>
                     </p>
-                    <p className="ds">{byId(l.itemId) ? lineDetail(byId(l.itemId)!, l) : ""}</p>
+                    <p className="ds">{byId(l.itemId) ? lineDetail(byId(l.itemId)!, l, powders) : ""}</p>
                   </div>
                   <p style={{ fontWeight: 600 }}>฿{priceOf(l)}</p>
                   <button

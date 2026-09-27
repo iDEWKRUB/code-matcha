@@ -68,3 +68,20 @@ export function marginLevel(m: number): { id: "good" | "ok" | "low"; label: stri
 
 export const baht = (n: number, digits = 2) =>
   `฿${n.toLocaleString("th-TH", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+
+// ต้นทุนของเมนูเมื่อลูกค้าเลือกผงมัทฉะแต่ละแบบ:
+// เอาบรรทัดผงมัทฉะในสูตรออก (ผูกกับผงที่ให้เลือก หรือชื่อขึ้นต้นด้วย "ผงมัทฉะ") แล้วใส่ผงที่เลือก × กรัมของเมนู
+// คืน null ถ้าผงนั้นยังไม่ได้ผูกกับคลังวัตถุดิบ (ไม่รู้ต้นทุน)
+export function powderCost(
+  lines: CostLine[],
+  items: Map<number, CostItem>,
+  grams: number,
+  powder: { costItemId: number | null },
+  powderCostIds: Set<number>,
+) {
+  if (powder.costItemId === null) return null;
+  const perGram = items.get(powder.costItemId)?.unitCost;
+  if (perGram === undefined) return null;
+  const isPowder = (l: CostLine) => (l.costItemId !== null && powderCostIds.has(l.costItemId)) || l.name.startsWith("ผงมัทฉะ");
+  return recipeCost(lines.filter((l) => !isPowder(l)), items) + perGram * grams;
+}

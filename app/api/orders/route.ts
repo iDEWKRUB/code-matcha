@@ -7,7 +7,6 @@ import { isFriend, pushCard, verifyIdToken } from "@/lib/line";
 import {
   MAX_QTY,
   MILKS,
-  POWDERS,
   SWEET,
   hasPowder,
   lineDetail,
@@ -18,7 +17,7 @@ import {
   type OrderItem,
   type Service,
 } from "@/lib/menu";
-import { getMenu, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
+import { getMenu, getPowders, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
 
@@ -52,7 +51,8 @@ export async function POST(req: Request) {
   if (!Array.isArray(lines) || lines.length === 0 || lines.length > 20) return fail("ตะกร้าไม่ถูกต้อง");
 
   // คำนวณราคาใหม่ที่เซิร์ฟเวอร์ทุกครั้ง ไม่เชื่อราคาจากหน้าเว็บ
-  const menu = new Map((await getMenu()).map((m) => [m.id, m]));
+  const [menuList, powders] = await Promise.all([getMenu(), getPowders()]);
+  const menu = new Map(menuList.map((m) => [m.id, m]));
   const items: OrderItem[] = [];
   let total = 0;
   let cups = 0;
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         temp: raw.temp as CartLine["temp"],
         sweet: Number(raw.sweet),
         milk: item.milk ? String(raw.milk) : null,
-        powder: hasPowder(item) ? String(raw.powder) : null,
+        powder: hasPowder(item) && powders.length ? String(raw.powder ?? powders[0].id) : null,
         extraShot: raw.extraShot === true,
         softCream: raw.softCream === true,
         toppings: [],
@@ -86,11 +86,11 @@ export async function POST(req: Request) {
       if (!item.temps.includes(line.temp)) return fail("อุณหภูมิไม่ถูกต้อง");
       if (!SWEET.includes(line.sweet)) return fail("ระดับความหวานไม่ถูกต้อง");
       if (item.milk && !MILKS.some((m) => m.id === line.milk)) return fail("ชนิดนมไม่ถูกต้อง");
-      if (line.powder !== null && !POWDERS.some((p) => p.id === line.powder)) return fail("ผงมัทฉะไม่ถูกต้อง");
+      if (line.powder !== null && !powders.some((p) => p.id === line.powder)) return fail("ผงมัทฉะนี้ไม่มีแล้ว กรุณาเลือกใหม่");
       if (line.softCream && line.temp !== "iced") return fail("ท็อปซอฟต์ครีมได้เฉพาะเครื่องดื่มเย็น");
     }
-    const price = linePrice(item, line);
-    items.push({ name: item.name, qty: line.qty, detail: lineDetail(item, line), price });
+    const price = linePrice(item, line, powders);
+    items.push({ name: item.name, qty: line.qty, detail: lineDetail(item, line, powders), price });
     total += price;
     cups += line.qty;
   }

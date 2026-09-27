@@ -83,7 +83,7 @@ type Props = {
   temp: Temp;
   milk: string | null;
   sweet?: number; // -1 = ไม่แสดงก้อนน้ำตาล
-  powder?: string | null;
+  powder?: string | null; // "rich" = ผงเกรดสูง สีเข้มขึ้น
   extraShot?: boolean;
   softCream?: boolean;
   animate?: boolean;
@@ -100,7 +100,7 @@ export default function Cup(props: Props) {
   const hot = temp === "hot";
   const g = hot ? { body: MUG, top: 118, bottom: 236, layer: 160 } : { body: GLASS, top: 92, bottom: 234, layer: 138 };
   // ผงยาเมะสีเข้มกว่า, เพิ่มช็อตเข้มขึ้นอีก
-  const depth = (powder === "yame" ? 0.88 : 1) * (extraShot ? 0.8 : 1);
+  const depth = (powder === "rich" ? 0.88 : 1) * (extraShot ? 0.8 : 1);
   const top = shade(r.top, depth);
   const mixed = shade(r.mixed, 0.4 + depth * 0.6);
   const base = r.premixed ? mixed : r.base === "milk" ? MILK_COLOR[milk ?? "fresh"] ?? MILK_COLOR.fresh : BASE_COLOR[r.base];

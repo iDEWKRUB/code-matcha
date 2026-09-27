@@ -41,6 +41,14 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
     row.temps = [...new Set(temps)];
   } else if (required) row.temps = ["iced"];
 
+  // กรัมผงมัทฉะที่ใช้ (null = ไม่ให้ลูกค้าเลือกผง)
+  if ("matchaGrams" in b) {
+    const g = b.matchaGrams;
+    if (g === null || g === "" || g === 0) row.matcha_grams = null;
+    else if (typeof g === "number" && Number.isFinite(g) && g > 0 && g <= 50) row.matcha_grams = Math.round(g * 10) / 10;
+    else return { error: "กรัมผงมัทฉะไม่ถูกต้อง (0.1–50)" };
+  }
+
   for (const k of ["milk", "available", "recommended"] as const)
     if (k in b) {
       if (typeof b[k] !== "boolean") return { error: "ข้อมูลไม่ถูกต้อง" };

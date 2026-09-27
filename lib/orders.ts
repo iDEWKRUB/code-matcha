@@ -1,18 +1,35 @@
 import "server-only";
 import QRCode from "qrcode";
 import { pointsEarned } from "./config";
-import { whenText, type MenuItem, type Order, type Payment, type Service, type ShopSettings, type Slot } from "./menu";
+import { whenText, type MenuItem, type Order, type Payment, type Powder, type Service, type ShopSettings, type Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
 import { isBookable, nowInShop, slotTimes, toMinutes } from "./time";
 
 export const MENU_COLUMNS =
-  "id,name,jp,description,price,temps,milk,available,promoPrice:promo_price,recommended,look,sort,kind,toppings";
+  "id,name,jp,description,price,temps,milk,available,promoPrice:promo_price,recommended,look,sort,kind,toppings,grams:matcha_grams";
 
 export async function getMenu(): Promise<MenuItem[]> {
   const { data, error } = await db().from("menu_items").select(MENU_COLUMNS).order("sort");
   if (error) throw error;
   return data as unknown as MenuItem[];
+}
+
+// ผงมัทฉะให้ลูกค้าเลือก (activeOnly = เฉพาะที่เปิดขาย) เรียงตาม sort
+export async function getPowders(activeOnly = true): Promise<Powder[]> {
+  let q = db().from("matcha_powders").select("id,name,note,extra_per_gram,cost_item_id,active,sort").order("sort").order("id");
+  if (activeOnly) q = q.eq("active", true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data.map((p) => ({
+    id: String(p.id),
+    name: p.name,
+    note: p.note,
+    extraPerGram: Number(p.extra_per_gram) || 0,
+    costItemId: p.cost_item_id,
+    active: p.active,
+    sort: p.sort,
+  }));
 }
 
 export async function getSettings(): Promise<ShopSettings> {

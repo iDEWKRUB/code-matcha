@@ -22,10 +22,12 @@ import {
 } from "@/lib/costs";
 import type { MenuItem } from "@/lib/menu";
 import MenuArt, { artTint } from "../MenuArt";
+import PowderPanel from "./PowderPanel";
 
-type View = "menus" | "items" | "gp";
+type View = "menus" | "powders" | "items" | "gp";
 const VIEWS: { id: View; label: string }[] = [
   { id: "menus", label: "ต้นทุนรายเมนู" },
+  { id: "powders", label: "ผงมัทฉะ" },
   { id: "items", label: "คลังวัตถุดิบ" },
   { id: "gp", label: "เดลิเวอรี่ (GP)" },
 ];
@@ -100,6 +102,7 @@ export default function CostTab({ menu, reload }: { menu: MenuItem[]; reload: ()
       )}
 
       {view === "menus" && <MenuCosts menu={menu} data={data} items={items} onEdit={setEditing} />}
+      {view === "powders" && <PowderPanel menu={menu} data={data} items={items} />}
       {view === "items" && <ItemLibrary data={data} call={call} />}
       {view === "gp" && <Platforms data={data} call={call} />}
 

@@ -29,6 +29,7 @@ export type MenuItem = {
   recommended: boolean;
   look: string | null; // หน้าตาแก้วการ์ตูน (id ของสูตรใน Cup) null = ใช้ id เมนู
   sort: number;
+  grams: number | null; // กรัมผงมัทฉะที่ใช้ (null = ไม่ให้เลือกผง)
 };
 
 export type ShopSettings = {
@@ -137,14 +138,12 @@ export const MILKS = [
   { id: "oat", label: "นมโอ๊ต", price: 15 },
   { id: "almond", label: "นมอัลมอนด์", price: 15 },
 ];
-export const POWDERS = [
-  { id: "uji", label: "อุจิ เกียวโต", short: "ผงอุจิ", price: 0 },
-  { id: "nishio", label: "นิชิโอะ ไอจิ", short: "ผงนิชิโอะ", price: 0 },
-  { id: "yame", label: "ยาเมะ ฟุกุโอกะ", short: "ผงยาเมะ", price: 30 },
-];
-// เมนูที่ไม่ให้เลือกผงมัทฉะ (ไม่ใช่มัทฉะ หรือกำหนดเกรดผงไว้แล้ว)
-const NO_POWDER = new Set(["hojicha-latte", "ceremonial-latte"]);
-export const hasPowder = (item: MenuItem) => !NO_POWDER.has(item.id);
+// ผงมัทฉะให้ลูกค้าเลือก (ร้านตั้งในหลังบ้าน) ราคาบวก = บาทต่อกรัม × กรัมที่เมนูใช้
+export type Powder = { id: string; name: string; note: string; extraPerGram: number; costItemId: number | null; active: boolean; sort: number };
+export const hasPowder = (item: Pick<MenuItem, "kind" | "grams">) => item.kind !== "food" && !!item.grams && item.grams > 0;
+// ปัดเป็นหลัก 5 บาท (เช่น 13.33 × 3 กรัม = 40)
+export const powderExtra = (item: Pick<MenuItem, "grams">, p: Pick<Powder, "extraPerGram">) =>
+  Math.round(((p.extraPerGram * (item.grams ?? 0)) / 5) + 1e-9) * 5;
 
 export const SWEET = [0, 25, 50, 75, 100];
 export const SHOT_PRICE = 20;
@@ -152,18 +151,19 @@ export const SOFT_CREAM_PRICE = 15;
 export const MAX_QTY = 10;
 export const TEMP_LABEL: Record<Temp, string> = { iced: "เย็น", hot: "ร้อน" };
 
-export function linePrice(item: MenuItem, l: CartLine) {
+export function linePrice(item: MenuItem, l: CartLine, powders: Powder[]) {
   if (item.kind === "food") {
     const tops = l.toppings.reduce((n, id) => n + (item.toppings.find((t) => t.id === id)?.price ?? 0), 0);
     return (basePrice(item) + tops) * l.qty;
   }
   const milk = item.milk ? MILKS.find((m) => m.id === l.milk)?.price ?? 0 : 0;
-  const powder = hasPowder(item) ? POWDERS.find((p) => p.id === l.powder)?.price ?? 0 : 0;
+  const chosen = hasPowder(item) ? powders.find((p) => p.id === l.powder) : undefined;
+  const powder = chosen ? powderExtra(item, chosen) : 0;
   const addons = (l.extraShot ? SHOT_PRICE : 0) + (l.softCream ? SOFT_CREAM_PRICE : 0);
   return (basePrice(item) + milk + powder + addons) * l.qty;
 }
 
-export function lineDetail(item: MenuItem, l: CartLine) {
+export function lineDetail(item: MenuItem, l: CartLine, powders: Powder[]) {
   if (item.kind === "food") {
     const chosen = l.toppings.map((id) => item.toppings.find((t) => t.id === id)).filter((t): t is Topping => !!t);
     const choices = chosen.filter((t) => t.group).map((t) => t.label);
@@ -177,7 +177,7 @@ export function lineDetail(item: MenuItem, l: CartLine) {
     TEMP_LABEL[l.temp],
     l.sweet === 0 ? "ไม่หวาน" : `หวาน ${l.sweet}%`,
     l.milk && MILKS.find((m) => m.id === l.milk)?.label,
-    l.powder && POWDERS.find((p) => p.id === l.powder)?.short,
+    l.powder && hasPowder(item) && powders.find((p) => p.id === l.powder)?.name,
     l.extraShot && "+ช็อตมัทฉะ",
     l.softCream && "+ท็อปซอฟต์ครีม",
   ]
