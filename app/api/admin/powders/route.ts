@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { getPowders } from "@/lib/orders";
 import { db } from "@/lib/supabase";
-import { amount, text } from "../costs/validate";
+import { amount, imageUrl, text } from "../costs/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +19,14 @@ export async function POST(req: Request) {
   if (!name) return NextResponse.json({ error: "กรุณาใส่ชื่อผงมัทฉะ" }, { status: 400 });
   const extra = amount(b.extraPerGram, 500);
   if (extra === null) return NextResponse.json({ error: "ราคาบวกต่อกรัมไม่ถูกต้อง" }, { status: 400 });
+  const image = imageUrl(b.imageUrl);
+  if (image === undefined) return NextResponse.json({ error: "ลิงก์รูปไม่ถูกต้อง" }, { status: 400 });
   const row = {
     name,
     note: text(b.note, 80),
     extra_per_gram: Math.round(extra * 100) / 100,
     cost_item_id: Number.isInteger(b.costItemId) ? (b.costItemId as number) : null,
+    image_url: image,
   };
   const id = Number(b.id);
   if (Number.isInteger(id) && id > 0) {

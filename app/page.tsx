@@ -32,6 +32,7 @@ import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
 import MenuArt, { artTint } from "./MenuArt";
 import Loader from "./Loader";
+import PowderThumb, { powderTone } from "./PowderThumb";
 import Seal from "./Seal";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
@@ -735,7 +736,8 @@ export default function OrderPage() {
                   {powders.map((p) => {
                     const extra = powderExtra(edit, p);
                     return (
-                      <button key={p.id} className="chip" aria-pressed={opts.powder === p.id} onClick={() => setOpts({ ...opts, powder: p.id })}>
+                      <button key={p.id} className="chip pw-chip" aria-pressed={opts.powder === p.id} onClick={() => setOpts({ ...opts, powder: p.id })}>
+                        <PowderThumb powder={p} tone={powderTone(p, powders)} size={30} />
                         {p.name}
                         {extra > 0 && <em>+{extra}</em>}
                       </button>

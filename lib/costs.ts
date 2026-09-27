@@ -18,6 +18,7 @@ export type CostItem = {
   unitCost: number;
   packPrice: number | null;
   packSize: number | null;
+  imageUrl: string | null;
   sort: number;
 };
 

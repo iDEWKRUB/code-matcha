@@ -139,7 +139,17 @@ export const MILKS = [
   { id: "almond", label: "นมอัลมอนด์", price: 15 },
 ];
 // ผงมัทฉะให้ลูกค้าเลือก (ร้านตั้งในหลังบ้าน) ราคาบวก = บาทต่อกรัม × กรัมที่เมนูใช้
-export type Powder = { id: string; name: string; note: string; extraPerGram: number; costItemId: number | null; active: boolean; sort: number };
+export type Powder = {
+  id: string;
+  name: string;
+  note: string;
+  extraPerGram: number;
+  costItemId: number | null;
+  active: boolean;
+  sort: number;
+  ownImage: string | null; // รูปที่อัปโหลดให้ผงนี้โดยตรง
+  imageUrl: string | null; // รูปที่แสดง (ของผงเอง หรือของวัตถุดิบที่ผูกไว้)
+};
 export const hasPowder = (item: Pick<MenuItem, "kind" | "grams">) => item.kind !== "food" && !!item.grams && item.grams > 0;
 // ปัดเป็นหลัก 5 บาท (เช่น 13.33 × 3 กรัม = 40)
 export const powderExtra = (item: Pick<MenuItem, "grams">, p: Pick<Powder, "extraPerGram">) =>

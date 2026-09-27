@@ -3,7 +3,7 @@ import { isAdmin } from "@/lib/auth";
 import { packUnitCost } from "@/lib/costs";
 import { costsPayload } from "@/lib/costsServer";
 import { db } from "@/lib/supabase";
-import { amount, category, text } from "../validate";
+import { amount, category, imageUrl, text } from "../validate";
 
 const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
 const blank = (v: unknown) => v === null || v === undefined || v === "";
@@ -22,6 +22,8 @@ export async function POST(req: Request) {
   if (packSize !== null && packSize <= 0) return bad("ปริมาณที่ได้ต้องมากกว่า 0");
   const unitCost = packPrice !== null && packSize !== null ? packUnitCost(packPrice, packSize) : amount(b.unitCost);
   if (unitCost === null) return bad("ราคาต่อหน่วยไม่ถูกต้อง");
+  const image = imageUrl(b.imageUrl);
+  if (image === undefined) return bad("ลิงก์รูปไม่ถูกต้อง");
   const row = {
     name,
     category: category(b.category),
@@ -29,6 +31,7 @@ export async function POST(req: Request) {
     unit_cost: Math.round(unitCost * 10000) / 10000,
     pack_price: packPrice,
     pack_size: packSize,
+    image_url: image,
   };
   const id = Number.isInteger(b.id) ? (b.id as number) : null;
   const { error } = id ? await db().from("cost_items").update(row).eq("id", id) : await db().from("cost_items").insert(row);

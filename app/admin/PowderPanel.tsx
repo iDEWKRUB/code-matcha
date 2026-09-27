@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { baht, marginLevel, marginPct, powderCost, type CostItem, type CostsPayload } from "@/lib/costs";
 import { hasPowder, powderExtra, type MenuItem, type Powder } from "@/lib/menu";
+import PowderThumb, { powderTone } from "../PowderThumb";
+import { uploadImage } from "./upload";
 
 const json = (method: string, body?: unknown) => ({
   method,
@@ -11,8 +13,8 @@ const json = (method: string, body?: unknown) => ({
 });
 const dec = (s: string) => s.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 
-type Form = { id: string | null; name: string; note: string; extra: string; costItemId: string };
-const EMPTY: Form = { id: null, name: "", note: "", extra: "", costItemId: "" };
+type Form = { id: string | null; name: string; note: string; extra: string; costItemId: string; image: string };
+const EMPTY: Form = { id: null, name: "", note: "", extra: "", costItemId: "", image: "" };
 
 // ผงมัทฉะให้ลูกค้าเลือก + ตารางราคา/กำไรของทุกเมนู × ทุกผง
 export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; data: CostsPayload; items: Map<number, CostItem> }) {
@@ -20,6 +22,21 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
   const [form, setForm] = useState<Form | null>(null);
   const [err, setErr] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function upload(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    setErr("");
+    try {
+      const url = await uploadImage(file);
+      setForm((f) => (f ? { ...f, image: url } : f));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "อัปโหลดไม่สำเร็จ");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   useEffect(() => {
     fetch("/api/admin/powders", { cache: "no-store" })
@@ -49,6 +66,7 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
         note: form.note,
         extraPerGram: form.extra === "" ? 0 : form.extra,
         costItemId: form.costItemId ? Number(form.costItemId) : null,
+        imageUrl: form.image,
       }),
     );
     if (ok) setForm(null);
@@ -86,15 +104,31 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
             <div className="hours">
               <label>
                 ชื่อที่ลูกค้าเห็น
-                <input className="text" value={form.name} placeholder="เช่น ผงมัทฉะ A" onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <input
+                  className="text"
+                  value={form.name}
+                  placeholder="เช่น ผงมัทฉะ A"
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               </label>
               <label>
                 บวกเพิ่ม (บาท/กรัม)
-                <input className="text" inputMode="decimal" value={form.extra} placeholder="5" onChange={(e) => setForm({ ...form, extra: dec(e.target.value) })} />
+                <input
+                  className="text"
+                  inputMode="decimal"
+                  value={form.extra}
+                  placeholder="5"
+                  onChange={(e) => setForm({ ...form, extra: dec(e.target.value) })}
+                />
               </label>
               <label>
                 คำอธิบายสั้น ๆ (ลูกค้าเห็น)
-                <input className="text" value={form.note} placeholder="เช่น ผงเกรดพิธีการ จากอุจิ" onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                <input
+                  className="text"
+                  value={form.note}
+                  placeholder="เช่น ผงเกรดพิธีการ จากอุจิ"
+                  onChange={(e) => setForm({ ...form, note: e.target.value })}
+                />
               </label>
               <label>
                 ต้นทุนจริง (จากคลังวัตถุดิบ)
@@ -111,12 +145,33 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
             </div>
             {sample && form.extra !== "" && (
               <p className="cst-preview">
-                ตัวอย่าง: {sample.name} ใช้ {sample.grams} กรัม → บวก <b>{baht(powderExtra(sample, { extraPerGram: Number(form.extra) }), 0)}</b>
+                ตัวอย่าง: {sample.name} ใช้ {sample.grams} กรัม → บวก{" "}
+                <b>{baht(powderExtra(sample, { extraPerGram: Number(form.extra) }), 0)}</b>
               </p>
             )}
+            <div className="cst-photo">
+              <PowderThumb
+                powder={{
+                  name: form.name,
+                  imageUrl: form.image || (form.costItemId ? (items.get(Number(form.costItemId))?.imageUrl ?? null) : null),
+                }}
+                tone={1}
+                size={64}
+              />
+              <label className="btn ghost-sm upload">
+                {uploading ? "กำลังอัปโหลด…" : form.image ? "เปลี่ยนรูป" : "อัปโหลดรูปผงนี้"}
+                <input type="file" accept="image/*" hidden disabled={uploading} onChange={(e) => upload(e.target.files?.[0])} />
+              </label>
+              {form.image && (
+                <button className="btn ghost-sm" onClick={() => setForm({ ...form, image: "" })}>
+                  ลบรูป
+                </button>
+              )}
+              <small>ไม่อัปโหลด = ใช้รูปของวัตถุดิบที่ผูกไว้ (หรือกระป๋องการ์ตูน)</small>
+            </div>
             {err && <p className="err">{err}</p>}
             <div className="panel-row">
-              <button className="btn primary-sm" onClick={save} disabled={!form.name.trim()}>
+              <button className="btn primary-sm" onClick={save} disabled={!form.name.trim() || uploading}>
                 {form.id ? "บันทึกการแก้ไข" : "เพิ่มผงมัทฉะ"}
               </button>
               <button className="btn ghost-sm" onClick={() => setForm(null)}>
@@ -133,7 +188,11 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
             return (
               <li key={p.id} className={p.active ? undefined : "off"}>
                 <span className="pw-order">
-                  <button onClick={() => call(`/api/admin/powders/${p.id}`, json("PATCH", { move: -1 }))} disabled={i === 0} aria-label={`เลื่อน ${p.name} ขึ้น`}>
+                  <button
+                    onClick={() => call(`/api/admin/powders/${p.id}`, json("PATCH", { move: -1 }))}
+                    disabled={i === 0}
+                    aria-label={`เลื่อน ${p.name} ขึ้น`}
+                  >
                     ▲
                   </button>
                   <button
@@ -144,6 +203,7 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
                     ▼
                   </button>
                 </span>
+                <PowderThumb powder={p} tone={powderTone(p, powders)} size={40} />
                 <div className="mlist-info">
                   <b>
                     {p.name} {i === 0 && <span className="pw-default">ค่าเริ่มต้น</span>}
@@ -154,13 +214,27 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
                     {p.note ? ` · ${p.note}` : ""}
                   </small>
                 </div>
-                <button className="toggle" role="switch" aria-checked={p.active} onClick={() => call(`/api/admin/powders/${p.id}`, json("PATCH", { active: !p.active }))}>
+                <button
+                  className="toggle"
+                  role="switch"
+                  aria-checked={p.active}
+                  onClick={() => call(`/api/admin/powders/${p.id}`, json("PATCH", { active: !p.active }))}
+                >
                   <span className="knob" aria-hidden="true" />
                   {p.active ? "ให้เลือก" : "ปิด"}
                 </button>
                 <button
                   className="btn ghost-sm"
-                  onClick={() => setForm({ id: p.id, name: p.name, note: p.note, extra: String(p.extraPerGram), costItemId: p.costItemId ? String(p.costItemId) : "" })}
+                  onClick={() =>
+                    setForm({
+                      id: p.id,
+                      name: p.name,
+                      note: p.note,
+                      extra: String(p.extraPerGram),
+                      costItemId: p.costItemId ? String(p.costItemId) : "",
+                      image: p.ownImage ?? "",
+                    })
+                  }
                 >
                   แก้ไข
                 </button>
@@ -190,7 +264,10 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
                   <th>เมนู</th>
                   {active.map((p) => (
                     <th key={p.id} className="num">
-                      {p.name}
+                      <span className="pw-th">
+                        <PowderThumb powder={p} tone={powderTone(p, powders)} size={24} />
+                        {p.name}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -215,10 +292,15 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
                             <b>{baht(price, 0)}</b>
                             <small>
                               {mg === null ? (
-                                lines.length ? "ผงยังไม่ผูกต้นทุน" : "ยังไม่มีสูตรต้นทุน"
+                                lines.length ? (
+                                  "ผงยังไม่ผูกต้นทุน"
+                                ) : (
+                                  "ยังไม่มีสูตรต้นทุน"
+                                )
                               ) : (
                                 <>
-                                  ทุน {baht(cost!, 0)} · <span className={`cst-level ${marginLevel(mg).id}`}>
+                                  ทุน {baht(cost!, 0)} ·{" "}
+                                  <span className={`cst-level ${marginLevel(mg).id}`}>
                                     <i aria-hidden="true" />
                                     {mg.toFixed(0)}%
                                   </span>

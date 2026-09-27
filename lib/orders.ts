@@ -17,7 +17,7 @@ export async function getMenu(): Promise<MenuItem[]> {
 
 // ผงมัทฉะให้ลูกค้าเลือก (activeOnly = เฉพาะที่เปิดขาย) เรียงตาม sort
 export async function getPowders(activeOnly = true): Promise<Powder[]> {
-  let q = db().from("matcha_powders").select("id,name,note,extra_per_gram,cost_item_id,active,sort").order("sort").order("id");
+  let q = db().from("matcha_powders").select("id,name,note,extra_per_gram,cost_item_id,active,sort,image_url,cost_items(image_url)").order("sort").order("id");
   if (activeOnly) q = q.eq("active", true);
   const { data, error } = await q;
   if (error) throw error;
@@ -29,6 +29,8 @@ export async function getPowders(activeOnly = true): Promise<Powder[]> {
     costItemId: p.cost_item_id,
     active: p.active,
     sort: p.sort,
+    ownImage: p.image_url,
+    imageUrl: p.image_url ?? (p.cost_items as unknown as { image_url: string | null } | null)?.image_url ?? null,
   }));
 }
 

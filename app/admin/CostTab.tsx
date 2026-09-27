@@ -23,6 +23,9 @@ import {
 import type { MenuItem } from "@/lib/menu";
 import MenuArt, { artTint } from "../MenuArt";
 import PowderPanel from "./PowderPanel";
+import Icon, { type IconName } from "../Icon";
+import MatchaTin from "../MatchaTin";
+import { uploadImage } from "./upload";
 
 type View = "menus" | "powders" | "items" | "gp";
 const VIEWS: { id: View; label: string }[] = [
@@ -321,7 +324,7 @@ function RecipeEditor({
                   <div className="cst-chips">
                     {list.map((i) => (
                       <button key={i.id} onClick={() => addFromLibrary(i)} title={`${baht(i.unitCost)}${i.unit ? ` / ${i.unit}` : ""}`}>
-                        + {i.name}
+                        <ItemThumb item={i} size={22} />+ {i.name}
                       </button>
                     ))}
                   </div>
@@ -355,9 +358,14 @@ function RecipeEditor({
                 return (
                   <tr key={i}>
                     <td>
-                      <b>{l.name}</b>
-                      <small className={`cst-cat ${l.category}`}>{categoryLabel(l.category)}</small>
-                      {linked && <small className="cst-linked">ราคาจากคลัง</small>}
+                      <div className="cst-line-name">
+                        <ItemThumb item={{ ...l, imageUrl: linked ? items.get(l.costItemId!)?.imageUrl : null }} size={34} />
+                        <div>
+                          <b>{l.name}</b>
+                          <small className={`cst-cat ${l.category}`}>{categoryLabel(l.category)}</small>
+                          {linked && <small className="cst-linked">ราคาจากคลัง</small>}
+                        </div>
+                      </div>
                     </td>
                     <td className="num">
                       <input
@@ -465,7 +473,10 @@ function RecipeEditor({
 
         <section className="cst-box">
           <h3>ช่วยตั้งราคาขายใน LINE</h3>
-          <p>ราคานี้ยังไม่บวก GP · อยากได้กำไรกี่ % ของราคาขาย (ถ้าคิดเฉพาะวัตถุดิบ ร้านเครื่องดื่มมักตั้งเป้า 65–70% แต่ต้นทุนที่นี่รวมค่าแรงและค่าน้ำไฟแล้ว)</p>
+          <p>
+            ราคานี้ยังไม่บวก GP · อยากได้กำไรกี่ % ของราคาขาย (ถ้าคิดเฉพาะวัตถุดิบ ร้านเครื่องดื่มมักตั้งเป้า 65–70%
+            แต่ต้นทุนที่นี่รวมค่าแรงและค่าน้ำไฟแล้ว)
+          </p>
           <div className="chips">
             {TARGETS.map((t) => (
               <button key={t} className="chip" aria-pressed={target === t} onClick={() => setTarget(t)}>
@@ -542,6 +553,28 @@ function RecipeEditor({
   );
 }
 
+// รูปวัตถุดิบ: รูปจริงถ้ามี ไม่งั้นผงมัทฉะเป็นกระป๋องการ์ตูน อย่างอื่นเป็นไอคอนตามหมวด
+const CAT_ICON: Record<CostCategory, IconName> = { ingredient: "bowl", packaging: "bag", labor: "star", utility: "clock", other: "note" };
+export function ItemThumb({
+  item,
+  size = 40,
+}: {
+  item: { name: string; category: CostCategory; imageUrl?: string | null };
+  size?: number;
+}) {
+  return (
+    <span className="cst-ithumb" style={{ width: size, height: size }}>
+      {item.imageUrl ? (
+        <img src={item.imageUrl} alt="" loading="lazy" />
+      ) : item.name.includes("มัทฉะ") ? (
+        <MatchaTin tone={1} size={size * 0.8} />
+      ) : (
+        <Icon name={CAT_ICON[item.category] ?? "note"} size={size * 0.45} />
+      )}
+    </span>
+  );
+}
+
 // ---------- คลังวัตถุดิบ ----------
 type ItemForm = {
   id: number | null;
@@ -552,6 +585,7 @@ type ItemForm = {
   packSize: string;
   unitCost: string;
   unit: string;
+  imageUrl: string;
 };
 const EMPTY_ITEM: ItemForm = {
   id: null,
@@ -562,12 +596,27 @@ const EMPTY_ITEM: ItemForm = {
   packSize: "",
   unitCost: "",
   unit: "",
+  imageUrl: "",
 };
 
 function ItemLibrary({ data, call }: { data: CostsPayload; call: (url: string, init: RequestInit) => Promise<CostsPayload> }) {
   const [form, setForm] = useState<ItemForm | null>(null);
   const [err, setErr] = useState("");
   const [confirm, setConfirm] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  async function upload(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    setErr("");
+    try {
+      const url = await uploadImage(file);
+      setForm((f) => (f ? { ...f, imageUrl: url } : f));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "อัปโหลดไม่สำเร็จ");
+    } finally {
+      setUploading(false);
+    }
+  }
   const used = (id: number) => Object.values(data.recipes).filter((ls) => ls.some((l) => l.costItemId === id)).length;
   const set = <K extends keyof ItemForm>(k: K, v: ItemForm[K]) => form && setForm({ ...form, [k]: v });
 
@@ -594,6 +643,7 @@ function ItemLibrary({ data, call }: { data: CostsPayload; call: (url: string, i
           packPrice: form.mode === "pack" ? form.packPrice : null,
           packSize: form.mode === "pack" ? form.packSize : null,
           unitCost: form.unitCost,
+          imageUrl: form.imageUrl,
         }),
       );
       setForm(null);
@@ -694,6 +744,19 @@ function ItemLibrary({ data, call }: { data: CostsPayload; call: (url: string, i
             ราคาต่อหน่วย: <b>{preview !== null && Number.isFinite(preview) ? baht(preview) : "–"}</b>
             {form.unit ? ` / ${form.unit}` : ""}
           </p>
+          <div className="cst-photo">
+            <ItemThumb item={form} size={64} />
+            <label className="btn ghost-sm upload">
+              {uploading ? "กำลังอัปโหลด…" : form.imageUrl ? "เปลี่ยนรูป" : "อัปโหลดรูป"}
+              <input type="file" accept="image/*" hidden disabled={uploading} onChange={(e) => upload(e.target.files?.[0])} />
+            </label>
+            {form.imageUrl && (
+              <button className="btn ghost-sm" onClick={() => set("imageUrl", "")}>
+                ลบรูป
+              </button>
+            )}
+            <small>ถ่ายรูปถุง/กระป๋องจริงจากมือถือได้เลย ระบบย่อให้เอง</small>
+          </div>
           {err && <p className="err">{err}</p>}
           <div className="panel-row">
             <button className="btn primary-sm" onClick={save} disabled={!form.name.trim()}>
@@ -718,6 +781,7 @@ function ItemLibrary({ data, call }: { data: CostsPayload; call: (url: string, i
             <ul className="mlist">
               {list.map((i) => (
                 <li key={i.id}>
+                  <ItemThumb item={i} />
                   <div className="mlist-info">
                     <b>{i.name}</b>
                     <small>
@@ -743,6 +807,7 @@ function ItemLibrary({ data, call }: { data: CostsPayload; call: (url: string, i
                         packSize: i.packSize === null ? "" : String(i.packSize),
                         unitCost: String(i.unitCost),
                         unit: i.unit,
+                        imageUrl: i.imageUrl ?? "",
                       })
                     }
                   >
