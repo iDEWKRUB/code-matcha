@@ -595,28 +595,28 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .mb-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .mb-order { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: #fff; color: var(--matcha); font-weight: 600; font-size: 13px; text-decoration: none; box-shadow: 0 6px 18px -14px rgba(28,36,25,.6); white-space: nowrap; }
 
-.mcard { --c1: #86a445; --c2: #4f7329; --fg: #fff; --foil: #f3f7e4; --chip: rgba(255,255,255,.2);
+.mbcard { --c1: #86a445; --c2: #4f7329; --fg: #fff; --foil: #f3f7e4; --chip: rgba(255,255,255,.2);
   position: relative; overflow: hidden; aspect-ratio: 1.586; border-radius: 22px; padding: 18px 20px; color: var(--fg);
   background: linear-gradient(140deg, var(--c1), var(--c2)); display: flex; flex-direction: column; justify-content: space-between;
   box-shadow: 0 22px 36px -22px rgba(28,36,25,.75), inset 0 1px 0 rgba(255,255,255,.25); }
-.mcard.t-premium { --c1: #4b6b2f; --c2: #1f3313; --foil: #e8dcb8; --chip: rgba(232,220,184,.18); }
-.mcard.t-ceremonial { --c1: #2c3824; --c2: #0f140c; --foil: #d8b46a; --chip: rgba(216,180,106,.16); }
-.mcard::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.14) 48%, transparent 60%); pointer-events: none; }
-.mcard-waves { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--foil); opacity: .13; pointer-events: none; }
-.mcard-cup { position: absolute; right: 8px; bottom: -14px; transform: rotate(8deg); pointer-events: none; }
-.mcard-head { position: relative; display: flex; align-items: center; gap: 10px; }
-.mcard-head div { display: flex; flex-direction: column; flex: 1; }
-.mcard-head b { font-family: var(--mincho); font-weight: 800; font-size: 17px; letter-spacing: .06em; line-height: 1.1; }
-.mcard-head small { font-size: 10px; letter-spacing: .28em; opacity: .75; }
-.mcard-tier { font-family: var(--mincho); font-weight: 800; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--foil); background: var(--chip); border: 1px solid rgba(255,255,255,.3); padding: 4px 12px; border-radius: 999px; }
-.mcard-points { position: relative; display: flex; flex-direction: column; }
-.mcard-points small { font-size: 12px; opacity: .8; }
-.mcard-points b { font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -.01em; }
-.mcard-foot { position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; padding-right: 70px; }
-.mcard-foot div { display: flex; flex-direction: column; min-width: 0; }
-.mcard-foot b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mcard-foot small { font-size: 11px; opacity: .78; }
-.mcard-foot code { font-family: var(--sans); font-size: 12px; letter-spacing: .12em; color: var(--foil); white-space: nowrap; }
+.mbcard.t-premium { --c1: #4b6b2f; --c2: #1f3313; --foil: #e8dcb8; --chip: rgba(232,220,184,.18); }
+.mbcard.t-ceremonial { --c1: #2c3824; --c2: #0f140c; --foil: #d8b46a; --chip: rgba(216,180,106,.16); }
+.mbcard::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.14) 48%, transparent 60%); pointer-events: none; }
+.mbcard-waves { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--foil); opacity: .13; pointer-events: none; }
+.mbcard-cup { position: absolute; right: 8px; bottom: -14px; transform: rotate(8deg); pointer-events: none; }
+.mbcard-head { position: relative; display: flex; align-items: center; gap: 10px; }
+.mbcard-head div { display: flex; flex-direction: column; flex: 1; }
+.mbcard-head b { font-family: var(--mincho); font-weight: 800; font-size: 17px; letter-spacing: .06em; line-height: 1.1; }
+.mbcard-head small { font-size: 10px; letter-spacing: .28em; opacity: .75; }
+.mbcard-tier { font-family: var(--mincho); font-weight: 800; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--foil); background: var(--chip); border: 1px solid rgba(255,255,255,.3); padding: 4px 12px; border-radius: 999px; }
+.mbcard-points { position: relative; display: flex; flex-direction: column; }
+.mbcard-points small { font-size: 12px; opacity: .8; }
+.mbcard-points b { font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -.01em; }
+.mbcard-foot { position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; padding-right: 70px; }
+.mbcard-foot div { display: flex; flex-direction: column; min-width: 0; }
+.mbcard-foot b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mbcard-foot small { font-size: 11px; opacity: .78; }
+.mbcard-foot code { font-family: var(--sans); font-size: 12px; letter-spacing: .12em; color: var(--foil); white-space: nowrap; }
 
 .mb-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .mb-stats div { background: #fff; border-radius: 16px; padding: 12px 12px 10px; display: flex; flex-direction: column; box-shadow: 0 6px 18px -14px rgba(28,36,25,.5); }

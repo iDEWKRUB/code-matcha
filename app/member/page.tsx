@@ -210,8 +210,8 @@ export default function MemberPage() {
           </a>
         </header>
 
-        <section className={`mcard t-${tier.id}`} aria-label={`บัตรสมาชิกระดับ ${tier.name}`}>
-          <svg className="mcard-waves" viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <section className={`mbcard t-${tier.id}`} aria-label={`บัตรสมาชิกระดับ ${tier.name}`}>
+          <svg className="mbcard-waves" viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <defs>
               <pattern id="seigaiha" width="20" height="10" patternUnits="userSpaceOnUse">
                 <g fill="none" stroke="currentColor" strokeWidth=".6">
@@ -229,22 +229,22 @@ export default function MemberPage() {
             </defs>
             <rect width="120" height="60" fill="url(#seigaiha)" />
           </svg>
-          <span className="mcard-cup" aria-hidden="true">
+          <span className="mbcard-cup" aria-hidden="true">
             <Cup itemId="matcha-latte" temp="iced" milk="fresh" size={92} />
           </span>
-          <div className="mcard-head">
+          <div className="mbcard-head">
             <Seal size={34} />
             <div>
               <b>CODE-MACHA</b>
               <small>MEMBER CARD</small>
             </div>
-            <span className="mcard-tier">{tier.name}</span>
+            <span className="mbcard-tier">{tier.name}</span>
           </div>
-          <div className="mcard-points">
+          <div className="mbcard-points">
             <small>แต้มคงเหลือ</small>
             <b>{pts(m.balance)}</b>
           </div>
-          <div className="mcard-foot">
+          <div className="mbcard-foot">
             <div>
               <b>{name}</b>
               <small>
