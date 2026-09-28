@@ -218,6 +218,12 @@ export default function Board() {
             </button>
           ))}
         </nav>
+        <a className="adm-extra" href="/admin/bar" title="มาม่าบาร์ (ยังไม่เปิดให้ลูกค้า)">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 12h18a9 9 0 0 1-18 0Zm4-4c0-1 1-1 1-2M12 7c0-1 1-1 1-2M16 8c0-1 1-1 1-2" />
+          </svg>
+          <span>มาม่าบาร์ (ทดลอง)</span>
+        </a>
         <button className="adm-logout" onClick={logout} title="ออกจากระบบ">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />

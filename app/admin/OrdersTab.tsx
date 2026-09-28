@@ -85,7 +85,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                     <div className="th">
                       <b>#{o.no}</b>
                       <span className={`time svc-${o.service}`}>
-                        {o.service === "pickup" ? `มารับ ${o.pickupTime} น.` : o.service === "dine_in" ? `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""}` : "กลับบ้าน · รอที่ร้าน"}
+                        {o.source === "bar" ? "มาม่าบาร์ · ลูกค้าต้มเอง" : o.service === "pickup" ? `มารับ ${o.pickupTime} น.` : o.service === "dine_in" ? `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""}` : "กลับบ้าน · รอที่ร้าน"}
                       </span>
                     </div>
                     <p className="who">

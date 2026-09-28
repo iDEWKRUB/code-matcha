@@ -117,6 +117,7 @@ export type Order = {
   createdAt: string;
   hasSlip: boolean;
   discount: number; // ส่วนลดจากแต้ม (total คือยอดที่จ่ายจริงหลังหักแล้ว)
+  source: "menu" | "bar"; // bar = มาม่าบาร์ (ลูกค้าต้มเอง)
 };
 
 // ข้อมูลสำหรับหน้าจ่ายเงินของลูกค้า

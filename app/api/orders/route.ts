@@ -227,6 +227,7 @@ export async function GET(req: Request) {
     .select("id,daily_no,total,discount,pickup_time,expires_at,service,table_no,promo_code,promo_discount")
     .eq("line_user_id", user.userId)
     .eq("pickup_date", nowInShop().date)
+    .eq("source", "menu")
     .eq("status", "awaiting_payment")
     .gt("expires_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
     .order("id", { ascending: false })

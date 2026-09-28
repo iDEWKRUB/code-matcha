@@ -30,10 +30,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "เปลี่ยนสถานะนี้ไม่ได้" }, { status: 409 });
 
   const now = new Date().toISOString();
+  // มาม่าบาร์: ลูกค้าต้มเอง ยืนยันจ่ายแล้วจบออเดอร์เลย ไม่ต้องเข้าคิวทำ
+  const bar = current.source === "bar";
+  const status = bar && to === "pending" ? "completed" : to;
   // อัปเดตเฉพาะเมื่อสถานะยังเหมือนเดิม กันสองเครื่องกดพร้อมกัน
   const { data: updated, error } = await db()
     .from("orders")
-    .update({ status: to, updated_at: now, ...(to === "pending" ? { paid_at: now } : {}) })
+    .update({ status, updated_at: now, ...(to === "pending" ? { paid_at: now } : {}) })
     .eq("id", id)
     .eq("status", current.status)
     .select("id");
@@ -42,7 +45,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const no = current.daily_no;
   const notify = (c: Card) => pushCard(current.line_user_id, c, { name: current.customer_name, orderNo: no });
-  if (to === "pending") {
+  if (to === "pending" && bar) {
+    const earned = await earnPoints(current);
+    await rewardReferral(current);
+    await notify({
+      tone: "matcha",
+      title: "ร้านยืนยันการชำระแล้ว",
+      subtitle: "มาม่าบาร์ ไปต้มได้เลย",
+      rows: [
+        ["ออเดอร์", `#${no}`, true],
+        ["ยอดชำระ", `฿${current.total}`],
+        ["แต้มสะสม", `+${earned} (รวม ${await pointsBalance(current.line_user_id)})`],
+      ],
+      items: itemLines(current.items),
+    });
+  } else if (to === "pending") {
     const earned = await earnPoints(current);
     const bonus = await rewardReferral(current); // ออเดอร์แรกของเพื่อนที่ถูกชวน
     const [ahead, balance] = await Promise.all([
