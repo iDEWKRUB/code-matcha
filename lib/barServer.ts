@@ -32,8 +32,8 @@ export type SlipCheck = { ok: true; ref: string } | { ok: false; reason: string 
 
 // ตรวจสลิปอัตโนมัติกับ SlipOK; คืน null เมื่อยังไม่ได้ตั้งค่า (ให้ร้านตรวจเอง)
 export async function checkSlip(image: Blob, amount: number): Promise<SlipCheck | null> {
-  const key = process.env.SLIPOK_API_KEY;
-  const branch = process.env.SLIPOK_BRANCH_ID;
+  const key = process.env.SLIPOK_API_KEY?.trim().replace(/^["']|["']$/g, "");
+  const branch = process.env.SLIPOK_BRANCH_ID?.trim().replace(/^["'#]|["']$/g, "");
   if (!key || !branch) return null;
   const fd = new FormData();
   fd.append("files", image, "slip.jpg");
