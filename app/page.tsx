@@ -32,6 +32,7 @@ import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
 import MenuArt, { artTint } from "./MenuArt";
 import Loader from "./Loader";
+import { setVisitor, track } from "./track";
 import PowderThumb, { powderTone } from "./PowderThumb";
 import Seal from "./Seal";
 
@@ -200,7 +201,10 @@ export default function OrderPage() {
           liff.current = l;
           profileP = l
             .getProfile()
-            .then((p) => setName(p.displayName))
+            .then((p) => {
+              setName(p.displayName);
+              setVisitor(p.userId);
+            })
             .catch(() => {});
           checkFriend();
         } else if (process.env.NODE_ENV !== "production") {
@@ -222,6 +226,7 @@ export default function OrderPage() {
             .catch(() => {});
         }
         const [, pending] = await Promise.all([menuP, loadMine(), profileP]);
+        track("visit");
         // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
         if (pending) {
           setPay(pending);
@@ -298,6 +303,7 @@ export default function OrderPage() {
 
   function open(it: MenuItem) {
     setEdit(it);
+    track("view_item");
     const food = it.kind === "food";
     setOpts({
       temp: it.temps[0],
@@ -349,6 +355,7 @@ export default function OrderPage() {
         }
       }
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
+      track("order");
       setCart([]);
       setNote("");
       setPickup("");
@@ -810,6 +817,7 @@ export default function OrderPage() {
                   disabled={closed}
                   onClick={() => {
                     setCart([...cart, { itemId: edit.id, ...opts }]);
+                    track("add_cart");
                     setEdit(null);
                   }}
                 >

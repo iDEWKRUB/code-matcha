@@ -10,6 +10,7 @@ import Icon from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import MerchArt, { MERCH_TINT } from "../MerchArt";
 import Loader from "../Loader";
+import { setVisitor, track } from "../track";
 import Seal from "../Seal";
 import { REWARD_CATEGORIES, type RewardCategory } from "@/lib/rewards";
 
@@ -98,10 +99,12 @@ export default function MemberPage() {
           const p = await l.getProfile();
           setName(p.displayName);
           setPicture(p.pictureUrl ?? null);
+          setVisitor(p.userId);
         } else if (process.env.NODE_ENV !== "production") {
           setName("Dev (โหมดทดสอบ)");
         } else throw new Error("ยังไม่ได้ตั้งค่า LIFF");
         await load();
+        track("visit", "member");
       } catch (e) {
         setFatal(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
       }

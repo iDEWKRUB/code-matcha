@@ -64,14 +64,32 @@ async function fetchPaid(from: string, to: string) {
   }
 }
 
+type EventRow = { day: string; visitor: string; event: string; page: string };
+
+// ผู้เข้าชมหน้าเว็บลูกค้า (ถ้ายังไม่ได้รัน migration-017 จะคืน null)
+async function fetchEvents(from: string, to: string) {
+  const rows: EventRow[] = [];
+  for (let off = 0; ; off += 1000) {
+    const { data, error } = await db()
+      .from("site_events")
+      .select("day,visitor,event,page")
+      .gte("day", from)
+      .lte("day", to)
+      .range(off, off + 999);
+    if (error) return null;
+    rows.push(...(data as EventRow[]));
+    if (data.length < 1000) return rows;
+  }
+}
+
 export async function GET(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const p = new URL(req.url).searchParams.get("period");
   const period: Period = p === "week" || p === "month" ? p : "day";
   const bs = buckets(period, nowInShop().date);
-  const rows = await fetchPaid(bs[0].start, bs[bs.length - 1].end);
+  const [rows, events] = await Promise.all([fetchPaid(bs[0].start, bs[bs.length - 1].end), fetchEvents(bs[0].start, bs[bs.length - 1].end)]);
 
-  const series = bs.map((b) => ({ ...b, revenue: 0, orders: 0, cups: 0, discount: 0 }));
+  const series = bs.map((b) => ({ ...b, revenue: 0, orders: 0, cups: 0, discount: 0, visitors: 0 }));
   const top = new Map<string, { name: string; qty: number; revenue: number }>();
   const services: Record<string, { orders: number; revenue: number }> = {
     dine_in: { orders: 0, revenue: 0 },
@@ -97,9 +115,30 @@ export async function GET(req: Request) {
     }
   }
 
+  // นับคน (ไม่ซ้ำ) ต่อช่วงเวลา และจำนวนคนในแต่ละขั้น เข้าเว็บ → ดูเมนู → ใส่ตะกร้า → สั่ง
+  let funnel: Record<string, number> | null = null;
+  let memberVisitors = 0;
+  if (events) {
+    const per = series.map(() => new Set<string>());
+    const steps: Record<string, Set<string>> = { visit: new Set(), view_item: new Set(), add_cart: new Set(), order: new Set() };
+    const member = new Set<string>();
+    for (const e of events) {
+      steps[e.event]?.add(e.visitor);
+      if (e.event !== "visit") continue;
+      if (e.page === "member") member.add(e.visitor);
+      const i = series.findIndex((s) => e.day >= s.start && e.day <= s.end);
+      if (i >= 0) per[i].add(e.visitor);
+    }
+    per.forEach((set, i) => (series[i].visitors = set.size));
+    funnel = Object.fromEntries(Object.entries(steps).map(([k, v]) => [k, v.size]));
+    memberVisitors = member.size;
+  }
+
   return NextResponse.json({
     period,
-    series: series.map(({ key, label, short, revenue, orders, cups, discount }) => ({ key, label, short, revenue, orders, cups, discount })),
+    series: series.map(({ key, label, short, revenue, orders, cups, discount, visitors }) => ({ key, label, short, revenue, orders, cups, discount, visitors })),
+    funnel,
+    memberVisitors,
     top: [...top.values()].sort((a, b) => b.qty - a.qty).slice(0, 8),
     services,
   });

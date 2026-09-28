@@ -12,10 +12,13 @@ type Point = {
   orders: number;
   cups: number;
   discount: number;
+  visitors: number;
 };
 type Report = {
   period: Period;
   series: Point[];
+  funnel: { visit: number; view_item: number; add_cart: number; order: number } | null;
+  memberVisitors: number;
   top: { name: string; qty: number; revenue: number }[];
   services: Record<Service, { orders: number; revenue: number }>;
 };
@@ -76,11 +79,13 @@ function Bars({
   value,
   format,
   caption,
+  tip,
 }: {
   data: Point[];
   value: (p: Point) => number;
   format: (n: number) => string;
   caption: string;
+  tip?: (p: Point) => React.ReactNode; // เนื้อหาในกล่องเมื่อชี้ที่แท่ง (ไม่ใส่ = แสดงยอดขาย)
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const max = niceMax(Math.max(...data.map(value)));
@@ -131,15 +136,21 @@ function Bars({
             data-edge={hover < 2 ? "start" : hover > last - 2 ? "end" : undefined}
           >
             <b>{data[hover].label}</b>
-            <span>
-              ยอดขาย <strong>{baht(data[hover].revenue)}</strong>
-            </span>
-            <span>
-              ออเดอร์ <strong>{data[hover].orders}</strong> · {data[hover].cups} ชิ้น
-            </span>
-            <span>
-              เฉลี่ยต่อบิล <strong>{baht(avg(data[hover]))}</strong>
-            </span>
+            {tip ? (
+              tip(data[hover])
+            ) : (
+              <>
+                <span>
+                  ยอดขาย <strong>{baht(data[hover].revenue)}</strong>
+                </span>
+                <span>
+                  ออเดอร์ <strong>{data[hover].orders}</strong> · {data[hover].cups} ชิ้น
+                </span>
+                <span>
+                  เฉลี่ยต่อบิล <strong>{baht(avg(data[hover]))}</strong>
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -339,8 +350,94 @@ export default function ReportTab() {
               </ul>
             </section>
           </div>
+
+          <Visitors data={data} meta={meta} />
         </>
       )}
     </div>
+  );
+}
+
+// ผู้เข้าชมหน้าเว็บลูกค้า: คนต่อช่วงเวลา + ขั้นตอน เข้าเว็บ → ดูเมนู → ใส่ตะกร้า → สั่ง
+const STEPS = [
+  { id: "visit", label: "เข้าหน้าเว็บ" },
+  { id: "view_item", label: "กดดูเมนู" },
+  { id: "add_cart", label: "ใส่ตะกร้า" },
+  { id: "order", label: "สั่งสำเร็จ" },
+] as const;
+
+function Visitors({ data, meta }: { data: Report; meta: (typeof PERIODS)[number] }) {
+  const s = data.series;
+  const cur = s[s.length - 1];
+  const prev = s[s.length - 2];
+  const f = data.funnel;
+  return (
+    <section className="panel">
+      <header>
+        <h2>ผู้เข้าชมหน้าเว็บลูกค้า</h2>
+        <p>
+          นับเป็นคน (คนเดิมเข้าหลายรอบในช่วงเดียวกันนับ 1) · หน้าสั่งและบัตรสมาชิก · เริ่มนับตั้งแต่เปิดใช้ฟีเจอร์นี้
+        </p>
+      </header>
+      {!f ? (
+        <p className="report-empty">ยังไม่ได้เปิดใช้การนับผู้เข้าชม (รัน migration-017 ก่อน)</p>
+      ) : (
+        <>
+          <div className="vis-now">
+            <div>
+              <small>ผู้เข้าชม{meta.now}</small>
+              <b>{cur.visitors.toLocaleString()} คน</b>
+              <Delta now={cur.visitors} prev={prev?.visitors ?? 0} />
+            </div>
+            <div>
+              <small>{meta.prev}</small>
+              <b>{(prev?.visitors ?? 0).toLocaleString()} คน</b>
+            </div>
+            <div>
+              <small>เปิดบัตรสมาชิก ({meta.span})</small>
+              <b>{data.memberVisitors.toLocaleString()} คน</b>
+            </div>
+          </div>
+          <Bars
+            data={s}
+            value={(p) => p.visitors}
+            format={(n) => n.toLocaleString()}
+            caption={`กราฟผู้เข้าชม${meta.label}`}
+            tip={(p) => (
+              <>
+                <span>
+                  ผู้เข้าชม <strong>{p.visitors} คน</strong>
+                </span>
+                <span>
+                  ออเดอร์ <strong>{p.orders}</strong>
+                </span>
+              </>
+            )}
+          />
+          <h3 className="report-sub">
+            ลูกค้าไปถึงขั้นไหน ({meta.span})
+          </h3>
+          <ol className="funnel">
+            {STEPS.map((st, i) => {
+              const n = f[st.id];
+              const pct = f.visit ? Math.round((n / f.visit) * 100) : 0;
+              const prevStep = i > 0 ? f[STEPS[i - 1].id] : 0;
+              return (
+                <li key={st.id}>
+                  <div>
+                    <span>{st.label}</span>
+                    <b>
+                      {n.toLocaleString()} คน <small>{pct}%</small>
+                    </b>
+                  </div>
+                  <i style={{ width: `${Math.max(pct, n ? 2 : 0)}%` }} />
+                  {i > 0 && prevStep > 0 && prevStep > n && <em>หลุดจากขั้นก่อน {(prevStep - n).toLocaleString()} คน</em>}
+                </li>
+              );
+            })}
+          </ol>
+        </>
+      )}
+    </section>
   );
 }
