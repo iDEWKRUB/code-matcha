@@ -19,6 +19,7 @@ type Report = {
   series: Point[];
   funnel: { visit: number; view_item: number; add_cart: number; order: number } | null;
   memberVisitors: number;
+  trackingSince: string | null;
   top: { name: string; qty: number; revenue: number }[];
   services: Record<Service, { orders: number; revenue: number }>;
 };
@@ -376,8 +377,22 @@ function Visitors({ data, meta }: { data: Report; meta: (typeof PERIODS)[number]
       <header>
         <h2>ผู้เข้าชมหน้าเว็บลูกค้า</h2>
         <p>
-          นับเป็นคน (คนเดิมเข้าหลายรอบในช่วงเดียวกันนับ 1) · หน้าสั่งและบัตรสมาชิก · เริ่มนับตั้งแต่เปิดใช้ฟีเจอร์นี้
+          นับเป็นคน (คนเดิมเข้าหลายรอบในช่วงเดียวกันนับ 1) · หน้าสั่งและบัตรสมาชิก
         </p>
+        {data.trackingSince && (
+          <p className="vis-since">
+            เริ่มนับเมื่อ{" "}
+            {new Date(data.trackingSince).toLocaleString("th-TH", {
+              timeZone: "Asia/Bangkok",
+              day: "numeric",
+              month: "short",
+              year: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}{" "}
+            น. — ออเดอร์ก่อนเวลานี้ยังนับในยอดขาย แต่ไม่อยู่ในสถิติผู้เข้าชม
+          </p>
+        )}
       </header>
       {!f ? (
         <p className="report-empty">ยังไม่ได้เปิดใช้การนับผู้เข้าชม (รัน migration-017 ก่อน)</p>

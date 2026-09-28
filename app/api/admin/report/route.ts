@@ -87,7 +87,11 @@ export async function GET(req: Request) {
   const p = new URL(req.url).searchParams.get("period");
   const period: Period = p === "week" || p === "month" ? p : "day";
   const bs = buckets(period, nowInShop().date);
-  const [rows, events] = await Promise.all([fetchPaid(bs[0].start, bs[bs.length - 1].end), fetchEvents(bs[0].start, bs[bs.length - 1].end)]);
+  const [rows, events, since] = await Promise.all([
+    fetchPaid(bs[0].start, bs[bs.length - 1].end),
+    fetchEvents(bs[0].start, bs[bs.length - 1].end),
+    db().from("site_events").select("first_at").order("first_at").limit(1),
+  ]);
 
   const series = bs.map((b) => ({ ...b, revenue: 0, orders: 0, cups: 0, discount: 0, visitors: 0 }));
   const top = new Map<string, { name: string; qty: number; revenue: number }>();
@@ -139,6 +143,7 @@ export async function GET(req: Request) {
     series: series.map(({ key, label, short, revenue, orders, cups, discount, visitors }) => ({ key, label, short, revenue, orders, cups, discount, visitors })),
     funnel,
     memberVisitors,
+    trackingSince: since.data?.[0]?.first_at ?? null,
     top: [...top.values()].sort((a, b) => b.qty - a.qty).slice(0, 8),
     services,
   });
