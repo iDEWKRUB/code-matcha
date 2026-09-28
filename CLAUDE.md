@@ -74,7 +74,26 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
 - Merge the rest of the old POS (artifact `b020fd2a-…`): walk-in cashier screen, profit in the sales report, phone-based members.
 - Vercel Hobby doesn't allow commercial use; consider Pro.
 
-## Plan: มาม่าบาร์ self-service (NOT STARTED: wait for the owner to say go)
+## มาม่าบาร์ self-service: BUILT, hidden (2026-09-29, commit 9c475c2, migration 019 run)
+- Customer page `/bar` (open via `liff.line.me/<liffId>/bar`). There is no customer-facing button yet; the owner will wire one later. `noindex`.
+- Files:
+  - `app/bar/page.tsx`: 4 screens.
+  - `app/bar/scan.ts`: zxing-wasm reads every QR in one tray photo. The wasm is self-hosted at `public/zxing_reader.wasm`; keep it in sync with the pinned `zxing-wasm` version.
+  - `lib/bar.ts`, `lib/barServer.ts`: `checkSlip` calls SlipOK.
+- APIs:
+  - `/api/bar`, `/api/bar/orders`, `[id]`, `[id]/slip`.
+  - Admin: `/admin/bar` (items + A4 QR sticker sheet), `/api/admin/bar`.
+- DB:
+  - Table `bar_items`.
+  - `orders.source` (`menu` | `bar`); `orders.slip_ref` is unique.
+  - QR payload is `CMB1:<bar_item_id>`.
+- Slip flow:
+  - SlipOK pass → order goes straight to `completed` and earns points (no board alarm).
+  - Fail, or no key set → `payment_review`. The barista's confirm button moves bar orders straight to `completed`.
+- Env: `SLIPOK_API_KEY` + `SLIPOK_BRANCH_ID` are set in Vercel (not in `.env.local`). Prices are placeholders; the owner edits them at `/admin/bar`.
+- Not yet verified with a real slip or a real phone camera. Real order creation couldn't be tested because the shop was closed during testing.
+
+### Original plan (for reference)
 Design: https://claude.ai/artifact/P429zSsnvHE1htYp7gAjmm (canvas "CODE-MACHA × มาม่า Self-Service", 4 phone screens, palette cream #F3EFE4 / matcha #2F4A2A / seal red #B8412C).
 
 **Owner's constraints:**
