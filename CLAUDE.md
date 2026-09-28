@@ -106,5 +106,5 @@ Design: https://claude.ai/artifact/P429zSsnvHE1htYp7gAjmm (canvas "CODE-MACHA ×
 **Open questions:**
 - Real mama bar menu and prices (the design has placeholders).
 - Should customers cook before the slip is confirmed?
-- Auto slip check (paid service) or manual?
+- Auto slip check: **decided, SlipOK** (owner has an account, branch "Code matcha" #77223, 2026-09-29). Use it for the mama bar only, built together with it; don't add it to the current order flow yet. API: `POST https://api.slipok.com/api/line/apikey/<branchId>` with header `x-authorization: <key>`. Put the key in `.env.local` + Vercel as `SLIPOK_API_KEY` / `SLIPOK_BRANCH_ID`; the owner adds it themselves, never in chat.
 - Keep the name CODE-MATCHA in the new UI (the design still says CODE-MACHA).
