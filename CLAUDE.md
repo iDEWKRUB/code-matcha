@@ -74,14 +74,37 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
 - Merge the rest of the old POS (artifact `b020fd2a-…`): walk-in cashier screen, profit in the sales report, phone-based members.
 - Vercel Hobby doesn't allow commercial use; consider Pro.
 
-## Plan: มาม่าบาร์ (draft, not started)
-Goal: customers at the shop pick noodles and toppings onto a tray, scan, and pay without queuing at the counter.
-1. **In-store mode**: a customer-page mode for people already at the shop (like today's `dine_in`, but no time slot). Open it with `?mode=store`, from a QR at the bar, with a large and simple UI.
-2. **Tray scan**: each tray has its own QR (`?tray=12`). Scanning it attaches the order to that tray number (instead of a table number) so the barista knows which order to bring back. It could reuse `table_no` or get a new `tray_no` column (needs a migration).
-3. **PromptPay**: use the existing QR + slip flow. Maybe add an in-store "pay at the counter" option.
-- Probably needs a new `kind` (e.g. `noodle`) with option groups, reusing the food `toppings[].group` system; costs through the existing cost tab.
-- **Open questions for the owner:**
-  - Does "scan tray" mean scanning a QR on the tray, or scanning the items on the tray?
-  - Pay before or after eating?
-  - Is the tray number needed for delivering food back?
-  - Mama bar menu and prices.
+## Plan: มาม่าบาร์ self-service (NOT STARTED: wait for the owner to say go)
+Design: https://claude.ai/artifact/P429zSsnvHE1htYp7gAjmm (canvas "CODE-MACHA × มาม่า Self-Service", 4 phone screens, palette cream #F3EFE4 / matcha #2F4A2A / seal red #B8412C).
+
+**Owner's constraints:**
+- Use the existing LIFF stack.
+- Keep the current version working.
+- Customers must not see any of this until the owner says so. Build it behind a switch or a hidden entry (e.g. only via `?mode=store`, or a `shop_settings` flag that is off by default).
+
+**Flow from the design:**
+1. **Home, in-store mode**: toggle "สั่งกลับบ้าน / ส่ง" | "อยู่ที่ร้าน". A dark green card "มาม่าบาร์ บริการตัวเองทั้งร้าน" with 3 steps (วางบนถาด → ถ่ายรูปสแกน → จ่าย & ต้มเอง) and a "เริ่มสแกนถาด" button. Below it, "มัทฉะที่บาร์" (normal drinks). A bottom nav with a big red center scan button.
+2. **Scan tray**: every product (noodle pack, topping cups: กุ้ง / หอย / ปู …) carries its **own QR sticker**. The customer takes **one photo of the tray** and every QR is read at once (the same code twice = qty 2). Show "อ่าน QR ได้ N ชิ้น · วางไม่ซ้อนกันนะ", then a "รายการในถาด" list with +/- and a "ไปชำระเงิน ฿total" button.
+3. **Pay**: existing PromptPay QR with the amount + slip upload. The design says "ระบบตรวจยอดให้อัตโนมัติ", but we only have manual slip checking; auto-verify would need a paid slip API (e.g. SlipOK). Ask the owner.
+4. **Done**: "ชำระเรียบร้อย ไปต้มได้เลย", cooking steps (เส้นลงถ้วย เติมน้ำร้อนถึงขีด → ใส่ท็อปปิ้ง ปิดฝารอ), a "เริ่มจับเวลา" timer, an upsell card "คู่กับมัทฉะเย็นสักแก้ว?", points / stamp card.
+
+**Build sketch (proposal):**
+- Migration: allow `menu_items.kind = 'bar'` (currently `('drink','food')`) and seed the bar items hidden. QR payload e.g. `CMB1:<menu_item_id>`.
+- `lib/menu.ts`: `Kind` gets `bar`; `linePrice` is price × qty with no options.
+- Order API: accept bar lines; orders stay `service = dine_in` (table optional), so no service migration.
+- Reading many QRs from one photo:
+  - Use `<input type=file capture>` (works in the LINE in-app browser).
+  - Try `BarcodeDetector` first (returns all codes where supported).
+  - Fall back to `jsqr` in a loop: decode, white-out the found code, decode again.
+  - Always offer "เพิ่มเอง" manual add. Optional extra: `liff.scanCodeV2` one code at a time.
+- Admin:
+  - Kind "มาม่าบาร์" in the menu editor.
+  - Cartoon art for noodle / topping.
+  - A printable QR sticker sheet page for bar items.
+  - Bar items get costs through the existing cost tab.
+
+**Open questions:**
+- Real mama bar menu and prices (the design has placeholders).
+- Should customers cook before the slip is confirmed?
+- Auto slip check (paid service) or manual?
+- Keep the name CODE-MATCHA in the new UI (the design still says CODE-MACHA).
