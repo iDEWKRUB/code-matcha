@@ -38,6 +38,12 @@ export default async function Poster() {
           </li>
         </ol>
 
+        <p className="poster-hours">
+          <Icon name="clock" size={18} />
+          <span>Matcha &amp; Working Space</span>
+          <b>09:00 AM - 22:00 PM</b>
+        </p>
+
         <PosterCups />
         <p className="poster-foot">
           <Icon name="gift" size={13} /> ทุก ฿25 รับ 1 แต้ม ใช้แทนเงินสดได้ · {orderUrl().replace("https://", "")}
