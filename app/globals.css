@@ -911,3 +911,17 @@ a.points-chip { color: inherit; text-decoration: none; }
 .funnel li em { font-style: normal; font-size: 12px; color: var(--stone); }
 @media (max-width: 600px) { .vis-now { grid-template-columns: 1fr 1fr; } }
 .panel header .vis-since { margin: -8px 0 14px; font-size: 12px; color: #8a5a10; background: #fbf0dd; border-radius: 8px; padding: 6px 10px; display: inline-block; }
+
+/* แสดง / ซ่อนเมนู (หลังร้าน) */
+.menu-lead { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.menu-lead .lead { margin: 0; }
+.menu-lead .lead small { font-size: 13px; }
+.menu-bulk { display: flex; gap: 8px; flex-wrap: wrap; }
+.mcard-switches { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mcard-switches .toggle { padding: 0 8px; gap: 6px; font-size: 13px; }
+.mcard-switches .toggle .knob { width: 38px; height: 22px; }
+.mcard-switches .toggle .knob::after { width: 16px; height: 16px; }
+.mcard-switches .toggle[aria-checked="true"] .knob::after { transform: translateX(16px); }
+.flag.hid { background: #6b7163; color: #fff; }
+.mcard.is-hidden { opacity: .55; background: #f4f5ef; }
+.mcard.is-hidden:hover { opacity: .85; }

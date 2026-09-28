@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { MenuItem } from "@/lib/menu";
 import MenuArt, { artTint } from "../MenuArt";
 
@@ -22,31 +23,61 @@ export function Price({ item }: { item: MenuItem }) {
   );
 }
 
+type Patch = Partial<Pick<MenuItem, "available" | "hidden">>;
+
 export default function MenuTab({ menu, setMenu, reload, onError }: Props) {
-  async function toggle(m: MenuItem) {
-    setMenu(menu.map((x) => (x.id === m.id ? { ...x, available: !m.available } : x)));
-    const r = await fetch(`/api/admin/menu/${m.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ available: !m.available }),
-    });
-    if (!r.ok) onError("บันทึกสถานะเมนูไม่สำเร็จ");
+  const [busy, setBusy] = useState(false);
+
+  // อัปเดตหลายเมนูพร้อมกัน (แสดงผลทันที แล้วบันทึกทีละเมนู)
+  async function update(changes: { m: MenuItem; patch: Patch }[]) {
+    if (!changes.length) return;
+    setMenu(menu.map((x) => ({ ...x, ...changes.find((c) => c.m.id === x.id)?.patch })));
+    setBusy(true);
+    const results = await Promise.all(
+      changes.map(({ m, patch }) =>
+        fetch(`/api/admin/menu/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).then((r) => r.ok),
+      ),
+    );
+    setBusy(false);
+    if (results.some((ok) => !ok)) onError("บันทึกสถานะเมนูไม่สำเร็จ");
     reload();
   }
 
-  const selling = menu.filter((m) => m.available).length;
+  const shown = menu.filter((m) => !m.hidden);
+  const selling = shown.filter((m) => m.available).length;
+  const soldOutShown = shown.filter((m) => !m.available);
+  const hidden = menu.filter((m) => m.hidden);
 
   return (
     <>
-      <p className="lead">
-        ขายอยู่ <b>{selling}</b> จาก {menu.length} เมนู — เมนูที่ปิดจะขึ้น &ldquo;หมดวันนี้&rdquo; ในหน้าสั่งของลูกค้าทันที
-      </p>
+      <div className="menu-lead">
+        <p className="lead">
+          ลูกค้าเห็น <b>{shown.length}</b> เมนู (มีขาย {selling}) · ซ่อนอยู่ {hidden.length} เมนู
+          <br />
+          <small>
+            <b>หมด</b> = ลูกค้ายังเห็นพร้อมป้าย &ldquo;หมดวันนี้&rdquo; · <b>ซ่อน</b> = ลูกค้าไม่เห็นเมนูนั้นเลย
+          </small>
+        </p>
+        <div className="menu-bulk">
+          <button
+            className="btn ghost-sm"
+            disabled={busy || soldOutShown.length === 0}
+            onClick={() => update(soldOutShown.map((m) => ({ m, patch: { hidden: true } })))}
+          >
+            ซ่อนเมนูที่หมดทั้งหมด{soldOutShown.length ? ` (${soldOutShown.length})` : ""}
+          </button>
+          <button className="btn ghost-sm" disabled={busy || hidden.length === 0} onClick={() => update(hidden.map((m) => ({ m, patch: { hidden: false } })))}>
+            แสดงทั้งหมด{hidden.length ? ` (${hidden.length})` : ""}
+          </button>
+        </div>
+      </div>
       <ul className="menu-grid">
         {menu.map((m) => (
-          <li key={m.id} className={`mcard${m.available ? "" : " off"}`}>
+          <li key={m.id} className={`mcard${m.available ? "" : " off"}${m.hidden ? " is-hidden" : ""}`}>
             <div className="mcard-art" style={{ "--tint": artTint(m) } as React.CSSProperties}>
               <MenuArt item={m} size={84} />
               <div className="flags">
+                {m.hidden && <span className="flag hid">ซ่อนอยู่</span>}
                 {m.recommended && <span className="flag rec">แนะนำ</span>}
                 {m.promoPrice !== null && <span className="flag sale">โปร</span>}
               </div>
@@ -56,10 +87,16 @@ export default function MenuTab({ menu, setMenu, reload, onError }: Props) {
               <p className="nm">{m.name}</p>
               <Price item={m} />
             </div>
-            <button className="toggle" role="switch" aria-checked={m.available} onClick={() => toggle(m)}>
-              <span className="knob" aria-hidden="true" />
-              {m.available ? "มีขาย" : "หมด"}
-            </button>
+            <div className="mcard-switches">
+              <button className="toggle" role="switch" aria-checked={m.available} onClick={() => update([{ m, patch: { available: !m.available } }])}>
+                <span className="knob" aria-hidden="true" />
+                {m.available ? "มีขาย" : "หมด"}
+              </button>
+              <button className="toggle vis" role="switch" aria-checked={!m.hidden} onClick={() => update([{ m, patch: { hidden: !m.hidden } }])}>
+                <span className="knob" aria-hidden="true" />
+                {m.hidden ? "ซ่อน" : "แสดง"}
+              </button>
+            </div>
           </li>
         ))}
       </ul>

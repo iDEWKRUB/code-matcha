@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   for (const raw of lines as Partial<CartLine>[]) {
     const item = menu.get(String(raw?.itemId));
     if (!item) return fail("ไม่พบเมนูนี้");
-    if (!item.available) return fail(`${item.name} หมดแล้ว`);
+    if (!item.available || item.hidden) return fail(`${item.name} หมดแล้ว`);
     const qty = Number(raw.qty);
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) return fail("จำนวนไม่ถูกต้อง");
     let line: CartLine;

@@ -75,7 +75,7 @@ async function commandCard(cmd: string, userId: string, link: string): Promise<C
   }
   if (cmd === "โปรโมชั่น") {
     const [s, menu] = await Promise.all([getSettings(), getMenu()]);
-    const deals = menu.filter((m) => m.available && (m.promoPrice !== null || m.recommended)).slice(0, 6);
+    const deals = menu.filter((m) => m.available && !m.hidden && (m.promoPrice !== null || m.recommended)).slice(0, 6);
     return {
       tone: "ready",
       title: "โปรโมชั่นวันนี้",

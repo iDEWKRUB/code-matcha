@@ -31,6 +31,7 @@ export type MenuItem = {
   sort: number;
   grams: number | null; // กรัมผงมัทฉะที่ใช้ (null = ไม่ให้เลือกผง)
   addons: boolean; // มีท็อปปิ้งให้เลือก (ช็อตมัทฉะ / ซอฟต์ครีม)
+  hidden: boolean; // ซ่อนจากหน้าลูกค้า (ยังอยู่ในหลังร้าน)
 };
 
 export type ShopSettings = {

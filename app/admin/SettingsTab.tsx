@@ -84,6 +84,7 @@ const draftItem = (d: Draft): MenuItem => ({
   milk: d.milk,
   grams: d.kind === "food" ? null : Number(d.grams) || null,
   addons: d.kind !== "food" && d.addons,
+  hidden: false,
   available: true,
   promoPrice: null,
   recommended: d.recommended,

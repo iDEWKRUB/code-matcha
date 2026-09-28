@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const settings = await getSettings();
-  const [menu, slots, powders] = await Promise.all([getMenu(), getTodaySlots(settings), getPowders()]);
+  const [all, slots, powders] = await Promise.all([getMenu(), getTodaySlots(settings), getPowders()]);
+  const menu = all.filter((m) => !m.hidden); // เมนูที่ร้านซ่อนไว้ ลูกค้าไม่เห็น
   // เมนูแนะนำขึ้นก่อน
   menu.sort((a, b) => Number(b.recommended) - Number(a.recommended) || a.sort - b.sort);
   return NextResponse.json({
