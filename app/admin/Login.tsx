@@ -30,7 +30,7 @@ export default function Login() {
       <form className="login-card" onSubmit={submit}>
         <Seal size={56} />
         <p className="login-jp">いらっしゃいませ</p>
-        <h1>CODE-MACHA หลังร้าน</h1>
+        <h1>CODE-MATCHA หลังร้าน</h1>
         <p className="login-sub">สำหรับบาริสต้าและเจ้าของร้าน</p>
 
         <label className="login-field">

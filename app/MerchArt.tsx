@@ -103,7 +103,7 @@ function Tote() {
       <path d="M78 116 H122 L117 176 Q116 182 110 182 H90 Q84 182 83 176 Z" fill="none" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
       <path d="M112 100 L106 126" stroke="#d9432b" strokeWidth="5" strokeLinecap="round" />
       <Face y={156} s={0.55} />
-      <text x="100" y="214" textAnchor="middle" fontSize="15" fontWeight="800" letterSpacing="2" fill={INK} fontFamily="serif">CODE-MACHA</text>
+      <text x="100" y="214" textAnchor="middle" fontSize="14" fontWeight="800" letterSpacing="1.5" fill={INK} fontFamily="serif">CODE-MATCHA</text>
     </>
   );
 }

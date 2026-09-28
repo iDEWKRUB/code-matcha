@@ -24,7 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const welcome = (link: string, first: boolean): Card => ({
   tone: "matcha",
-  title: first ? "ยินดีต้อนรับสู่ CODE-MACHA" : "สั่งมัทฉะได้ที่นี่เลย",
+  title: first ? "ยินดีต้อนรับสู่ CODE-MATCHA" : "สั่งมัทฉะได้ที่นี่เลย",
   subtitle: "สั่งผ่าน LINE ไม่ต้องต่อคิว",
   rows: [
     ["ทานที่ร้าน", "สั่งแล้วทำให้เลย"],
@@ -102,7 +102,7 @@ async function commandCard(cmd: string, userId: string, link: string): Promise<C
   if (cmd === "ติดต่อร้าน")
     return {
       tone: "matcha",
-      title: "ติดต่อร้าน CODE-MACHA",
+      title: "ติดต่อร้าน CODE-MATCHA",
       subtitle: "พิมพ์ข้อความทิ้งไว้ในแชทนี้ได้เลย",
       rows: [["เวลาตอบ", "ในเวลาเปิดร้าน"]],
       note: "สอบถามเมนู แจ้งแพ้อาหาร หรือเรื่องออเดอร์ พนักงานจะตอบกลับโดยเร็ว",

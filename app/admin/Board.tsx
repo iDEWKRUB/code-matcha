@@ -132,7 +132,7 @@ export default function Board() {
         <div className="adm-brand">
           <Seal size={38} />
           <div>
-            <b>CODE-MACHA</b>
+            <b>CODE-MATCHA</b>
             <small>หลังร้าน</small>
           </div>
         </div>

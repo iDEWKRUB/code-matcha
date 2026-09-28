@@ -74,7 +74,7 @@ function Brand({ t, size = 54, onPaper = false }: { t: T; size?: number; onPaper
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, fontWeight: 700, fontSize: size * 0.41, letterSpacing: ".06em", color: dark ? "#dfe8c9" : "#4b6b2f" }}>
       <Seal size={size} />
-      <span>CODE-MACHA</span>
+      <span>CODE-MATCHA</span>
     </div>
   );
 }

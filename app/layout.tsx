@@ -16,7 +16,7 @@ const mincho = Shippori_Mincho({
   preload: false,
 });
 
-export const metadata: Metadata = { title: "CODE-MACHA สั่งมัทฉะ" };
+export const metadata: Metadata = { title: "CODE-MATCHA สั่งมัทฉะ" };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#eef1e2" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

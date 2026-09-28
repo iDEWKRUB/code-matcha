@@ -1,6 +1,6 @@
 // ตั้งค่าร้าน: แก้ที่นี่แล้ว deploy ใหม่
 export const SHOP = {
-  name: "CODE-MACHA",
+  name: "CODE-MATCHA",
   timeZone: "Asia/Bangkok",
   // เวลาเปิด-ปิด ระยะห่างรอบ และแก้วต่อรอบ ตั้งได้ในหน้าบาริสต้า > ตั้งค่าร้าน (ตาราง shop_settings)
   siteUrl: "https://code-matcha.vercel.app", // ใช้ในปุ่มของการ์ด LINE

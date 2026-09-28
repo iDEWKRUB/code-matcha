@@ -4,7 +4,7 @@ import Icon from "../Icon";
 import Seal from "../Seal";
 import PosterCups from "./PosterCups";
 
-export const metadata: Metadata = { title: "CODE-MACHA โปสเตอร์สแกนสั่ง" };
+export const metadata: Metadata = { title: "CODE-MATCHA โปสเตอร์สแกนสั่ง" };
 
 // โปสเตอร์ A5 สำหรับพิมพ์ตั้งเคาน์เตอร์ (เปิดหน้านี้แล้วกด Ctrl+P)
 export default async function Poster() {
@@ -15,7 +15,7 @@ export default async function Poster() {
         <header className="poster-top">
           <Seal size={54} />
           <p className="poster-jp">いらっしゃいませ</p>
-          <h1>CODE-MACHA</h1>
+          <h1>CODE-MATCHA</h1>
           <p className="poster-tag">สั่งมัทฉะล่วงหน้า ไม่ต้องต่อคิว</p>
         </header>
 

@@ -79,7 +79,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ["วิธีรับ", rowWhen(current)],
       ],
       items: itemLines(current.items),
-      note: "ขอบคุณที่อุดหนุน CODE-MACHA",
+      note: "ขอบคุณที่อุดหนุน CODE-MATCHA",
     });
   }
   if (to === "cancelled") {

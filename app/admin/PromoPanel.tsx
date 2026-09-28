@@ -80,7 +80,7 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
       if (format !== "line") {
         const a = document.createElement("a");
         a.href = dataUrl;
-        a.download = `code-macha-${format}-${Date.now()}.jpg`;
+        a.download = `code-matcha-${format}-${Date.now()}.jpg`;
         a.click();
         setSendMsg({ ok: true, text: "ดาวน์โหลดรูปแล้ว ไปโพสต์ IG / Facebook / VOOM ได้เลย" });
         return;
@@ -378,7 +378,7 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
               </>
             ) : (
               <div className="fp-head">
-                <small>暗号 CODE-MACHA</small>
+                <small>暗号 CODE-MATCHA</small>
                 <b>{card.title || "หัวข้อโปร"}</b>
                 {card.subtitle && <span>{card.subtitle}</span>}
               </div>

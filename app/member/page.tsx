@@ -112,7 +112,7 @@ export default function MemberPage() {
   async function share() {
     if (!m) return;
     const r = m.referral;
-    const text = `มาลองมัทฉะร้าน CODE-MACHA กัน! สั่งครั้งแรกผ่านลิงก์นี้ รับ ${r.friendPoints} แต้ม (โค้ด ${r.code})\n${r.url}`;
+    const text = `มาลองมัทฉะร้าน CODE-MATCHA กัน! สั่งครั้งแรกผ่านลิงก์นี้ รับ ${r.friendPoints} แต้ม (โค้ด ${r.code})\n${r.url}`;
     const l = liff.current;
     try {
       if (l?.isApiAvailable("shareTargetPicker")) {
@@ -235,7 +235,7 @@ export default function MemberPage() {
           <div className="mbcard-head">
             <Seal size={34} />
             <div>
-              <b>CODE-MACHA</b>
+              <b>CODE-MATCHA</b>
               <small>MEMBER CARD</small>
             </div>
             <span className="mbcard-tier">{tier.name}</span>

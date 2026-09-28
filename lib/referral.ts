@@ -99,7 +99,7 @@ export async function rewardReferral(o: { id: number; line_user_id: string; cust
       {
         tone: "ready",
         title: "เพื่อนที่คุณชวนสั่งแล้ว!",
-        subtitle: `ขอบคุณที่ชวน ${o.customer_name} มาลอง CODE-MACHA`,
+        subtitle: `ขอบคุณที่ชวน ${o.customer_name} มาลอง CODE-MATCHA`,
         rows: [
           ["ได้รับ", `+${REFERRAL.referrerPoints} แต้ม`, true],
           ["แต้มคงเหลือ", `${balance.toLocaleString()} แต้ม`],
@@ -118,10 +118,10 @@ function shareMessage(name: string, code: string) {
   const who = name || "เพื่อนของคุณ";
   return {
     type: "flex",
-    altText: `${who} ชวนคุณมาลอง CODE-MACHA`,
+    altText: `${who} ชวนคุณมาลอง CODE-MATCHA`,
     contents: bubble({
       tone: "matcha",
-      title: `${who} ชวนคุณมาลอง CODE-MACHA`,
+      title: `${who} ชวนคุณมาลอง CODE-MATCHA`,
       subtitle: `สั่งครั้งแรกผ่านการ์ดนี้ รับ ${REFERRAL.friendPoints} แต้ม`,
       rows: [
         ["โค้ดชวน", code, true],

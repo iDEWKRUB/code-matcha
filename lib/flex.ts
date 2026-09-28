@@ -92,7 +92,7 @@ export function bubble(c: Card) {
             paddingAll: "18px",
             spacing: "xs",
             contents: [
-              text("暗号  CODE-MACHA", { size: "xxs", color: "#ffffffbb", weight: "bold" }),
+              text("暗号  CODE-MATCHA", { size: "xxs", color: "#ffffffbb", weight: "bold" }),
               text(c.title, { size: "lg", color: "#ffffff", weight: "bold" }),
               ...(c.subtitle ? [text(c.subtitle, { size: "sm", color: "#ffffffdd" })] : []),
             ],

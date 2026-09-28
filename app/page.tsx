@@ -525,7 +525,7 @@ export default function OrderPage() {
           </span>
           <div>
             <p className="hero-jp">いらっしゃいませ</p>
-            <h1>CODE-MACHA</h1>
+            <h1>CODE-MATCHA</h1>
             <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
             <a className="points-chip" href="/member">
               <Icon name="gift" size={15} /> แต้มสะสม {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
