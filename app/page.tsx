@@ -547,12 +547,20 @@ export default function OrderPage() {
       {friendCard && <div className="friend-wrap">{friendCard}</div>}
       {invitedBy && (
         <p className="promo-banner invite-banner" role="note">
-          <Icon name="gift" size={18} /> {invitedBy} ชวนคุณมา สั่งครั้งแรกรับเพิ่ม {REFERRAL.friendPoints} แต้ม
+          <span className="pb-ico">
+            <Icon name="gift" size={18} />
+          </span>
+          <span className="pb-text">
+            {invitedBy} ชวนคุณมา สั่งครั้งแรกรับเพิ่ม {REFERRAL.friendPoints} แต้ม
+          </span>
         </p>
       )}
       {banner && (
         <p className="promo-banner" role="note">
-          <Icon name="megaphone" size={18} /> {banner}
+          <span className="pb-ico">
+            <Icon name="megaphone" size={18} />
+          </span>
+          <span className="pb-text">{banner}</span>
         </p>
       )}
 

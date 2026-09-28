@@ -406,7 +406,9 @@ select.text { width: 100%; min-height: 48px; border: 1px solid var(--edge); bord
 .upload { display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .slip-preview { max-width: 180px; border-radius: 10px; margin-top: 12px; border: 1px solid var(--hair); }
-.promo-banner { margin: -8px 16px 12px; border-radius: 14px; padding: 10px 14px; background: linear-gradient(90deg, #c23b22, #e0663f); color: #fff; font-weight: 600; font-size: 14px; box-shadow: 0 8px 18px -12px rgba(194,59,34,.8); }
+.promo-banner { position: relative; z-index: 1; margin: 6px 16px 14px; border-radius: 16px; padding: 10px 16px 10px 10px; background: linear-gradient(100deg, #c23b22 0%, #e0663f 100%); color: #fff; font-weight: 600; font-size: 15px; line-height: 1.4; box-shadow: 0 10px 22px -14px rgba(194,59,34,.9), inset 0 1px 0 rgba(255,255,255,.25); gap: 10px !important; }
+.promo-banner .pb-ico { flex: none; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; }
+.promo-banner .pb-text { flex: 1; min-width: 0; }
 .card .flags { top: 8px; left: 8px; }
 .card .price s { font-size: 12px; }
 
