@@ -3,11 +3,12 @@
 import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BAR_MAX_QTY, COOK_SECONDS, barIdFromQr, type BarItem } from "@/lib/bar";
-import { POINTS, SHOP } from "@/lib/config";
+import { SHOP } from "@/lib/config";
 import type { MenuItem, Payment } from "@/lib/menu";
 import Loader from "../Loader";
 import MenuArt from "../MenuArt";
 import BarArt from "./BarArt";
+import Slurp from "./Slurp";
 import type { TrayScan } from "./scan";
 
 type Hours = { openNow: boolean; openTime: string; closeTime: string; accepting: boolean };
@@ -576,15 +577,16 @@ export default function BarPage() {
 
   if (phase === "done" && done) {
     const cookLeft = cookEnd ? cookEnd - now : 0;
-    const toNext = POINTS.minRedeem - (done.points % POINTS.minRedeem || 0);
     return (
       <main className="nb nb-done">
         <div className="nb-ok">
-          <span>
-            <Svg d={I.check} size={38} />
-          </span>
-          <h1>ชำระเรียบร้อย</h1>
-          <p>บิล #{done.no} · ฿{done.total} · ตรวจสลิปแล้ว</p>
+          <p className="nb-paid">
+            <Svg d={I.check} size={16} />
+            ชำระเรียบร้อย · บิล #{done.no} · ฿{done.total}
+          </p>
+          <Slurp size={250} />
+          <h1>Enjoy! ต้มกินให้อร่อยนะ</h1>
+          <p>ไปต้มมาม่าที่บาร์ได้เลย</p>
         </div>
         <section className="nb-card">
           <h2>ไปต้มได้เลย</h2>
@@ -613,43 +615,10 @@ export default function BarPage() {
             </button>
           )}
         </section>
-        {drinks[0] && (
-          <a className="nb-upsell" href="/">
-            <span className="nb-upsell-art">
-              <MenuArt item={drinks[0]} size={56} />
-            </span>
-            <span>
-              <b>คู่กับมัทฉะเย็นสักแก้ว?</b>
-              <small>สั่งจากเมนูมัทฉะได้เลย</small>
-            </span>
-            <em>สั่ง</em>
-          </a>
-        )}
-        <section className="nb-card">
-          <div className="nb-sheet-head">
-            <h2>แต้มสะสม</h2>
-            <small className="nb-muted">ใช้ร่วมกับมัทฉะ</small>
-          </div>
-          <p className="nb-points">
-            <b>+{done.earned}</b> แต้มจากบิลนี้ · รวม <b>{done.points}</b> แต้ม
-          </p>
-          <div className="nb-meter" aria-hidden="true">
-            <span style={{ width: `${Math.min(100, ((done.points % POINTS.minRedeem) / POINTS.minRedeem) * 100)}%` }} />
-          </div>
-          <small className="nb-muted">
-            {done.points >= POINTS.minRedeem ? `ใช้เป็นส่วนลดได้แล้ว (ครั้งละ ${POINTS.minRedeem} แต้มขึ้นไป)` : `อีก ${toNext} แต้ม ใช้เป็นส่วนลดได้`}
-          </small>
-        </section>
-        <button
-          className="nb-btn outline wide"
-          onClick={() => {
-            setDone(null);
-            setCookEnd(null);
-            setPhase("home");
-          }}
-        >
-          กลับหน้าแรก
-        </button>
+        <a className="nb-btn solid wide" href="/">
+          <Svg d={I.home} size={20} />
+          กลับหน้าหลัก
+        </a>
       </main>
     );
   }

@@ -1051,10 +1051,20 @@ a.points-chip { color: inherit; text-decoration: none; }
 @keyframes nb-spin { to { transform: rotate(360deg); } }
 
 /* หน้าเสร็จ */
-.nb-ok { padding: 44px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
-.nb-ok span { width: 76px; height: 76px; border-radius: 999px; background: var(--deep); color: var(--cream); display: flex; align-items: center; justify-content: center; }
-.nb-ok h1 { font-family: var(--font-serif-th), var(--sans); font-size: 26px; }
-.nb-ok p { margin: 0; font-size: 13px; color: var(--mute); }
+.nb-ok { padding: 28px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.nb-ok .nb-paid { display: inline-flex; align-items: center; gap: 6px; background: #E3EBD3; color: var(--deep); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; margin-bottom: 4px; }
+.nb-ok h1 { font-family: var(--font-serif-th), var(--sans); font-size: 24px; color: var(--deep); }
+.nb-ok p { margin: 0; font-size: 14px; color: var(--mute); }
+.slurp { display: block; max-width: 72vw; height: auto; }
+.sl-steam path { animation: sl-rise 2.4s ease-in-out infinite; }
+.sl-steam path + path { animation-delay: .8s; }
+@keyframes sl-rise { 0% { opacity: 0; transform: translateY(8px); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateY(-10px); } }
+.sl-noodle { animation: sl-wiggle 1.6s ease-in-out infinite alternate; transform-origin: 149px 128px; }
+@keyframes sl-wiggle { to { transform: rotate(4deg); } }
+.sl-spark, .sl-heart { animation: sl-twinkle 1.8s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.sl-spark.b { animation-delay: .9s; }
+@keyframes sl-twinkle { from { opacity: .35; transform: scale(.8); } to { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .sl-steam path, .sl-noodle, .sl-spark, .sl-heart { animation: none; } }
 .nb-card { margin: 14px 20px 0; background: #fff; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--line); }
 .nb-ok + .nb-card { margin-top: 22px; }
 .nb-cook { margin: 0; padding: 0; list-style: none; counter-reset: c; display: flex; flex-direction: column; gap: 12px; }
@@ -1065,16 +1075,6 @@ a.points-chip { color: inherit; text-decoration: none; }
 .nb-timer.end { background: var(--red); font-size: 14px; animation: nb-pulse 1s ease-in-out infinite alternate; }
 .nb-timer.end .nb-link { color: #fff; }
 @keyframes nb-pulse { to { filter: brightness(1.15); } }
-.nb .nb-upsell { margin: 14px 20px 0; background: var(--deep); color: var(--cream); border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; text-decoration: none; }
-.nb-upsell-art { width: 56px; height: 56px; border-radius: 14px; background: #eef1e2; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.nb-upsell > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.nb-upsell b { font-size: 15px; }
-.nb-upsell small { font-size: 12px; color: var(--mint); }
-.nb-upsell em { font-style: normal; min-height: 44px; padding: 0 16px; border-radius: 12px; background: var(--cream); color: var(--ink2); font-size: 14px; font-weight: 700; display: flex; align-items: center; }
-.nb-points { margin: 0; font-size: 14px; }
-.nb-points b { color: var(--red); font-size: 18px; }
-.nb-meter { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
-.nb-meter span { display: block; height: 100%; background: var(--red); border-radius: 999px; }
 @media (prefers-reduced-motion: reduce) { .nb-spin, .nb-timer.end { animation: none; } }
 
 /* มาม่าบาร์ (หลังร้าน /admin/bar) */
