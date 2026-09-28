@@ -399,10 +399,10 @@ export default function BarPage() {
                 return (
                   <span
                     key={k}
-                    className={`nb-box${it ? "" : " bad"}`}
+                    className={`nb-box${it ? "" : " bad"}${(c.x + c.w / 2) / shot.width > 0.6 ? " r" : ""}`}
                     style={{ left: `${(c.x / shot.width) * 100}%`, top: `${(c.y / shot.height) * 100}%`, width: `${(c.w / shot.width) * 100}%`, height: `${(c.h / shot.height) * 100}%` }}
                   >
-                    <em>{it ? it.name.replace(/^ท็อปปิ้ง\s*/, "") : "ไม่รู้จัก"}</em>
+                    <em>{it ? it.name.replace(/^(ท็อปปิ้ง|มาม่า(รส)?)\s*/, "") : "ไม่รู้จัก"}</em>
                   </span>
                 );
               })}
