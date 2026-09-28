@@ -79,6 +79,7 @@ export async function POST(req: Request) {
         milk: item.milk ? String(raw.milk) : null,
         powder: hasPowder(item) && powders.length ? String(raw.powder ?? powders[0].id) : null,
         extraShot: raw.extraShot === true,
+        iceSep: raw.iceSep === true,
         softCream: raw.softCream === true,
         toppings: [],
         qty,
@@ -88,6 +89,8 @@ export async function POST(req: Request) {
       if (item.milk && !MILKS.some((m) => m.id === line.milk)) return fail("ชนิดนมไม่ถูกต้อง");
       if (line.powder !== null && !powders.some((p) => p.id === line.powder)) return fail("ผงมัทฉะนี้ไม่มีแล้ว กรุณาเลือกใหม่");
       if (line.softCream && line.temp !== "iced") return fail("ท็อปซอฟต์ครีมได้เฉพาะเครื่องดื่มเย็น");
+      if (!item.addons && (line.extraShot || line.softCream)) return fail(`${item.name} ไม่มีท็อปปิ้งให้เลือก`);
+      if (line.iceSep && line.temp !== "iced") return fail("แยกน้ำแข็งได้เฉพาะเครื่องดื่มเย็น");
     }
     const price = linePrice(item, line, powders);
     items.push({ name: item.name, qty: line.qty, detail: lineDetail(item, line, powders), price });

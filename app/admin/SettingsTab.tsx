@@ -31,6 +31,7 @@ type Draft = {
   temps: Temp[];
   milk: boolean;
   grams: string; // กรัมผงมัทฉะ (ว่าง = ไม่ให้เลือกผง)
+  addons: boolean; // มีท็อปปิ้งให้เลือก
   recommended: boolean;
   look: string;
   toppings: DraftTopping[];
@@ -47,6 +48,7 @@ const EMPTY: Draft = {
   temps: ["iced"],
   milk: true,
   grams: "",
+  addons: true,
   recommended: false,
   look: "matcha-latte",
   toppings: [],
@@ -63,6 +65,7 @@ const toDraft = (m: MenuItem): Draft => ({
   temps: m.temps,
   milk: m.milk,
   grams: m.grams ? String(m.grams) : "",
+  addons: m.addons !== false,
   recommended: m.recommended,
   look: m.look ?? "",
   toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price), group: t.group ?? "" })),
@@ -80,6 +83,7 @@ const draftItem = (d: Draft): MenuItem => ({
   temps: d.temps.length ? d.temps : ["iced"],
   milk: d.milk,
   grams: d.kind === "food" ? null : Number(d.grams) || null,
+  addons: d.kind !== "food" && d.addons,
   available: true,
   promoPrice: null,
   recommended: d.recommended,
@@ -189,6 +193,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       temps: food ? ["hot"] : draft.temps,
       milk: food ? false : draft.milk,
       matchaGrams: food ? null : draft.grams === "" ? null : Number(draft.grams),
+      addons: food ? false : draft.addons,
       recommended: draft.recommended,
       look: draft.look === "" ? null : draft.look,
       toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0), group: t.group ?? "" })) : [],
@@ -515,6 +520,10 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                   <label className="check">
                     <input type="checkbox" checked={draft.milk} onChange={(e) => set("milk", e.target.checked)} />
                     ลูกค้าเลือกชนิดนมได้ (นมสด / โอ๊ต / อัลมอนด์)
+                  </label>
+                  <label className="check">
+                    <input type="checkbox" checked={draft.addons} onChange={(e) => set("addons", e.target.checked)} />
+                    มีท็อปปิ้งให้เลือก (เพิ่มช็อตมัทฉะ / ซอฟต์ครีม)
                   </label>
                   <label className="grams-field">
                     ผงมัทฉะที่ใช้ต่อแก้ว (กรัม)

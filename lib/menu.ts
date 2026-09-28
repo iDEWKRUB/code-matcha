@@ -30,6 +30,7 @@ export type MenuItem = {
   look: string | null; // หน้าตาแก้วการ์ตูน (id ของสูตรใน Cup) null = ใช้ id เมนู
   sort: number;
   grams: number | null; // กรัมผงมัทฉะที่ใช้ (null = ไม่ให้เลือกผง)
+  addons: boolean; // มีท็อปปิ้งให้เลือก (ช็อตมัทฉะ / ซอฟต์ครีม)
 };
 
 export type ShopSettings = {
@@ -70,6 +71,7 @@ export type CartLine = {
   powder: string | null;
   extraShot: boolean;
   softCream: boolean;
+  iceSep?: boolean; // แยกน้ำแข็ง (เฉพาะเย็น)
   toppings: string[]; // id ท็อปปิ้ง (อาหาร)
   qty: number;
 };
@@ -169,7 +171,7 @@ export function linePrice(item: MenuItem, l: CartLine, powders: Powder[]) {
   const milk = item.milk ? MILKS.find((m) => m.id === l.milk)?.price ?? 0 : 0;
   const chosen = hasPowder(item) ? powders.find((p) => p.id === l.powder) : undefined;
   const powder = chosen ? powderExtra(item, chosen) : 0;
-  const addons = (l.extraShot ? SHOT_PRICE : 0) + (l.softCream ? SOFT_CREAM_PRICE : 0);
+  const addons = item.addons ? (l.extraShot ? SHOT_PRICE : 0) + (l.softCream ? SOFT_CREAM_PRICE : 0) : 0;
   return (basePrice(item) + milk + powder + addons) * l.qty;
 }
 
@@ -185,11 +187,12 @@ export function lineDetail(item: MenuItem, l: CartLine, powders: Powder[]) {
   }
   return [
     TEMP_LABEL[l.temp],
+    l.temp === "iced" && l.iceSep && "แยกน้ำแข็ง",
     l.sweet === 0 ? "ไม่หวาน" : `หวาน ${l.sweet}%`,
     l.milk && MILKS.find((m) => m.id === l.milk)?.label,
     l.powder && hasPowder(item) && powders.find((p) => p.id === l.powder)?.name,
-    l.extraShot && "+ช็อตมัทฉะ",
-    l.softCream && "+ท็อปซอฟต์ครีม",
+    item.addons && l.extraShot && "+ช็อตมัทฉะ",
+    item.addons && l.softCream && "+ท็อปซอฟต์ครีม",
   ]
     .filter(Boolean)
     .join(", ");

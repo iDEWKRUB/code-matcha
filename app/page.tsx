@@ -306,6 +306,7 @@ export default function OrderPage() {
       powder: !food && hasPowder(it) && powders.length ? powders[0].id : null,
       extraShot: false,
       softCream: false,
+      iceSep: false,
       toppings: food ? defaultChoices(it) : [],
       qty: 1,
     });
@@ -690,10 +691,29 @@ export default function OrderPage() {
                 <div className="lg">อุณหภูมิ</div>
                 <div className="chips">
                   {edit.temps.map((t) => (
-                    <button key={t} className="chip" aria-pressed={opts.temp === t} onClick={() => setOpts({ ...opts, temp: t, softCream: t === "iced" && opts.softCream })}>
+                    <button
+                      key={t}
+                      className="chip"
+                      aria-pressed={opts.temp === t}
+                      onClick={() => setOpts({ ...opts, temp: t, softCream: t === "iced" && opts.softCream, iceSep: t === "iced" && opts.iceSep })}
+                    >
                       {TEMP_LABEL[t]}
                     </button>
                   ))}
+                </div>
+              </>
+            )}
+
+            {opts.temp === "iced" && (
+              <>
+                <div className="lg">น้ำแข็ง</div>
+                <div className="chips">
+                  <button className="chip" aria-pressed={!opts.iceSep} onClick={() => setOpts({ ...opts, iceSep: false })}>
+                    ไม่แยกน้ำแข็ง
+                  </button>
+                  <button className="chip" aria-pressed={!!opts.iceSep} onClick={() => setOpts({ ...opts, iceSep: true })}>
+                    แยกน้ำแข็ง
+                  </button>
                 </div>
               </>
             )}
@@ -752,20 +772,24 @@ export default function OrderPage() {
               </>
             )}
 
-            <div className="lg">ท็อปปิ้ง</div>
-            <label className="row" style={{ marginTop: 0 }}>
-              <span>
-                เพิ่มช็อตมัทฉะ <span style={{ fontWeight: 400, color: "var(--stone)" }}>+{SHOT_PRICE}</span>
-              </span>
-              <input type="checkbox" checked={opts.extraShot} onChange={(e) => setOpts({ ...opts, extraShot: e.target.checked })} />
-            </label>
-            {opts.temp === "iced" && (
-              <label className="row" style={{ marginTop: 0 }}>
-                <span>
-                  ท็อปซอฟต์ครีม <span style={{ fontWeight: 400, color: "var(--stone)" }}>+{SOFT_CREAM_PRICE}</span>
-                </span>
-                <input type="checkbox" checked={opts.softCream} onChange={(e) => setOpts({ ...opts, softCream: e.target.checked })} />
-              </label>
+            {edit.addons && (
+              <>
+                <div className="lg">ท็อปปิ้ง</div>
+                <label className="row" style={{ marginTop: 0 }}>
+                  <span>
+                    เพิ่มช็อตมัทฉะ <span style={{ fontWeight: 400, color: "var(--stone)" }}>+{SHOT_PRICE}</span>
+                  </span>
+                  <input type="checkbox" checked={opts.extraShot} onChange={(e) => setOpts({ ...opts, extraShot: e.target.checked })} />
+                </label>
+                {opts.temp === "iced" && (
+                  <label className="row" style={{ marginTop: 0 }}>
+                    <span>
+                      ท็อปซอฟต์ครีม <span style={{ fontWeight: 400, color: "var(--stone)" }}>+{SOFT_CREAM_PRICE}</span>
+                    </span>
+                    <input type="checkbox" checked={opts.softCream} onChange={(e) => setOpts({ ...opts, softCream: e.target.checked })} />
+                  </label>
+                )}
+              </>
             )}
               </>
             )}

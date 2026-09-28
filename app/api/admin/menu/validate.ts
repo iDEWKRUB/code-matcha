@@ -49,7 +49,7 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
     else return { error: "กรัมผงมัทฉะไม่ถูกต้อง (0.1–50)" };
   }
 
-  for (const k of ["milk", "available", "recommended"] as const)
+  for (const k of ["milk", "available", "recommended", "addons"] as const)
     if (k in b) {
       if (typeof b[k] !== "boolean") return { error: "ข้อมูลไม่ถูกต้อง" };
       row[k] = b[k];

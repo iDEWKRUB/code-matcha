@@ -7,7 +7,7 @@ import { db } from "./supabase";
 import { isBookable, nowInShop, slotTimes, toMinutes } from "./time";
 
 export const MENU_COLUMNS =
-  "id,name,jp,description,price,temps,milk,available,promoPrice:promo_price,recommended,look,sort,kind,toppings,grams:matcha_grams";
+  "id,name,jp,description,price,temps,milk,available,promoPrice:promo_price,recommended,look,sort,kind,toppings,grams:matcha_grams,addons";
 
 export async function getMenu(): Promise<MenuItem[]> {
   const { data, error } = await db().from("menu_items").select(MENU_COLUMNS).order("sort");
