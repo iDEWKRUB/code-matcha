@@ -930,3 +930,18 @@ a.points-chip { color: inherit; text-decoration: none; }
 .flag.hid { background: #6b7163; color: #fff; }
 .mcard.is-hidden { opacity: .55; background: #f4f5ef; }
 .mcard.is-hidden:hover { opacity: .85; }
+
+/* เสียงแจ้งเตือนออเดอร์ (หลังร้าน) */
+.adm-head-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.snd-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--edge); font-size: 13px; font-weight: 600; color: var(--stone); }
+.snd-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.snd-btn.on { background: #e9f1d9; border-color: #b8cf8a; color: var(--matcha); }
+.snd-test { padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--matcha); text-decoration: underline; text-underline-offset: 3px; }
+.order-alarm { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 14px 18px; border-radius: 16px; background: var(--seal); color: #fff; font-size: 18px; box-shadow: 0 14px 28px -14px rgba(194,59,34,.9); animation: alarm-pulse 1s ease-in-out infinite; }
+.order-alarm svg { width: 30px; height: 30px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; animation: alarm-ring .5s ease-in-out infinite alternate; transform-origin: 50% 10%; }
+.order-alarm b { flex: 1; }
+.order-alarm button { background: #fff; color: var(--seal); font-weight: 700; font-size: 16px; padding: 10px 22px; border-radius: 999px; }
+@keyframes alarm-pulse { 50% { background: #e0663f; box-shadow: 0 0 0 6px rgba(194,59,34,.25); } }
+@keyframes alarm-ring { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+.snd-unlock { display: block; width: 100%; margin: 0 0 16px; padding: 12px 16px; border-radius: 14px; background: #fbf0dd; color: #8a5a10; border: 1.5px dashed #e0b25a; font-weight: 600; font-size: 14px; text-align: left; }
+@media (prefers-reduced-motion: reduce) { .order-alarm, .order-alarm svg { animation: none; } }

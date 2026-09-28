@@ -8,6 +8,7 @@ import MenuTab from "./MenuTab";
 import OrdersTab, { type Stats } from "./OrdersTab";
 import CostTab from "./CostTab";
 import ReportTab from "./ReportTab";
+import { askNotify, chime, notify, unlock } from "./alarm";
 import SettingsTab from "./SettingsTab";
 
 const POLL_MS = 5000;
@@ -50,20 +51,6 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
   },
 ];
 
-function beep() {
-  try {
-    const ctx = new AudioContext();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.2, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + 0.5);
-  } catch {}
-}
-
 export default function Board() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
@@ -88,6 +75,77 @@ export default function Board() {
   const [error, setError] = useState("");
   const seen = useRef<Set<number> | null>(null);
 
+  // ---- เสียงแจ้งเตือนออเดอร์ใหม่: ดังซ้ำทุก 6 วินาทีจนกว่าจะกด "รับทราบ" (สูงสุด 3 นาที) ----
+  const [soundOn, setSoundOn] = useState(true);
+  const [unlocked, setUnlocked] = useState(false);
+  const [alert, setAlert] = useState(0); // จำนวนออเดอร์ใหม่ที่ยังไม่กดรับทราบ
+  const soundRef = useRef(true);
+  soundRef.current = soundOn;
+
+  useEffect(() => {
+    try {
+      setSoundOn(localStorage.getItem("adm-sound") !== "0");
+    } catch {}
+    // เบราว์เซอร์ปลดล็อกเสียงได้เมื่อมีการกด/แตะหน้าเว็บ
+    const onGesture = () => unlock().then(setUnlocked);
+    document.addEventListener("pointerdown", onGesture);
+    document.addEventListener("keydown", onGesture);
+    unlock().then(setUnlocked);
+    return () => {
+      document.removeEventListener("pointerdown", onGesture);
+      document.removeEventListener("keydown", onGesture);
+    };
+  }, []);
+
+  const newOrders = useCallback((n: number) => {
+    setAlert((a) => a + n);
+    if (soundRef.current) chime();
+    notify(n);
+  }, []);
+
+  useEffect(() => {
+    if (!alert || !soundOn) return;
+    let rounds = 0;
+    const t = setInterval(() => {
+      if (++rounds > 30) return clearInterval(t); // ดังนานสุด ~3 นาที
+      chime();
+    }, 6000);
+    return () => clearInterval(t);
+  }, [alert, soundOn]);
+
+  // ชื่อแท็บกะพริบตอนมีออเดอร์ใหม่ (เห็นได้แม้เปิดแท็บอื่นอยู่)
+  useEffect(() => {
+    if (!alert) return;
+    const base = document.title;
+    let on = false;
+    const t = setInterval(() => {
+      on = !on;
+      document.title = on ? `(${alert}) ออเดอร์ใหม่!` : base;
+    }, 1000);
+    return () => {
+      clearInterval(t);
+      document.title = base;
+    };
+  }, [alert]);
+
+  async function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    try {
+      localStorage.setItem("adm-sound", next ? "1" : "0");
+    } catch {}
+    if (next) {
+      setUnlocked(await unlock());
+      askNotify();
+      chime();
+    }
+  }
+  async function testSound() {
+    setUnlocked(await unlock());
+    askNotify();
+    chime();
+  }
+
   const load = useCallback(async () => {
     try {
       const r = await fetch("/api/admin/board", { cache: "no-store" });
@@ -98,7 +156,7 @@ export default function Board() {
         const added = j.orders.filter((o) => !seen.current!.has(o.id)).map((o) => o.id);
         if (added.length) {
           setFresh(new Set(added));
-          beep();
+          newOrders(added.length);
         }
       }
       seen.current = new Set(j.orders.map((o) => o.id));
@@ -109,7 +167,7 @@ export default function Board() {
     } catch {
       setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กำลังลองใหม่…");
     }
-  }, [router]);
+  }, [router, newOrders]);
 
   useEffect(() => {
     load();
@@ -174,8 +232,46 @@ export default function Board() {
             <h1>{current.label}</h1>
             <p>{current.hint}</p>
           </div>
-          <span className={`live${error ? " off" : ""}`}>{error ? "ออฟไลน์" : "ออนไลน์"}</span>
+          <div className="adm-head-right">
+            <button className={`snd-btn${soundOn ? " on" : ""}`} onClick={toggleSound} aria-pressed={soundOn} title="เสียงแจ้งเตือนออเดอร์ใหม่">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {soundOn ? (
+                  <path d="M4 10v4a1 1 0 0 0 1 1h3l5 4V5L8 9H5a1 1 0 0 0-1 1ZM16.5 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11" />
+                ) : (
+                  <path d="M4 10v4a1 1 0 0 0 1 1h3l5 4V5L8 9H5a1 1 0 0 0-1 1ZM17 10l4 4M21 10l-4 4" />
+                )}
+              </svg>
+              {soundOn ? "เสียงเปิด" : "เสียงปิด"}
+            </button>
+            {soundOn && (
+              <button className="snd-test" onClick={testSound}>
+                ทดสอบเสียง
+              </button>
+            )}
+            <span className={`live${error ? " off" : ""}`}>{error ? "ออฟไลน์" : "ออนไลน์"}</span>
+          </div>
         </header>
+        {alert > 0 && (
+          <div className="order-alarm" role="alert">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0" />
+            </svg>
+            <b>มีออเดอร์ใหม่ {alert} รายการ</b>
+            <button
+              onClick={() => {
+                setAlert(0);
+                setTab("orders");
+              }}
+            >
+              รับทราบ
+            </button>
+          </div>
+        )}
+        {soundOn && !unlocked && (
+          <button className="snd-unlock" onClick={testSound}>
+            กดตรงนี้ 1 ครั้งเพื่อเปิดเสียงแจ้งเตือนออเดอร์ (เบราว์เซอร์ต้องให้กดก่อนถึงจะส่งเสียงได้)
+          </button>
+        )}
         {error && (
           <p className="banner" role="alert">
             {error}
