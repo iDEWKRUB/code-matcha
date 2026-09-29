@@ -19,6 +19,7 @@ import type { OrderItem, Payment } from "@/lib/menu";
 import Icon from "../Icon";
 import Seal from "../Seal";
 import BarLoader from "./BarLoader";
+import PayHowTo from "./PayHowTo";
 import BarArt from "./BarArt";
 import Slurp from "./Slurp";
 import type { TrayScan } from "./scan";
@@ -112,6 +113,7 @@ const I = {
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 8v5M12 16h.01",
   receipt: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3",
   next: "M9 5l7 7-7 7",
+  download: "M12 4v11M7 10l5 5 5-5M5 20h14",
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
 };
@@ -816,7 +818,7 @@ export default function BarPage() {
         </main>
       );
     return (
-      <main className="nb nb-pay">
+      <main className="nb nb-pay2">
         <header className="nb-bar">
           <button onClick={cancelBill} aria-label="ยกเลิกบิล กลับไปแก้ถาด">
             <Svg d={I.back} />
@@ -824,34 +826,79 @@ export default function BarPage() {
           <h1>ชำระเงิน</h1>
           <span />
         </header>
-        <div className="nb-amount">
-          <small>ยอดที่ต้องชำระ · บิล #{pay.no}</small>
-          <b>฿{pay.total}</b>
-        </div>
-        <div className="nb-qr">
-          <div className="nb-qr-head">
-            <b>PromptPay</b>
-            <small>CODE-MATCHA</small>
+
+        <section className="pp-hero">
+          <span className="pp-seal">
+            <Seal size={40} />
+          </span>
+          <div className="pp-hero-txt">
+            <small>
+              มาม่าบาร์ · บิล #{pay.no}
+              {count > 0 && ` · ${count} ชิ้น`}
+            </small>
+            <span>ยอดที่ต้องชำระ</span>
+            <b>฿{pay.total.toLocaleString()}</b>
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={pay.qr} alt={`QR พร้อมเพย์ ยอด ${pay.total} บาท`} />
-          <small>{left > 0 ? `QR นี้ใส่ยอดเงินไว้แล้ว · จองไว้อีก ${mmss(left)}` : "ถ้าโอนแล้ว ยังแนบสลิปได้"}</small>
-        </div>
-        <ol className="nb-num">
-          <li>กดค้างที่ QR เพื่อบันทึกรูป แล้วสแกนจ่ายด้วยแอปธนาคาร</li>
-          <li>{autoSlip ? "แนบสลิป ระบบตรวจยอดให้อัตโนมัติ" : "แนบสลิป รอร้านตรวจยอดสักครู่"}</li>
-        </ol>
-        <div className="nb-acts">
-          {err && <p className="nb-err" role="alert">{err}</p>}
-          <a className="nb-btn outline" href={pay.qr} download={`codematcha-${pay.no}.png`}>
+          <span className={`pp-timer${left > 0 ? "" : " late"}`} role="timer">
+            <Svg d={I.timer} size={15} />
+            {left > 0 ? `จองไว้อีก ${mmss(left)}` : "ยังแนบสลิปได้"}
+          </span>
+        </section>
+
+        <section className="pp-qr">
+          <div className="pp-qr-head">
+            <span className="pp-thaiqr">THAI QR PAYMENT</span>
+            <b>PromptPay</b>
+          </div>
+          <div className="pp-frame">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pay.qr} alt={`QR พร้อมเพย์ ยอด ${pay.total} บาท`} />
+            <i className="pp-c pp-tl" />
+            <i className="pp-c pp-tr" />
+            <i className="pp-c pp-bl" />
+            <i className="pp-c pp-br" />
+            <i className="pp-line" aria-hidden="true" />
+          </div>
+          <p className="pp-to">
+            จ่ายให้ <b>CODE-MATCHA</b> · ยอดใส่ไว้ใน QR แล้ว <b>฿{pay.total}</b>
+          </p>
+          <a className="pp-save" href={pay.qr} download={`codematcha-${pay.no}.png`}>
+            <Svg d={I.download} size={18} />
             บันทึกรูป QR
           </a>
-          <label className={`nb-btn solid${uploading ? " busy" : ""}`}>
+        </section>
+
+        <PayHowTo auto={autoSlip} />
+
+        <div className="pp-dock">
+          {err && <p className="nb-err" role="alert">{err}</p>}
+          <label className={`nb-btn solid pp-attach${uploading ? " busy" : ""}`}>
             <Svg d={I.upload} size={20} />
-            {uploading ? "กำลังตรวจสลิป…" : "แนบสลิป"}
+            {uploading ? "กำลังตรวจสลิป…" : "โอนแล้ว · แนบสลิป"}
             <input type="file" accept="image/*" disabled={uploading} onChange={(e) => uploadSlip(e.target.files?.[0])} />
           </label>
+          <button className="pp-cancel" onClick={cancelBill} disabled={uploading}>
+            ยกเลิกบิล กลับไปแก้ถาด
+          </button>
         </div>
+
+        {uploading && (
+          <div className="pp-checking" role="status" aria-live="polite">
+            <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+              <rect x="30" y="18" width="52" height="74" rx="6" fill="#fff" stroke="#1C2118" strokeWidth="3" />
+              <rect x="40" y="30" width="32" height="5" rx="2.5" fill="#8FA86A" />
+              <rect x="40" y="42" width="24" height="4" rx="2" fill="#CFC6AF" />
+              <rect x="40" y="52" width="28" height="4" rx="2" fill="#CFC6AF" />
+              <rect x="40" y="70" width="20" height="10" rx="2" fill="#1C2118" opacity=".85" />
+              <g className="pp-glass">
+                <circle cx="74" cy="66" r="18" fill="rgba(201,219,174,.35)" stroke="#2F4A2A" strokeWidth="5" />
+                <path d="M87 79l14 14" stroke="#2F4A2A" strokeWidth="7" strokeLinecap="round" />
+              </g>
+            </svg>
+            <b>กำลังตรวจสลิป…</b>
+            <small>{autoSlip ? "ระบบกำลังเช็กยอดกับธนาคาร 2–3 วินาที" : "กำลังส่งสลิปให้ร้าน"}</small>
+          </div>
+        )}
       </main>
     );
   }
