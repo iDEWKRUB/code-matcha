@@ -1038,11 +1038,15 @@ export default function BarPage() {
         <div className="nb-ok">
           <p className="nb-paid">
             <Svg d={I.check} size={16} />
-            ชำระเรียบร้อย · บิล #{done.no} · ฿{done.total}
+            บิล #{done.no} · ฿{done.total}
           </p>
           <Slurp size={250} />
-          <h1>Enjoy! ต้มกินให้อร่อยนะ</h1>
-          <p>ไปต้มมาม่าที่บาร์ได้เลย</p>
+          <h1>เราได้รับการชำระเงินแล้ว</h1>
+          <p>
+            ต้มมาม่าถ้วยนี้ให้อร่อย แล้วอิ่มใจกับมื้อนี้นะ
+            <br />
+            ขอบคุณที่แวะมาใช้บริการ CODE-MATCHA
+          </p>
         </div>
         {done.earned > 0 && (
           <section className="pt-card" aria-label="แต้มที่ได้รับ">
