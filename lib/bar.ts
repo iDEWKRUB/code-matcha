@@ -53,6 +53,7 @@ export const extraTotal = (items: ExtraItem[]) => items.reduce((n, i) => n + i.p
 export type BarScan = {
   detected: Record<string, number>;
   unknown: number;
+  unreadable?: number; // เจอ QR แต่อ่านไม่ออก (บิลเก่าไม่มีค่านี้)
   declared: number;
   final: Record<string, number>;
 };
@@ -75,6 +76,7 @@ export function barFlags(s: BarScan | null, names: (id: string) => string = (id)
   const total = Object.values(s.final).reduce((n, q) => n + q, 0);
   if (fewer.length) flags.push({ level: "warn", text: `ลดจำนวนเอง: ${fewer.join(", ")}` });
   if (s.declared !== total) flags.push({ level: "warn", text: `ลูกค้านับได้ ${s.declared} ชิ้น แต่จ่าย ${total} ชิ้น` });
+  if (s.unreadable) flags.push({ level: "warn", text: `QR อ่านไม่ออก ${s.unreadable} จุด · ตรวจรูปถาด` });
   if (more.length) flags.push({ level: "info", text: `เพิ่มเอง: ${more.join(", ")}` });
   if (s.unknown > 0) flags.push({ level: "info", text: `มี QR ที่ไม่รู้จัก ${s.unknown} อัน` });
   return flags;

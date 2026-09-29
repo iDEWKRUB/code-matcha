@@ -128,6 +128,7 @@ export default function BarPage() {
   const [shot, setShot] = useState<TrayScan | null>(null);
   const [detected, setDetected] = useState<Record<string, number>>({});
   const [unknownQr, setUnknownQr] = useState(0);
+  const [unreadable, setUnreadable] = useState(0);
   const [declared, setDeclared] = useState<number | null>(null);
   const [agree, setAgree] = useState<boolean[]>(TERMS.map(() => false));
   const [history, setHistory] = useState<Bill[] | null>(null);
@@ -239,7 +240,15 @@ export default function BarPage() {
   const total = lines.reduce((n, [id, q]) => n + (byId(id)?.price ?? 0) * q, 0);
   const closed = !!hours && !hours.openNow;
   const agreed = agree.every(Boolean);
-  const ctaHint = !count ? "ยังไม่มีรายการ" : !shot ? "ถ่ายรูปถาดก่อน" : declared === null ? "ตอบจำนวนชิ้นก่อน" : !agreed ? "ติ๊กยอมรับเงื่อนไขก่อน" : "";
+  const ctaHint = !count
+    ? "ยังไม่มีรายการ"
+    : !shot
+      ? "ถ่ายรูปถาดก่อน"
+      : declared === null
+        ? "ตอบจำนวนชิ้นก่อน"
+        : !agreed
+          ? "ติ๊กยอมรับเงื่อนไขก่อน"
+          : "";
 
   const setQty = (id: string, q: number) =>
     setTray((t) => {
@@ -267,12 +276,15 @@ export default function BarPage() {
       setTray(counts);
       setDetected(counts);
       setUnknownQr(unknown);
+      setUnreadable(s.bad.length);
       setDeclared(null);
       const known = s.codes.length - unknown;
       setScanMsg(
-        known === 0
-          ? "ยังอ่าน QR ไม่เจอ ลองถ่ายใกล้ขึ้น ไม่ให้แสงสะท้อน หรือกดเพิ่มเอง"
-          : `อ่าน QR ได้ ${known} ชิ้น${unknown ? ` · มี ${unknown} อันที่ไม่รู้จัก` : ""} · วางไม่ซ้อนกันนะ`,
+        s.bad.length
+          ? `มี QR อ่านไม่ออก ${s.bad.length} จุด (กรอบแดง) · ถ่ายใหม่ให้ชัดขึ้นนะ`
+          : known === 0
+            ? "ยังอ่าน QR ไม่เจอ ลองถ่ายใกล้ขึ้น ไม่ให้แสงสะท้อน หรือกดเพิ่มเอง"
+            : `อ่าน QR ได้ ${known} ชิ้น${unknown ? ` · มี ${unknown} อันที่ไม่รู้จัก` : ""} · วางไม่ซ้อนกันนะ`,
       );
     } catch (e) {
       console.error(e);
@@ -327,7 +339,7 @@ export default function BarPage() {
       if (!shot || declared === null) throw new Error("ถ่ายรูปถาดและบอกจำนวนชิ้นก่อนนะ");
       const fd = new FormData();
       fd.append("lines", JSON.stringify(lines.map(([id, qty]) => ({ id, qty }))));
-      fd.append("scan", JSON.stringify({ detected, unknown: unknownQr }));
+      fd.append("scan", JSON.stringify({ detected, unknown: unknownQr, unreadable }));
       fd.append("declared", String(declared));
       fd.append("accept", String(TERMS_VERSION));
       fd.append("photo", await (await fetch(shot.photo)).blob(), "tray.jpg");
@@ -361,6 +373,7 @@ export default function BarPage() {
         setShot(null);
         setDeclared(null);
         setDetected({});
+        setUnreadable(0);
         setPhase("done");
       } else setReview({ reason: j.reason ?? "" });
     } catch (e) {
@@ -636,6 +649,15 @@ export default function BarPage() {
                   </span>
                 );
               })}
+              {shot.bad.map((c, k) => (
+                <span
+                  key={`b${k}`}
+                  className={`nb-box unread${(c.x + c.w / 2) / shot.width > 0.6 ? " r" : ""}`}
+                  style={{ left: `${(c.x / shot.width) * 100}%`, top: `${(c.y / shot.height) * 100}%`, width: `${(c.w / shot.width) * 100}%`, height: `${(c.h / shot.height) * 100}%` }}
+                >
+                  <em>อ่านไม่ออก</em>
+                </span>
+              ))}
             </div>
           ) : (
             <div className="nb-empty">
@@ -697,6 +719,15 @@ export default function BarPage() {
                 </button>
               </div>
             </div>
+          )}
+          {shot && unreadable > 0 && (
+            <p className="nb-alert" role="alert">
+              <Svg d={I.retake} size={20} />
+              <span>
+                <b>มี QR อ่านไม่ออก {unreadable} จุด (กรอบแดงในรูป)</b>
+                กดปุ่มถ่ายใหม่มุมขวาบน ถ่ายให้ชัด ไม่ให้แสงสะท้อน หรือกด + เพิ่มเอง ให้ครบตามของในถาด
+              </span>
+            </p>
           )}
           {declared !== null && declared !== count && (
             <p className="nb-warn" role="status">

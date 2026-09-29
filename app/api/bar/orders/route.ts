@@ -45,11 +45,12 @@ export async function POST(req: Request) {
   if (photo.size > MAX_PHOTO) return fail("รูปใหญ่เกินไป ลองถ่ายใหม่");
 
   const catalog = new Map((await getBarItems()).map((i) => [i.id, i]));
-  const rawScan = (parse("scan") ?? {}) as { detected?: Record<string, unknown>; unknown?: unknown };
+  const rawScan = (parse("scan") ?? {}) as { detected?: Record<string, unknown>; unknown?: unknown; unreadable?: unknown };
   const detected: Record<string, number> = {};
   for (const [id, n] of Object.entries(rawScan.detected ?? {}))
     if (catalog.has(id) && Number.isInteger(n) && (n as number) > 0) detected[id] = Math.min(n as number, 200);
   const unknownQr = Number.isInteger(rawScan.unknown) ? Math.min(Math.max(rawScan.unknown as number, 0), 200) : 0;
+  const unreadable = Number.isInteger(rawScan.unreadable) ? Math.min(Math.max(rawScan.unreadable as number, 0), 200) : 0;
   const qtyById = new Map<string, number>();
   for (const raw of lines as Partial<BarLine>[]) {
     const id = String(raw?.id ?? "");
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string };
-  const scan: BarScan = { detected, unknown: unknownQr, declared, final: Object.fromEntries(qtyById) };
+  const scan: BarScan = { detected, unknown: unknownQr, unreadable, declared, final: Object.fromEntries(qtyById) };
   const { error: srcErr } = await db()
     .from("orders")
     .update({

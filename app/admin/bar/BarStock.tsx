@@ -6,7 +6,7 @@ import { LOW_STOCK, type CountLine } from "@/lib/bar";
 type Item = { id: string; name: string; price: number; kind: string; stock: number; available: boolean };
 type Move = { id: number; itemId: string; delta: number; kind: "in" | "sale" | "count"; orderNo: number | null; note: string; at: string };
 type Count = { id: number; date: string; at: string; lines: CountLine[]; missing: number; missingValue: number };
-type TraceBill = { id: number; no: number; at: string; name: string; status: string; photo: string | null; detected: number; paid: number; extra: number; warn: boolean };
+type TraceBill = { id: number; no: number; at: string; name: string; status: string; photo: string | null; detected: number; paid: number; extra: number; pieces: number; warn: boolean };
 type Modal = { kind: "in" | "count"; values: Record<string, string>; note: string; busy: boolean; err: string };
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
@@ -23,6 +23,7 @@ export default function BarStock() {
   const [modal, setModal] = useState<Modal | null>(null);
   const [pick, setPick] = useState<string | null>(null);
   const [trace, setTrace] = useState<TraceBill[] | null>(null);
+  const [others, setOthers] = useState<TraceBill[]>([]);
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
@@ -45,7 +46,10 @@ export default function BarStock() {
     if (!pick || !last) return;
     fetch(`/api/admin/bar/stock?trace=${last.id}&item=${encodeURIComponent(pick)}`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((j) => setTrace(j.bills ?? []))
+      .then((j) => {
+        setTrace(j.bills ?? []);
+        setOthers(j.others ?? []);
+      })
       .catch(() => setTrace([]));
   }, [pick, last]);
 
@@ -257,6 +261,30 @@ export default function BarStock() {
                   </div>
                 );
               })}
+              {trace && others.length > 0 && unexplained > 0 && (
+                <div className="st-others">
+                  <div className="st-trace-head">
+                    <b>บิลอื่นวันนั้น · ตรวจจากรูป</b>
+                    <span className="nba-muted">ระบบไม่ได้อ่านเจอ{short(picked.name)}ในบิลเหล่านี้ (QR อาจถูกบัง/อ่านไม่ออก) · ดูรูปว่ามีชิ้นเกินไหม</span>
+                  </div>
+                  <div className="st-grid-photos">
+                    {others.map((b) => (
+                      <button key={b.id} className={`st-ph${b.warn ? " warn" : ""}`} onClick={() => openBill(b.id, last.date)}>
+                        {b.photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={b.photo} alt={`รูปถาดบิล #${b.no}`} loading="lazy" />
+                        ) : (
+                          <span className="none">ไม่มีรูป</span>
+                        )}
+                        <span className="cap">
+                          <b>#{b.no}</b> {b.name} · จ่าย {b.pieces} ชิ้น
+                          {b.warn && <em>น่าสงสัย</em>}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {trace && (
                 <div className="st-trace-sum">
                   <span>

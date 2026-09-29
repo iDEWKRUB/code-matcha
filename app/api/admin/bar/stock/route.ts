@@ -29,35 +29,39 @@ async function trace(countId: number, itemId: string) {
     .neq("status", "awaiting_payment")
     .order("id");
   if (e) throw e;
-  const bills = rows
-    .map((o) => {
-      const scan = o.bar_scan as BarScan | null;
-      const extra = o.bar_extra_status === "none" ? 0 : ((o.bar_extra_items as ExtraItem[]) ?? []).filter((i) => i.id === itemId).reduce((n, i) => n + i.qty, 0);
-      return {
-        id: o.id,
-        no: o.daily_no,
-        at: o.created_at,
-        name: o.customer_name,
-        status: o.status,
-        trayPath: o.tray_path as string | null,
-        detected: scan?.detected[itemId] ?? 0,
-        paid: o.status === "cancelled" ? 0 : (scan?.final[itemId] ?? 0),
-        extra,
-        warn: barFlags(scan).some((f) => f.level === "warn"),
-      };
-    })
+  const all = rows.map((o) => {
+    const scan = o.bar_scan as BarScan | null;
+    const extra = o.bar_extra_status === "none" ? 0 : ((o.bar_extra_items as ExtraItem[]) ?? []).filter((i) => i.id === itemId).reduce((n, i) => n + i.qty, 0);
+    return {
+      id: o.id,
+      no: o.daily_no,
+      at: o.created_at,
+      name: o.customer_name,
+      status: o.status,
+      trayPath: o.tray_path as string | null,
+      detected: scan?.detected[itemId] ?? 0,
+      paid: o.status === "cancelled" ? 0 : (scan?.final[itemId] ?? 0),
+      extra,
+      pieces: Object.values(scan?.final ?? {}).reduce((n, q) => n + q, 0),
+      warn: barFlags(scan).some((f) => f.level === "warn"),
+    };
+  });
+  // บิลที่รู้ว่ามีรายการนี้ + บิลอื่นวันนั้น (ระบบอาจอ่านไม่เจอ ต้องดูจากรูป) เรียงบิลน่าสงสัยก่อน
+  const related = all
     .filter((b) => b.detected || b.paid || b.extra)
     .sort((a, b) => Number(b.detected - b.paid - b.extra > 0) - Number(a.detected - a.paid - a.extra > 0) || Number(b.warn) - Number(a.warn) || a.no - b.no);
-  const urls = await trayUrls(bills.map((b) => b.trayPath));
-  return bills.map(({ trayPath, ...b }) => ({ ...b, photo: trayPath ? (urls.get(trayPath) ?? null) : null }));
+  const others = all.filter((b) => !(b.detected || b.paid || b.extra)).sort((a, b) => Number(b.warn) - Number(a.warn) || a.no - b.no);
+  const urls = await trayUrls(all.map((b) => b.trayPath));
+  const withPhoto = ({ trayPath, ...b }: (typeof all)[number]) => ({ ...b, photo: trayPath ? (urls.get(trayPath) ?? null) : null });
+  return { bills: related.map(withPhoto), others: others.map(withPhoto) };
 }
 
 export async function GET(req: Request) {
   if (!(await isAdmin())) return fail("unauthorized", 401);
   const q = new URL(req.url).searchParams;
   if (q.get("trace")) {
-    const bills = await trace(Number(q.get("trace")), String(q.get("item") ?? ""));
-    return bills ? NextResponse.json({ bills }) : fail("ไม่พบผลนับ", 404);
+    const t = await trace(Number(q.get("trace")), String(q.get("item") ?? ""));
+    return t ? NextResponse.json(t) : fail("ไม่พบผลนับ", 404);
   }
   const today = nowInShop().date;
   const [list, moves, counts] = await Promise.all([
