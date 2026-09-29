@@ -1227,3 +1227,49 @@ a.points-chip { color: inherit; text-decoration: none; }
   .nba-bills li { flex-direction: column; }
   .nba-bill-photo { width: 100%; height: 200px; }
 }
+
+/* เรียกเก็บเพิ่ม: หลังร้าน */
+.nba-due { color: #8a4b14; font-weight: 700; }
+.nba-flag.ok { background: #e7f0d6; color: var(--matcha); }
+.nba-extra a.nba-ghost { min-height: 34px; font-size: 13px; text-decoration: none; }
+.nba-extra .nba-primary { min-height: 34px; font-size: 13px; }
+.nba-xform { max-width: 460px; }
+.nba-xsum { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 12px; background: #f6f4ec; font-size: 13px; }
+.nba-xsum img { width: 96px; height: 72px; object-fit: cover; border-radius: 8px; display: block; }
+.nba-xsum .nba-bill-photo { width: 96px; height: 72px; }
+.nba-xsum > div { display: flex; flex-direction: column; gap: 2px; }
+.nba-xsum a { color: var(--matcha); font-weight: 600; }
+.nba-form .nba-xlabel { font-size: 13px; font-weight: 600; }
+.nba-xlist { list-style: none; margin: 0; padding: 0; border: 1px solid var(--hair); border-radius: 12px; }
+.nba-xlist li { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--hair); font-size: 14px; }
+.nba-xlist li:last-child { border-bottom: 0; }
+.nba-xlist li > span { flex: 1; color: var(--stone); }
+.nba-xlist li.on > span { color: var(--ink); font-weight: 600; }
+.nba-xlist small { color: var(--stone); font-weight: 400; }
+.nba-xlist button { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #cfc6af; background: #fff; font-size: 18px; line-height: 1; }
+.nba-xlist button:disabled { opacity: .35; }
+.nba-xlist b { width: 22px; text-align: center; }
+.nba-xtotal { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 12px; background: #fbe0c8; color: #8a4b14; font-size: 14px; font-weight: 600; }
+.nba-xtotal b { font-size: 24px; }
+
+/* เรียกเก็บเพิ่ม: หน้าลูกค้า */
+.nb-extra-row { margin-top: 6px; min-height: 40px; padding: 0 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; background: #FBEBD9; color: #8A4B14; }
+.nb-extra-row.paid { background: #E3EBD3; color: var(--deep); }
+.nb-extra .nb-bar { color: var(--ink2); }
+.nb-extra .nb-bar h1 { font-size: 15px; }
+.nb-ex-card { margin: 4px 20px 0; background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.nb-ex-card img { width: 100%; max-height: 240px; object-fit: cover; display: block; }
+.nb-ex-rows { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.nb-ex-row { display: flex; justify-content: space-between; gap: 12px; }
+.nb-ex-row span:last-child { flex-shrink: 0; font-weight: 600; }
+.nb-ex-amount { margin-top: 14px; display: flex; flex-direction: column; align-items: center; }
+.nb-ex-amount small { font-size: 13px; color: var(--mute); }
+.nb-ex-amount b { font-family: var(--font-serif-th), var(--sans); font-size: 36px; color: var(--red); }
+.nb-ex-amount b.ok { color: var(--deep); }
+.nb-ex-qr { margin: 10px 20px 0; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; align-items: center; gap: 14px; }
+.nb-ex-qr img { width: 120px; height: 120px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 10px; }
+.nb-ex-qr div { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.nb-ex-qr b { color: #1D3C6E; }
+.nb-ex-note { margin: 10px 20px 0; }
+.nb-ex-done { margin: 16px 20px; padding: 14px; border-radius: 14px; background: #E3EBD3; color: var(--deep); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
+.nb-extra .nb-acts .nb-link { align-self: center; min-height: 44px; }

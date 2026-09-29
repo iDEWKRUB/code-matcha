@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const since = new Date(Date.now() - TRAY_KEEP_DAYS * 86400000).toISOString();
   const { data, error } = await db()
     .from("orders")
-    .select("id,daily_no,created_at,items,total,status,tray_path,bar_extra,bar_extra_note")
+    .select("id,daily_no,created_at,items,total,status,tray_path,bar_extra,bar_extra_note,bar_extra_status")
     .eq("line_user_id", user.userId)
     .eq("source", "bar")
     .in("status", [...PAID, "payment_review"])
@@ -37,6 +37,7 @@ export async function GET(req: Request) {
       photo: o.tray_path ? (urls.get(o.tray_path) ?? null) : null,
       extra: o.bar_extra,
       extraNote: o.bar_extra_note,
+      extraStatus: o.bar_extra_status,
     })),
   });
 }

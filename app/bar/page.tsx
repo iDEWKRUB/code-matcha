@@ -2,7 +2,18 @@
 
 import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BAR_MAX_QTY, COOK_SECONDS, TERMS, TERMS_VERSION, TRAY_KEEP_DAYS, barIdFromQr, type BarItem } from "@/lib/bar";
+import {
+  BAR_MAX_QTY,
+  COOK_SECONDS,
+  EXTRA_LABEL,
+  TERMS,
+  TERMS_VERSION,
+  TRAY_KEEP_DAYS,
+  barIdFromQr,
+  type BarItem,
+  type ExtraItem,
+  type ExtraStatus,
+} from "@/lib/bar";
 import { SHOP } from "@/lib/config";
 import type { OrderItem, Payment } from "@/lib/menu";
 import Icon from "../Icon";
@@ -15,8 +26,32 @@ import type { TrayScan } from "./scan";
 type Hours = { openNow: boolean; openTime: string; closeTime: string; accepting: boolean };
 type Pending = Payment & { status?: string };
 type Done = { no: number; total: number; earned: number; points: number };
-type Phase = "loading" | "error" | "home" | "scan" | "pay" | "done" | "history";
-type Bill = { id: number; no: number; at: string; items: OrderItem[]; total: number; paid: boolean; photo: string | null; extra: number; extraNote: string };
+type Phase = "loading" | "error" | "home" | "scan" | "pay" | "done" | "history" | "extra";
+type Bill = {
+  id: number;
+  no: number;
+  at: string;
+  items: OrderItem[];
+  total: number;
+  paid: boolean;
+  photo: string | null;
+  extra: number;
+  extraNote: string;
+  extraStatus: ExtraStatus;
+};
+type Extra = {
+  id: number;
+  no: number;
+  at: string;
+  items: OrderItem[];
+  total: number;
+  photo: string | null;
+  extra: number;
+  extraItems: ExtraItem[];
+  note: string;
+  status: ExtraStatus;
+  qr: string | null;
+};
 
 // ย่อรูปสลิปก่อนส่ง (รูปจากมือถือมักใหญ่หลาย MB)
 async function shrink(file: File): Promise<Blob> {
@@ -96,6 +131,9 @@ export default function BarPage() {
   const [declared, setDeclared] = useState<number | null>(null);
   const [agree, setAgree] = useState<boolean[]>(TERMS.map(() => false));
   const [history, setHistory] = useState<Bill[] | null>(null);
+  const [extra, setExtra] = useState<Extra | null>(null);
+  const [extraErr, setExtraErr] = useState("");
+  const [extraBusy, setExtraBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
   const [picker, setPicker] = useState(false);
@@ -143,7 +181,10 @@ export default function BarPage() {
         const r = await fetch("/api/bar/orders", { headers: { Authorization: `Bearer ${tok()}` }, cache: "no-store" });
         const j = r.ok ? ((await r.json()) as { pending: Pending | null; points: number }) : { pending: null, points: 0 };
         setPoints(j.points ?? 0);
-        if (j.pending) {
+        // เปิดจากการ์ด LINE "แจ้งยอดชำระเพิ่ม" → ไปหน้าชำระเพิ่มของบิลนั้นเลย
+        const extraId = Number(new URLSearchParams(location.search).get("extra"));
+        if (Number.isInteger(extraId) && extraId > 0) openExtra(extraId);
+        else if (j.pending) {
           setPay(j.pending);
           if (j.pending.status === "payment_review") setReview({ reason: "" });
           setPhase("pay");
@@ -236,6 +277,35 @@ export default function BarPage() {
       setScanMsg("อ่านรูปไม่สำเร็จ ลองถ่ายใหม่ หรือกดเพิ่มเอง");
     } finally {
       setScanning(false);
+    }
+  }
+
+  async function openExtra(id: number) {
+    setExtra(null);
+    setExtraErr("");
+    setPhase("extra");
+    const r = await fetch(`/api/bar/orders/${id}/extra`, { headers: { Authorization: `Bearer ${tok()}` }, cache: "no-store" }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    if (!r?.ok) return setExtraErr(j.error ?? "โหลดข้อมูลไม่สำเร็จ");
+    setExtra(j as Extra);
+  }
+
+  async function payExtra(file?: File) {
+    if (!file || !extra) return;
+    setExtraBusy(true);
+    setExtraErr("");
+    try {
+      const fd = new FormData();
+      fd.append("slip", await shrink(file), "slip.jpg");
+      const r = await fetch(`/api/bar/orders/${extra.id}/extra`, { method: "POST", headers: { Authorization: `Bearer ${tok()}` }, body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? "ส่งสลิปไม่สำเร็จ");
+      setExtra({ ...extra, status: j.status, qr: j.status === "paid" ? null : extra.qr });
+      if (j.status === "review" && j.reason) setExtraErr(`ตรวจอัตโนมัติไม่ผ่าน: ${j.reason} · ร้านจะตรวจสลิปให้`);
+    } catch (e) {
+      setExtraErr(e instanceof Error ? e.message : "ส่งสลิปไม่สำเร็จ");
+    } finally {
+      setExtraBusy(false);
     }
   }
 
@@ -436,11 +506,13 @@ export default function BarPage() {
                   </small>
                   <p className="nb-bill-items">{b.items.map((i) => `${i.name} ×${i.qty}`).join(" · ")}</p>
                   <b className="nb-bill-total">฿{b.total}</b>
-                  {b.extra > 0 && (
-                    <p className="nb-warn">
-                      ร้านเรียกเก็บเพิ่ม ฿{b.extra}
-                      {b.extraNote ? ` · ${b.extraNote}` : ""}
-                    </p>
+                  {b.extraStatus !== "none" && b.extra > 0 && (
+                    <button className={`nb-extra-row ${b.extraStatus}`} onClick={() => openExtra(b.id)}>
+                      <span>
+                        {EXTRA_LABEL[b.extraStatus]} ฿{b.extra}
+                      </span>
+                      <span>{b.extraStatus === "due" ? "ชำระ ›" : "ดู ›"}</span>
+                    </button>
                   )}
                 </div>
               </li>
@@ -448,6 +520,87 @@ export default function BarPage() {
           </ul>
         )}
         <p className="nb-muted nb-pad">เก็บประวัติพร้อมรูปถาดย้อนหลัง {TRAY_KEEP_DAYS} วัน</p>
+      </main>
+    );
+
+  if (phase === "extra")
+    return (
+      <main className="nb nb-extra">
+        <header className="nb-bar">
+          <button onClick={openHistory} aria-label="ไปประวัติการมากิน">
+            <Svg d={I.back} />
+          </button>
+          <h1>{extra ? `ชำระยอดเพิ่ม · บิล #${extra.no}` : "ชำระยอดเพิ่ม"}</h1>
+          <span />
+        </header>
+        {!extra ? (
+          <p className={extraErr ? "nb-err nb-pad" : "nb-muted nb-pad"}>{extraErr || "กำลังโหลด…"}</p>
+        ) : (
+          <>
+            <section className="nb-ex-card">
+              {extra.photo ? (
+                <a href={extra.photo} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={extra.photo} alt={`รูปถาดบิล #${extra.no}`} />
+                </a>
+              ) : (
+                <p className="nb-muted nb-pad">รูปถาดถูกลบตามระยะเวลาเก็บแล้ว</p>
+              )}
+              <div className="nb-ex-rows">
+                <div className="nb-ex-row">
+                  <span className="nb-muted">จ่ายแล้ว ({extra.items.map((i) => `${i.name.replace(/^(ท็อปปิ้ง|มาม่า(รส)?)\s*/, "")} ×${i.qty}`).join(", ")})</span>
+                  <span>฿{extra.total}</span>
+                </div>
+                <div className="nb-muted">รายการในถาดที่ยังไม่ได้ชำระ</div>
+                {extra.extraItems.map((i) => (
+                  <div className="nb-ex-row" key={i.id}>
+                    <span>
+                      {i.name} ×{i.qty}
+                    </span>
+                    <span>฿{i.price * i.qty}</span>
+                  </div>
+                ))}
+                {extra.note && <div className="nb-muted">ร้าน: {extra.note}</div>}
+              </div>
+            </section>
+            <div className="nb-ex-amount">
+              <small>{extra.status === "paid" ? "ชำระเพิ่มแล้ว" : "ยอดชำระเพิ่ม"}</small>
+              <b className={extra.status === "paid" ? "ok" : ""}>฿{extra.extra}</b>
+            </div>
+            {extra.status === "paid" ? (
+              <p className="nb-ex-done">
+                <Svg d={I.check} size={20} />
+                ได้รับชำระเพิ่มแล้ว ขอบคุณครับ
+              </p>
+            ) : (
+              <>
+                {extra.qr && (
+                  <div className="nb-ex-qr">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={extra.qr} alt={`QR พร้อมเพย์ ยอด ${extra.extra} บาท`} />
+                    <div>
+                      <b>PromptPay</b>
+                      <span>1. กดค้างที่ QR บันทึกรูป แล้วสแกนจ่าย</span>
+                      <span>2. {autoSlip ? "แนบสลิป ระบบตรวจยอดให้อัตโนมัติ" : "แนบสลิป ร้านจะตรวจยอดให้"}</span>
+                    </div>
+                  </div>
+                )}
+                {extra.status === "review" && <p className="nb-warn nb-ex-note">แนบสลิปแล้ว รอร้านตรวจ ถ้าแนบผิดรูปแนบใหม่ได้</p>}
+                {extraErr && <p className="nb-err nb-ex-note" role="alert">{extraErr}</p>}
+                <div className="nb-acts">
+                  <label className={`nb-btn solid${extraBusy ? " busy" : ""}`}>
+                    <Svg d={I.upload} size={20} />
+                    {extraBusy ? "กำลังตรวจสลิป…" : extra.status === "review" ? "แนบสลิปใหม่" : "แนบสลิป"}
+                    <input type="file" accept="image/*" disabled={extraBusy} onChange={(e) => payExtra(e.target.files?.[0])} />
+                  </label>
+                  <button className="nb-link" onClick={addFriend}>
+                    ไม่ตรงกับที่หยิบ? ทักแชทร้าน
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </main>
     );
 

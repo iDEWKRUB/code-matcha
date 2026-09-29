@@ -39,6 +39,12 @@ export const TERMS = [
 // เก็บรูปถาดไว้เป็นหลักฐานกี่วัน
 export const TRAY_KEEP_DAYS = 90;
 
+// เรียกเก็บเพิ่ม: รายการที่อยู่ในถาดแต่ไม่ได้จ่าย (ราคา ณ ตอนเรียกเก็บ)
+export type ExtraItem = { id: string; name: string; qty: number; price: number };
+export type ExtraStatus = "none" | "due" | "review" | "paid";
+export const EXTRA_LABEL: Record<ExtraStatus, string> = { none: "", due: "ค้างชำระเพิ่ม", review: "แนบสลิปแล้ว รอร้านตรวจ", paid: "ชำระเพิ่มแล้ว" };
+export const extraTotal = (items: ExtraItem[]) => items.reduce((n, i) => n + i.price * i.qty, 0);
+
 // ผลสแกนที่เก็บคู่กับบิล: ระบบอ่านได้เท่าไร ลูกค้านับได้เท่าไร และรายการสุดท้ายที่จ่าย
 export type BarScan = {
   detected: Record<string, number>;
