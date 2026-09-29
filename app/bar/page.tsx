@@ -218,19 +218,24 @@ export default function BarPage() {
     }
   }, [now, cookEnd]);
 
-  // กดรับทราบ → นับ 5 4 3 2 1 แล้วไปหน้า QR
+  // หน้าวิธีจ่าย: การ์ตูนเล่นครบ 3 ฉาก (9 วินาที) → ปุ่มรับทราบนับ 5 4 3 2 1 แล้วไปหน้า QR เอง
+  // ลูกค้าที่คล่องแล้วกดปุ่มข้ามได้ทันที
+  const showHowto = howto && phase === "pay" && !review;
+  useEffect(() => {
+    if (!showHowto) return setCountdown(null);
+    const t = setTimeout(() => setCountdown(5), 9000);
+    return () => clearTimeout(t);
+  }, [showHowto]);
   useEffect(() => {
     if (countdown === null) return;
-    const t = setTimeout(() => {
-      if (countdown > 1) setCountdown(countdown - 1);
-      else {
-        setCountdown(null);
-        setHowto(false);
-        window.scrollTo(0, 0);
-      }
-    }, 1000);
+    const t = setTimeout(() => (countdown > 1 ? setCountdown(countdown - 1) : leaveHowto()), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
+  function leaveHowto() {
+    setCountdown(null);
+    setHowto(false);
+    window.scrollTo(0, 0);
+  }
 
   // เตรียมรูป QR สำหรับบันทึก (ทำไว้ก่อน เพื่อให้กดแชร์ได้ทันทีในจังหวะที่ลูกค้ากด)
   useEffect(() => {
@@ -918,24 +923,17 @@ export default function BarPage() {
           </div>
           <PayHowTo auto={autoSlip} big />
           <div className="pp-dock">
-            <button className="nb-btn solid pp-attach" onClick={() => setCountdown(5)} disabled={countdown !== null}>
+            <button className={`nb-btn solid pp-attach hw-go${countdown !== null ? " hw-run" : ""}`} onClick={leaveHowto}>
               <Svg d={I.check} size={20} />
               รับทราบ ไปหน้าชำระเงิน
+              {countdown !== null && (
+                <span className="hw-num" key={countdown} aria-live="polite">
+                  {countdown}
+                </span>
+              )}
             </button>
+            <small className="hw-note">{countdown !== null ? `จะไปหน้า QR เองใน ${countdown} วินาที` : "ใช้คล่องแล้ว กดข้ามได้เลย"}</small>
           </div>
-          {countdown !== null && (
-            <div className="hw-count" role="status" aria-live="assertive">
-              <div className="hw-ring">
-                <svg viewBox="0 0 120 120" aria-hidden="true">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#E4DDCB" strokeWidth="8" />
-                  <circle className="hw-arc" cx="60" cy="60" r="52" fill="none" stroke="#2F4A2A" strokeWidth="8" strokeLinecap="round" />
-                </svg>
-                <b key={countdown}>{countdown}</b>
-              </div>
-              <p>กำลังเตรียม QR ของคุณ…</p>
-              <small>ยอด ฿{pay.total.toLocaleString()} · บิล #{pay.no}</small>
-            </div>
-          )}
         </main>
       );
     return (
