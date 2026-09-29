@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BAR_MAX_QTY, COOK_SECONDS, barIdFromQr, type BarItem } from "@/lib/bar";
 import { SHOP } from "@/lib/config";
 import type { MenuItem, Payment } from "@/lib/menu";
-import Loader from "../Loader";
+import BarLoader from "./BarLoader";
 import MenuArt from "../MenuArt";
 import BarArt from "./BarArt";
 import Slurp from "./Slurp";
@@ -285,7 +285,7 @@ export default function BarPage() {
   }
   const addFriend = () => openOut(`https://line.me/R/ti/p/${encodeURIComponent(SHOP.lineOaId)}`);
 
-  if (phase === "loading") return <Loader label="กำลังเตรียมมาม่าบาร์…" />;
+  if (phase === "loading") return <BarLoader label="กำลังเตรียมมาม่าบาร์…" />;
   if (phase === "error")
     return (
       <main className="nb nb-center">

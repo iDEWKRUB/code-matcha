@@ -1137,3 +1137,35 @@ a.points-chip { color: inherit; text-decoration: none; }
   .nbs-sheet { grid-template-columns: repeat(auto-fill, 36mm); }
   .nba-table th:nth-child(3), .nba-table td:nth-child(3) { display: none; }
 }
+
+/* หน้าโหลดมาม่าบาร์: ใส่ท็อปปิ้ง+เครื่องปรุงลงถ้วย แล้วเติมน้ำร้อน */
+.loader.bl { background: radial-gradient(circle at 50% 42%, #fbead9 0, #F3EFE4 60%); }
+.bl .ld-cap { color: #2F4A2A; }
+.bl .ld-dots i { background: #B8412C; }
+.bl-drop { transform-box: fill-box; animation: bl-fall1 6.4s ease-in-out infinite; }
+.bl-drop2 { animation-name: bl-fall2; }
+.bl-drop3 { animation-name: bl-fall3; }
+@keyframes bl-fall1 {
+  0%, 3% { opacity: 0; transform: translate(85px, -20px) rotate(-12deg); }
+  6% { opacity: 1; }
+  20% { opacity: 1; transform: translate(90px, 92px) rotate(8deg); }
+  24% { opacity: 0; transform: translate(90px, 130px) rotate(8deg); }
+  100% { opacity: 0; transform: translate(85px, -20px) rotate(-12deg); }
+}
+@keyframes bl-fall2 {
+  0%, 24% { opacity: 0; transform: translate(120px, -20px) rotate(10deg); }
+  28% { opacity: 1; }
+  40% { opacity: 1; transform: translate(115px, 94px) rotate(-6deg); }
+  44% { opacity: 0; transform: translate(115px, 130px) rotate(-6deg); }
+  100% { opacity: 0; transform: translate(120px, -20px) rotate(10deg); }
+}
+@keyframes bl-fall3 {
+  0%, 32% { opacity: 0; transform: translate(135px, -20px) rotate(-8deg); }
+  36% { opacity: 1; }
+  48% { opacity: 1; transform: translate(130px, 92px) rotate(4deg); }
+  52% { opacity: 0; transform: translate(130px, 130px) rotate(4deg); }
+  100% { opacity: 0; transform: translate(135px, -20px) rotate(-8deg); }
+}
+.bl-broth { animation: bl-broth 6.4s ease-in-out infinite; }
+@keyframes bl-broth { 0%, 48% { opacity: 0; } 58%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .bl-drop, .bl-broth { animation: none; opacity: 0; } }
