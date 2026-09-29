@@ -99,6 +99,10 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
   - `barFlags()` in `lib/bar.ts` flags suspicious bills.
   - Customer history: `/api/bar/history`. Shop view: `BarBills` in `/admin/bar`, API `/api/admin/bar/orders`.
 - Home: CODE-MATCHA header + mini how-to (no matcha section or bottom nav). Loader: `app/bar/BarLoader.tsx`.
+- Back-charge (migration 021, commit d375a5c): `bar_extra_items`/`bar_extra_status` (none|due|review|paid).
+  - Shop picks the unpaid items in `BarBills` (prefilled from detected−final).
+  - The PATCH `action: send` pushes a Flex card with the tray photo (30-day signed URL) linking to `/bar?extra=<id>`.
+  - The customer pays via `/api/bar/orders/[id]/extra`: SlipOK → paid, else review → shop confirms.
 - NEXT (owner chose): stock system. Per-item stock that is cut automatically on sale, "รับของเข้า", and a closing count showing the variance vs sold.
 
 ### Original plan (for reference)
