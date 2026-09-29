@@ -1,6 +1,36 @@
 import "server-only";
-import { TRAY_KEEP_DAYS, type BarItem } from "./bar";
+import { TRAY_KEEP_DAYS, type BarItem, type ExtraItem } from "./bar";
+import { orderUri } from "./flex";
+import { pushCard } from "./line";
 import { db } from "./supabase";
+
+// ลูกค้าจ่ายยอดเพิ่มครบแล้ว → ส่งการ์ดยืนยันรับเงิน + ขออภัยในความไม่สะดวก
+export async function notifyExtraPaid(id: number) {
+  const { data: o, error } = await db()
+    .from("orders")
+    .select("daily_no,line_user_id,customer_name,total,bar_extra,bar_extra_items")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !o) return console.error("notifyExtraPaid read failed", error);
+  const items = (o.bar_extra_items as ExtraItem[]) ?? [];
+  await pushCard(
+    o.line_user_id,
+    {
+      tone: "matcha",
+      title: "ได้รับชำระเพิ่มเรียบร้อยแล้ว",
+      subtitle: `มาม่าบาร์ · บิล #${o.daily_no} · ครบถ้วนแล้ว`,
+      rows: [
+        ["ยอดชำระเพิ่ม", `฿${o.bar_extra}`, true],
+        ["ยอดรวมบิลนี้", `฿${o.total + o.bar_extra}`],
+        ["สถานะ", "ชำระครบ ไม่มียอดค้าง"],
+      ],
+      items: items.map((i) => `${i.qty}× ${i.name}`),
+      note: "ขออภัยในความผิดพลาดและความไม่สะดวกที่เกิดขึ้น ขอบคุณที่ใช้บริการมาม่าบาร์ CODE-MATCHA แล้วแวะมาต้มกันใหม่นะ",
+      button: { label: "ดูประวัติการมากิน", uri: `${orderUri()}/bar?history=1` },
+    },
+    { name: o.customer_name, orderNo: o.daily_no },
+  );
+}
 
 // ลิงก์ดูรูปถาดชั่วคราว (bucket ส่วนตัว) คืน map path → url
 export async function trayUrls(paths: (string | null)[]) {

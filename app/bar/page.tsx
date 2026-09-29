@@ -181,9 +181,11 @@ export default function BarPage() {
         const r = await fetch("/api/bar/orders", { headers: { Authorization: `Bearer ${tok()}` }, cache: "no-store" });
         const j = r.ok ? ((await r.json()) as { pending: Pending | null; points: number }) : { pending: null, points: 0 };
         setPoints(j.points ?? 0);
-        // เปิดจากการ์ด LINE "แจ้งยอดชำระเพิ่ม" → ไปหน้าชำระเพิ่มของบิลนั้นเลย
-        const extraId = Number(new URLSearchParams(location.search).get("extra"));
+        // เปิดจากการ์ด LINE: "แจ้งยอดชำระเพิ่ม" → หน้าชำระเพิ่ม, "ได้รับชำระเพิ่ม" → ประวัติ
+        const q = new URLSearchParams(location.search);
+        const extraId = Number(q.get("extra"));
         if (Number.isInteger(extraId) && extraId > 0) openExtra(extraId);
+        else if (q.get("history")) openHistory();
         else if (j.pending) {
           setPay(j.pending);
           if (j.pending.status === "payment_review") setReview({ reason: "" });

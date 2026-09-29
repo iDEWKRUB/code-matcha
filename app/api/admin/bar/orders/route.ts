@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { extraTotal, type BarScan, type ExtraItem, type ExtraStatus } from "@/lib/bar";
-import { getBarItems, purgeOldTrays, trayUrls } from "@/lib/barServer";
+import { getBarItems, notifyExtraPaid, purgeOldTrays, trayUrls } from "@/lib/barServer";
 import { orderUri } from "@/lib/flex";
 import { pushCard } from "@/lib/line";
 import type { OrderItem } from "@/lib/menu";
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   const { data, error } = await db()
     .from("orders")
     .select(
-      "id,daily_no,created_at,customer_name,items,total,status,slip_path,tray_path,bar_scan,terms_at,bar_extra,bar_extra_note,bar_extra_items,bar_extra_status,bar_extra_sent_at,bar_extra_slip_path",
+      "id,daily_no,created_at,customer_name,items,total,status,slip_path,slip_ref,paid_at,tray_path,bar_scan,terms_at,terms_version,bar_extra,bar_extra_note,bar_extra_items,bar_extra_status,bar_extra_sent_at,bar_extra_slip_path,bar_extra_slip_ref,bar_extra_paid_at",
     )
     .eq("source", "bar")
     .eq("pickup_date", date)
@@ -56,6 +56,11 @@ export async function GET(req: Request) {
       extraStatus: o.bar_extra_status as ExtraStatus,
       extraSentAt: o.bar_extra_sent_at,
       extraSlip: o.bar_extra_slip_path ? (slipUrls.get(o.bar_extra_slip_path) ?? null) : null,
+      paidAt: o.paid_at,
+      autoPaid: !!o.slip_ref,
+      termsVersion: o.terms_version,
+      extraPaidAt: o.bar_extra_paid_at,
+      extraAuto: !!o.bar_extra_slip_ref,
     })),
   });
 }
@@ -91,6 +96,7 @@ export async function PATCH(req: Request) {
       .select("id");
     if (e) throw e;
     if (!u.length) return fail("บิลนี้ไม่ได้รอตรวจสลิปชำระเพิ่ม", 409);
+    await notifyExtraPaid(id);
     return NextResponse.json({ ok: true });
   }
 

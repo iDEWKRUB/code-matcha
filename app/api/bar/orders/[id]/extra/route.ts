@@ -1,7 +1,7 @@
 import QRCode from "qrcode";
 import { NextResponse } from "next/server";
 import type { ExtraItem, ExtraStatus } from "@/lib/bar";
-import { checkSlip, trayUrls } from "@/lib/barServer";
+import { checkSlip, notifyExtraPaid, trayUrls } from "@/lib/barServer";
 import { adminUri } from "@/lib/flex";
 import { pushCard, verifyIdToken } from "@/lib/line";
 import type { OrderItem } from "@/lib/menu";
@@ -88,6 +88,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     else if (!data.length) return fail("บิลนี้ไม่มียอดค้างชำระเพิ่มแล้ว", 409);
     else {
       if (old) await db().storage.from("slips").remove([old]);
+      await notifyExtraPaid(id);
       return NextResponse.json({ status: "paid" });
     }
   }
