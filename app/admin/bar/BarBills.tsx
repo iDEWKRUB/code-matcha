@@ -271,7 +271,7 @@ export default function BarBills({ items }: { items: BarItem[] }) {
                 </div>
                 {edit.bill.scan && (
                   <div className="nba-muted">
-                    ลูกค้านับได้ {edit.bill.scan.declared} ชิ้น · ระบบอ่านได้ {count(edit.bill.scan.detected)} ชิ้น
+                    ระบบอ่านได้ {count(edit.bill.scan.detected)} ชิ้น · ลูกค้าจ่าย {count(edit.bill.scan.final)} ชิ้น
                   </div>
                 )}
               </div>
@@ -336,7 +336,7 @@ function Detail({ b, name, onClose, onEdit, onQuick }: { b: Bill; name: (id: str
         <>
           {b.scan ? (
             <p>
-              ระบบอ่านได้ <b>{count(b.scan.detected)}</b> ชิ้น · ลูกค้านับ <b>{b.scan.declared}</b> ชิ้น · จ่าย <b>{count(b.scan.final)}</b> ชิ้น
+              ระบบอ่านได้ <b>{count(b.scan.detected)}</b> ชิ้น · จ่าย <b>{count(b.scan.final)}</b> ชิ้น{b.scan.declared !== count(b.scan.final) && <> · ลูกค้านับ <b>{b.scan.declared}</b> ชิ้น</>}
               {b.scan.unknown > 0 && ` · QR ไม่รู้จัก ${b.scan.unknown}`}
             </p>
           ) : (

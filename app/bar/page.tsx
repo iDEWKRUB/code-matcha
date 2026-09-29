@@ -129,7 +129,6 @@ export default function BarPage() {
   const [detected, setDetected] = useState<Record<string, number>>({});
   const [unknownQr, setUnknownQr] = useState(0);
   const [unreadable, setUnreadable] = useState(0);
-  const [declared, setDeclared] = useState<number | null>(null);
   const [agree, setAgree] = useState<boolean[]>(TERMS.map(() => false));
   const [history, setHistory] = useState<Bill[] | null>(null);
   const [extra, setExtra] = useState<Extra | null>(null);
@@ -244,11 +243,9 @@ export default function BarPage() {
     ? "ยังไม่มีรายการ"
     : !shot
       ? "ถ่ายรูปถาดก่อน"
-      : declared === null
-        ? "ตอบจำนวนชิ้นก่อน"
-        : !agreed
-          ? "ติ๊กยอมรับเงื่อนไขก่อน"
-          : "";
+      : !agreed
+        ? "ติ๊กยอมรับเงื่อนไขก่อน"
+        : "";
 
   const setQty = (id: string, q: number) =>
     setTray((t) => {
@@ -277,7 +274,6 @@ export default function BarPage() {
       setDetected(counts);
       setUnknownQr(unknown);
       setUnreadable(s.bad.length);
-      setDeclared(null);
       const known = s.codes.length - unknown;
       setScanMsg(
         s.bad.length
@@ -336,11 +332,11 @@ export default function BarPage() {
     setErr("");
     setNeedFriend(false);
     try {
-      if (!shot || declared === null) throw new Error("ถ่ายรูปถาดและบอกจำนวนชิ้นก่อนนะ");
+      if (!shot) throw new Error("ถ่ายรูปถาดก่อนนะ");
       const fd = new FormData();
       fd.append("lines", JSON.stringify(lines.map(([id, qty]) => ({ id, qty }))));
       fd.append("scan", JSON.stringify({ detected, unknown: unknownQr, unreadable }));
-      fd.append("declared", String(declared));
+      fd.append("declared", String(count));
       fd.append("accept", String(TERMS_VERSION));
       fd.append("photo", await (await fetch(shot.photo)).blob(), "tray.jpg");
       const r = await fetch("/api/bar/orders", { method: "POST", headers: { Authorization: `Bearer ${tok()}` }, body: fd });
@@ -371,7 +367,6 @@ export default function BarPage() {
         setDone({ no: j.no, total: j.total, earned: j.earned, points: j.points });
         setTray({});
         setShot(null);
-        setDeclared(null);
         setDetected({});
         setUnreadable(0);
         setPhase("done");
@@ -706,18 +701,10 @@ export default function BarPage() {
           {shot && count > 0 && (
             <div className="nb-count">
               <div>
-                <b>นับเช็ก: ในถาดมีทั้งหมดกี่ชิ้น?</b>
-                <small>นับทุกซองและทุกถ้วยท็อปปิ้งในถาด</small>
+                <b>รวมในถาด {count} ชิ้น</b>
+                <small>เช็กว่าตรงกับของที่หยิบมา ถ้าไม่ครบกด + เพิ่มเอง</small>
               </div>
-              <div className="nb-stepper">
-                <button aria-label="ลดจำนวนที่นับ" disabled={!declared || declared <= 1} onClick={() => setDeclared((d) => (d ?? 1) - 1)}>
-                  <Svg d={I.minus} size={18} />
-                </button>
-                <span className="q" aria-live="polite">{declared ?? "–"}</span>
-                <button aria-label="เพิ่มจำนวนที่นับ" disabled={(declared ?? 0) >= 200} onClick={() => setDeclared((d) => (d ?? 0) + 1)}>
-                  <Svg d={I.plus} size={18} />
-                </button>
-              </div>
+              <b className="nb-count-sum">฿{total}</b>
             </div>
           )}
           {shot && unreadable > 0 && (
@@ -727,11 +714,6 @@ export default function BarPage() {
                 <b>มี QR อ่านไม่ออก {unreadable} จุด (กรอบแดงในรูป)</b>
                 กดปุ่มถ่ายใหม่มุมขวาบน ถ่ายให้ชัด ไม่ให้แสงสะท้อน หรือกด + เพิ่มเอง ให้ครบตามของในถาด
               </span>
-            </p>
-          )}
-          {declared !== null && declared !== count && (
-            <p className="nb-warn" role="status">
-              คุณนับได้ {declared} ชิ้น แต่รายการมี {count} ชิ้น ลองถ่ายใหม่ หรือกด + เพิ่มเอง ให้ตรง ถ้ามั่นใจแล้วชำระต่อได้
             </p>
           )}
           {shot && count > 0 && (
