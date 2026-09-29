@@ -4,17 +4,99 @@ import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { BAR_KINDS, barQrText, type BarItem, type BarKind } from "@/lib/bar";
 import BarArt from "../../bar/BarArt";
+import Icon, { type IconName } from "../../Icon";
 import BarBills from "./BarBills";
 import BarHoursPanel from "./BarHoursPanel";
 import BarStock from "./BarStock";
 import { uploadImage } from "../upload";
 
-type Draft = { id?: string; name: string; kind: BarKind; price: string; sort: string; available: boolean; imageUrl: string | null };
-const blank: Draft = { name: "", kind: "noodle", price: "", sort: "0", available: true, imageUrl: null };
-const toDraft = (i: BarItem): Draft => ({ id: i.id, name: i.name, kind: i.kind, price: String(i.price), sort: String(i.sort), available: i.available, imageUrl: i.imageUrl });
+type Draft = {
+  id?: string;
+  name: string;
+  kind: BarKind;
+  price: string;
+  sort: string;
+  available: boolean;
+  imageUrl: string | null;
+};
+const blank: Draft = {
+  name: "",
+  kind: "noodle",
+  price: "",
+  sort: "0",
+  available: true,
+  imageUrl: null,
+};
+const toDraft = (i: BarItem): Draft => ({
+  id: i.id,
+  name: i.name,
+  kind: i.kind,
+  price: String(i.price),
+  sort: String(i.sort),
+  available: i.available,
+  imageUrl: i.imageUrl,
+});
+
+type Section = "sell" | "bills" | "stock" | "items" | "qr";
+const SECTIONS: { id: Section; icon: IconName; label: string; hint: string }[] = [
+  {
+    id: "sell",
+    icon: "store",
+    label: "เปิดขาย & เวลา",
+    hint: "สวิตช์เปิดขาย · เวลาเปิด · ลิงก์",
+  },
+  {
+    id: "bills",
+    icon: "note",
+    label: "บิล",
+    hint: "บิลรายวัน · เรียกเก็บเพิ่ม",
+  },
+  {
+    id: "stock",
+    icon: "bag",
+    label: "สต๊อก",
+    hint: "รับของเข้า · นับจริง · ตามของหาย",
+  },
+  {
+    id: "items",
+    icon: "bowl",
+    label: "ของในบาร์",
+    hint: "เพิ่ม/แก้ราคา · มีขาย/หมด",
+  },
+  { id: "qr", icon: "qr", label: "สติ๊กเกอร์ QR", hint: "พิมพ์ติดซอง/ถ้วย" },
+];
 
 // embedded = อยู่ในแท็บ "มาม่าบาร์" ของหน้าหลังร้าน (ไม่ต้องมีปุ่มกลับ/หัวเรื่องซ้ำ)
 export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
+  // หมวดย่อย (จำหมวดล่าสุดไว้ในเครื่องนี้) · หมวดสต๊อกขอเปิดบิล → สลับมาหมวดบิลแล้วเปิดให้
+  const [sec, setSec] = useState<Section>("sell");
+  const [openReq, setOpenReq] = useState<{
+    id: number;
+    date: string;
+    at: number;
+  } | null>(null);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("adm-bar-sec") as Section | null;
+      if (saved && SECTIONS.some((s) => s.id === saved)) setSec(saved);
+    } catch {}
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent<{ id: number; date: string }>).detail;
+      setOpenReq({ ...d, at: Date.now() });
+      setSec("bills");
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("bar:open-bill", onOpen);
+    return () => window.removeEventListener("bar:open-bill", onOpen);
+  }, []);
+  function pick(s: Section) {
+    setSec(s);
+    setOpenReq(null);
+    try {
+      localStorage.setItem("adm-bar-sec", s);
+    } catch {}
+  }
+
   const [items, setItems] = useState<BarItem[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,14 +136,28 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   }, []);
 
   useEffect(() => {
-    Promise.all(items.map(async (i) => [i.id, await QRCode.toDataURL(barQrText(i.id), { margin: 1, width: 360, errorCorrectionLevel: "M" })] as const)).then((pairs) =>
-      setQrs(Object.fromEntries(pairs)),
-    );
+    Promise.all(
+      items.map(
+        async (i) =>
+          [
+            i.id,
+            await QRCode.toDataURL(barQrText(i.id), {
+              margin: 1,
+              width: 360,
+              errorCorrectionLevel: "M",
+            }),
+          ] as const,
+      ),
+    ).then((pairs) => setQrs(Object.fromEntries(pairs)));
   }, [items]);
 
   async function save() {
     if (!draft) return;
-    const ok = await call("POST", { ...draft, price: Number(draft.price), sort: Number(draft.sort) || 0 });
+    const ok = await call("POST", {
+      ...draft,
+      price: Number(draft.price),
+      sort: Number(draft.sort) || 0,
+    });
     if (ok) setDraft(null);
   }
 
@@ -84,124 +180,161 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={embedded ? "nba nba-embed" : "nba"}>
-      <header className="nba-head nba-noprint">
-        {!embedded && (
-          <>
-            <a href="/admin" className="nba-back">
-              ← กลับหลังร้าน
-            </a>
-            <h1>มาม่าบาร์</h1>
-          </>
-        )}
-        <p>ลิงก์หน้ามาม่าบาร์ของลูกค้า (ใช้ทดสอบ หรือทำ QR ติดหน้าบาร์)</p>
-        <div className="nba-link">
-          <code>{liffLink}</code>
-          <button
-            onClick={() => {
-              navigator.clipboard?.writeText(liffLink);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-          >
-            {copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+      {!embedded && (
+        <header className="nba-head nba-noprint">
+          <a href="/admin" className="nba-back">
+            ← กลับหลังร้าน
+          </a>
+          <h1>มาม่าบาร์</h1>
+        </header>
+      )}
+
+      <nav className="sec-nav nba-noprint" aria-label="หมวดมาม่าบาร์">
+        {SECTIONS.map((s) => (
+          <button key={s.id} aria-current={sec === s.id ? "page" : undefined} onClick={() => pick(s.id)}>
+            <span className="sec-ico">
+              <Icon name={s.icon} size={24} />
+            </span>
+            <b>{s.label}</b>
+            <small>{s.hint}</small>
           </button>
-        </div>
-      </header>
+        ))}
+      </nav>
 
-      <BarHoursPanel />
-
-      <BarBills items={items} />
-
-      <BarStock />
-
-      <section className="nba-card nba-noprint">
-        <div className="nba-row-head">
-          <h2>ของในบาร์</h2>
-          <button className="nba-primary" onClick={() => setDraft({ ...blank })} disabled={busy}>
-            + เพิ่มรายการ
-          </button>
-        </div>
-        {err && <p className="nba-err" role="alert">{err}</p>}
-        <table className="nba-table">
-          <thead>
-            <tr>
-              <th />
-              <th>ชื่อ</th>
-              <th>ประเภท</th>
-              <th>ราคา</th>
-              <th>ขาย</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((i) => (
-              <tr key={i.id} className={i.available ? "" : "off"}>
-                <td>
-                  {i.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={i.imageUrl} alt="" width={36} height={36} />
-                  ) : (
-                    <BarArt kind={i.kind} size={36} />
-                  )}
-                </td>
-                <td>{i.name}</td>
-                <td>{BAR_KINDS.find((k) => k.id === i.kind)?.label}</td>
-                <td>฿{i.price}</td>
-                <td>
-                  <button className={`nba-switch${i.available ? " on" : ""}`} aria-pressed={i.available} disabled={busy} onClick={() => call("POST", { ...i, available: !i.available })}>
-                    {i.available ? "มีขาย" : "หมด"}
-                  </button>
-                </td>
-                <td>
-                  <button className="nba-ghost" onClick={() => setDraft(toDraft(i))}>
-                    แก้ไข
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="nba-card nba-noprint">
-        <h2>พิมพ์สติ๊กเกอร์ QR</h2>
-        <p className="nba-muted">ติดสติ๊กเกอร์ 1 ดวงต่อ 1 ชิ้น (ซอง/ถ้วย) ใส่จำนวนที่ต้องการ แล้วกดพิมพ์ (A4 · ดวงละ 3.5 ซม.)</p>
-        <div className="nba-copies">
-          {items.map((i) => (
-            <label key={i.id}>
-              <span>{i.name}</span>
-              <input
-                type="number"
-                min={0}
-                max={200}
-                inputMode="numeric"
-                value={copies[i.id] ?? 0}
-                onChange={(e) => setCopies((c) => ({ ...c, [i.id]: Math.max(0, Math.min(200, Number(e.target.value) || 0)) }))}
-              />
-            </label>
-          ))}
-        </div>
-        <div className="nba-acts">
-          <button className="nba-ghost" onClick={() => setCopies(Object.fromEntries(items.map((i) => [i.id, 10])))}>
-            ทุกอย่าง 10 ดวง
-          </button>
-          <button className="nba-primary" disabled={!stickers.length} onClick={() => window.print()}>
-            พิมพ์ {stickers.length} ดวง
-          </button>
-        </div>
-      </section>
-
-      {stickers.length > 0 && (
-        <div className="nbs-sheet" aria-label="ตัวอย่างสติ๊กเกอร์">
-          {stickers.map((i, k) => (
-            <div className="nbs" key={k}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
-              <b>{i.name.replace(/^ท็อปปิ้ง\s*/, "")}</b>
-              <small>CODE-MATCHA · มาม่าบาร์</small>
+      {sec === "sell" && (
+        <>
+          <BarHoursPanel />
+          <section className="nba-card nba-noprint">
+            <h2>ลิงก์หน้ามาม่าบาร์</h2>
+            <p className="nba-muted">ใช้ทดสอบ หรือทำ QR ติดหน้าบาร์ให้ลูกค้าสแกนเข้า</p>
+            <div className="nba-link">
+              <code>{liffLink}</code>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(liffLink);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+              >
+                {copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+              </button>
             </div>
-          ))}
-        </div>
+          </section>
+        </>
+      )}
+
+      {sec === "bills" && <BarBills key={openReq ? `${openReq.id}-${openReq.at}` : "bills"} items={items} initialOpen={openReq} />}
+
+      {sec === "stock" && <BarStock />}
+
+      {sec === "items" && (
+        <section className="nba-card nba-noprint">
+          <div className="nba-row-head">
+            <h2>ของในบาร์</h2>
+            <button className="nba-primary" onClick={() => setDraft({ ...blank })} disabled={busy}>
+              + เพิ่มรายการ
+            </button>
+          </div>
+          {err && (
+            <p className="nba-err" role="alert">
+              {err}
+            </p>
+          )}
+          <table className="nba-table">
+            <thead>
+              <tr>
+                <th />
+                <th>ชื่อ</th>
+                <th>ประเภท</th>
+                <th>ราคา</th>
+                <th>ขาย</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((i) => (
+                <tr key={i.id} className={i.available ? "" : "off"}>
+                  <td>
+                    {i.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={i.imageUrl} alt="" width={36} height={36} />
+                    ) : (
+                      <BarArt kind={i.kind} size={36} />
+                    )}
+                  </td>
+                  <td>{i.name}</td>
+                  <td>{BAR_KINDS.find((k) => k.id === i.kind)?.label}</td>
+                  <td>฿{i.price}</td>
+                  <td>
+                    <button
+                      className={`nba-switch${i.available ? " on" : ""}`}
+                      aria-pressed={i.available}
+                      disabled={busy}
+                      onClick={() => call("POST", { ...i, available: !i.available })}
+                    >
+                      {i.available ? "มีขาย" : "หมด"}
+                    </button>
+                  </td>
+                  <td>
+                    <button className="nba-ghost" onClick={() => setDraft(toDraft(i))}>
+                      แก้ไข
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {sec === "qr" && (
+        <>
+          <section className="nba-card nba-noprint">
+            <h2>พิมพ์สติ๊กเกอร์ QR</h2>
+            <p className="nba-muted">ติดสติ๊กเกอร์ 1 ดวงต่อ 1 ชิ้น (ซอง/ถ้วย) ใส่จำนวนที่ต้องการ แล้วกดพิมพ์ (A4 · ดวงละ 3.5 ซม.)</p>
+            <div className="nba-copies">
+              {items.map((i) => (
+                <label key={i.id}>
+                  <span>{i.name}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={200}
+                    inputMode="numeric"
+                    value={copies[i.id] ?? 0}
+                    onChange={(e) =>
+                      setCopies((c) => ({
+                        ...c,
+                        [i.id]: Math.max(0, Math.min(200, Number(e.target.value) || 0)),
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="nba-acts">
+              <button className="nba-ghost" onClick={() => setCopies(Object.fromEntries(items.map((i) => [i.id, 10])))}>
+                ทุกอย่าง 10 ดวง
+              </button>
+              <button className="nba-primary" disabled={!stickers.length} onClick={() => window.print()}>
+                พิมพ์ {stickers.length} ดวง
+              </button>
+            </div>
+          </section>
+
+          {stickers.length > 0 && (
+            <div className="nbs-sheet" aria-label="ตัวอย่างสติ๊กเกอร์">
+              {stickers.map((i, k) => (
+                <div className="nbs" key={k}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
+                  <b>{i.name.replace(/^ท็อปปิ้ง\s*/, "")}</b>
+                  <small>CODE-MATCHA · มาม่าบาร์</small>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {draft && (
@@ -254,7 +387,11 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
               )}
             </div>
             {draft.id && <p className="nba-muted">ถ้าลบรายการนี้ สติ๊กเกอร์ QR ที่พิมพ์ไปแล้วจะใช้ไม่ได้ (ถ้าแค่ของหมด ให้กด &quot;หมด&quot; แทน)</p>}
-            {err && <p className="nba-err" role="alert">{err}</p>}
+            {err && (
+              <p className="nba-err" role="alert">
+                {err}
+              </p>
+            )}
             <div className="nba-acts">
               {draft.id && (
                 <button

@@ -67,13 +67,14 @@ const CHECK = "M5 12.5l4.5 4.5L19 7.5";
 const CROSS = "M6 6l12 12M18 6 6 18";
 
 // บิลมาม่าบาร์รายวัน: สรุป + รายการบิล → กดดูรายละเอียดพร้อมไทม์ไลน์ 4 ขั้น
-export default function BarBills({ items }: { items: BarItem[] }) {
-  const [date, setDate] = useState(today);
+// initialOpen = เปิดบิลนี้ทันที (มาจากหมวดสต๊อก ตอนตามของหาย)
+export default function BarBills({ items, initialOpen }: { items: BarItem[]; initialOpen?: { id: number; date: string } | null }) {
+  const [date, setDate] = useState(() => initialOpen?.date ?? today());
   const [bills, setBills] = useState<Bill[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [openId, setOpenId] = useState<number | null>(null);
   const [edit, setEdit] = useState<Edit | null>(null);
-  const pendingOpen = useRef<number | null>(null);
+  const pendingOpen = useRef<number | null>(initialOpen?.id ?? null);
   const [err, setErr] = useState("");
   const name = (id: string) => items.find((i) => i.id === id)?.name ?? id;
 
