@@ -46,11 +46,11 @@ export async function scanTray(file: Blob): Promise<TrayScan> {
     const hi = await readAt(bmp, 3200);
     if (hi.codes.length > codes.length) ({ codes, canvas } = hi);
   }
-  // ย่อรูปไว้แสดง (กรอบ QR คิดเป็นสัดส่วนของรูป)
+  // ย่อรูปไว้แสดง + ส่งเป็นหลักฐาน (กรอบ QR คิดเป็นสัดส่วนของรูป)
   const view = document.createElement("canvas");
-  const s = Math.min(1, 1000 / Math.max(canvas.width, canvas.height));
+  const s = Math.min(1, 1400 / Math.max(canvas.width, canvas.height));
   view.width = Math.round(canvas.width * s);
   view.height = Math.round(canvas.height * s);
   view.getContext("2d")!.drawImage(canvas, 0, 0, view.width, view.height);
-  return { codes, width: canvas.width, height: canvas.height, photo: view.toDataURL("image/jpeg", 0.8) };
+  return { codes, width: canvas.width, height: canvas.height, photo: view.toDataURL("image/jpeg", 0.82) };
 }

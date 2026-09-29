@@ -2,9 +2,9 @@
 
 import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BAR_MAX_QTY, COOK_SECONDS, barIdFromQr, type BarItem } from "@/lib/bar";
+import { BAR_MAX_QTY, COOK_SECONDS, TERMS, TERMS_VERSION, TRAY_KEEP_DAYS, barIdFromQr, type BarItem } from "@/lib/bar";
 import { SHOP } from "@/lib/config";
-import type { Payment } from "@/lib/menu";
+import type { OrderItem, Payment } from "@/lib/menu";
 import Icon from "../Icon";
 import Seal from "../Seal";
 import BarLoader from "./BarLoader";
@@ -15,7 +15,8 @@ import type { TrayScan } from "./scan";
 type Hours = { openNow: boolean; openTime: string; closeTime: string; accepting: boolean };
 type Pending = Payment & { status?: string };
 type Done = { no: number; total: number; earned: number; points: number };
-type Phase = "loading" | "error" | "home" | "scan" | "pay" | "done";
+type Phase = "loading" | "error" | "home" | "scan" | "pay" | "done" | "history";
+type Bill = { id: number; no: number; at: string; items: OrderItem[]; total: number; paid: boolean; photo: string | null; extra: number; extraNote: string };
 
 // ย่อรูปสลิปก่อนส่ง (รูปจากมือถือมักใหญ่หลาย MB)
 async function shrink(file: File): Promise<Blob> {
@@ -74,6 +75,8 @@ const I = {
   home: "M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
   phone: "M8.5 2.5h7a2.5 2.5 0 0 1 2.5 2.5v14a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 6 19V5a2.5 2.5 0 0 1 2.5-2.5ZM9.5 7.5h2v2h-2zM12.5 7.5h2v2h-2zM9.5 10.5h2v2h-2zM10 17h4",
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 8v5M12 16h.01",
+  receipt: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3",
+  next: "M9 5l7 7-7 7",
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
 };
@@ -88,6 +91,11 @@ export default function BarPage() {
   const [points, setPoints] = useState(0);
   const [tray, setTray] = useState<Record<string, number>>({});
   const [shot, setShot] = useState<TrayScan | null>(null);
+  const [detected, setDetected] = useState<Record<string, number>>({});
+  const [unknownQr, setUnknownQr] = useState(0);
+  const [declared, setDeclared] = useState<number | null>(null);
+  const [agree, setAgree] = useState<boolean[]>(TERMS.map(() => false));
+  const [history, setHistory] = useState<Bill[] | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
   const [picker, setPicker] = useState(false);
@@ -180,10 +188,15 @@ export default function BarPage() {
     return () => clearInterval(t);
   }, [phase, review, pay]);
 
+  // รายการหรือรูปเปลี่ยน → ต้องติ๊กยอมรับใหม่ (ยืนยันกับรายการสุดท้ายจริง ๆ)
+  useEffect(() => setAgree(TERMS.map(() => false)), [tray, shot]);
+
   const lines = Object.entries(tray).filter(([id, q]) => q > 0 && byId(id));
   const count = lines.reduce((n, [, q]) => n + q, 0);
   const total = lines.reduce((n, [id, q]) => n + (byId(id)?.price ?? 0) * q, 0);
   const closed = !!hours && !hours.openNow;
+  const agreed = agree.every(Boolean);
+  const ctaHint = !count ? "ยังไม่มีรายการ" : !shot ? "ถ่ายรูปถาดก่อน" : declared === null ? "ตอบจำนวนชิ้นก่อน" : !agreed ? "ติ๊กยอมรับเงื่อนไขก่อน" : "";
 
   const setQty = (id: string, q: number) =>
     setTray((t) => {
@@ -209,6 +222,9 @@ export default function BarPage() {
       }
       setShot(s);
       setTray(counts);
+      setDetected(counts);
+      setUnknownQr(unknown);
+      setDeclared(null);
       const known = s.codes.length - unknown;
       setScanMsg(
         known === 0
@@ -223,16 +239,27 @@ export default function BarPage() {
     }
   }
 
+  async function openHistory() {
+    setHistory(null);
+    setPhase("history");
+    const r = await fetch("/api/bar/history", { headers: { Authorization: `Bearer ${tok()}` }, cache: "no-store" }).catch(() => null);
+    const j = r?.ok ? ((await r.json()) as { bills: Bill[] }) : { bills: [] };
+    setHistory(j.bills);
+  }
+
   async function checkout() {
     setSending(true);
     setErr("");
     setNeedFriend(false);
     try {
-      const r = await fetch("/api/bar/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-        body: JSON.stringify({ lines: lines.map(([id, qty]) => ({ id, qty })) }),
-      });
+      if (!shot || declared === null) throw new Error("ถ่ายรูปถาดและบอกจำนวนชิ้นก่อนนะ");
+      const fd = new FormData();
+      fd.append("lines", JSON.stringify(lines.map(([id, qty]) => ({ id, qty }))));
+      fd.append("scan", JSON.stringify({ detected, unknown: unknownQr }));
+      fd.append("declared", String(declared));
+      fd.append("accept", String(TERMS_VERSION));
+      fd.append("photo", await (await fetch(shot.photo)).blob(), "tray.jpg");
+      const r = await fetch("/api/bar/orders", { method: "POST", headers: { Authorization: `Bearer ${tok()}` }, body: fd });
       const j = await r.json().catch(() => ({}));
       if (r.status === 403) setNeedFriend(true);
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
@@ -260,6 +287,8 @@ export default function BarPage() {
         setDone({ no: j.no, total: j.total, earned: j.earned, points: j.points });
         setTray({});
         setShot(null);
+        setDeclared(null);
+        setDetected({});
         setPhase("done");
       } else setReview({ reason: j.reason ?? "" });
     } catch (e) {
@@ -363,6 +392,62 @@ export default function BarPage() {
           <Svg d={I.info} size={16} />
           สแกนไม่ติด กด + เพิ่มเอง ได้ หรือเรียกพนักงานที่เคาน์เตอร์
         </p>
+        <button className="nb-histbtn" onClick={openHistory}>
+          <Svg d={I.receipt} size={20} />
+          <span>ประวัติการมากิน</span>
+          <Svg d={I.next} size={18} />
+        </button>
+      </main>
+    );
+
+  if (phase === "history")
+    return (
+      <main className="nb nb-history">
+        <header className="nb-bar">
+          <button onClick={() => setPhase("home")} aria-label="ย้อนกลับ">
+            <Svg d={I.back} />
+          </button>
+          <h1>ประวัติการมากิน</h1>
+          <span />
+        </header>
+        {history === null ? (
+          <p className="nb-muted nb-pad">กำลังโหลด…</p>
+        ) : history.length === 0 ? (
+          <p className="nb-muted nb-pad">ยังไม่มีประวัติ มาต้มมาม่ากันเลย!</p>
+        ) : (
+          <ul className="nb-bills">
+            {history.map((b) => (
+              <li key={b.id}>
+                {b.photo ? (
+                  <a href={b.photo} target="_blank" rel="noreferrer" className="nb-bill-photo">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={b.photo} alt={`รูปถาดบิล #${b.no}`} loading="lazy" />
+                  </a>
+                ) : (
+                  <span className="nb-bill-photo none">ไม่มีรูป</span>
+                )}
+                <div className="nb-bill-body">
+                  <div className="nb-bill-head">
+                    <b>บิล #{b.no}</b>
+                    <span className={`nb-chip-s ${b.paid ? "ok" : "wait"}`}>{b.paid ? "ชำระแล้ว" : "รอร้านตรวจ"}</span>
+                  </div>
+                  <small className="nb-muted">
+                    {new Date(b.at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" })}
+                  </small>
+                  <p className="nb-bill-items">{b.items.map((i) => `${i.name} ×${i.qty}`).join(" · ")}</p>
+                  <b className="nb-bill-total">฿{b.total}</b>
+                  {b.extra > 0 && (
+                    <p className="nb-warn">
+                      ร้านเรียกเก็บเพิ่ม ฿{b.extra}
+                      {b.extraNote ? ` · ${b.extraNote}` : ""}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="nb-muted nb-pad">เก็บประวัติพร้อมรูปถาดย้อนหลัง {TRAY_KEEP_DAYS} วัน</p>
       </main>
     );
 
@@ -406,10 +491,7 @@ export default function BarPage() {
                 ถ่ายรูปถาด
                 <input type="file" accept="image/*" capture="environment" onChange={(e) => (onPhoto(e.target.files?.[0]), (e.target.value = ""))} />
               </label>
-              <label className="nb-link-light">
-                เลือกรูปจากอัลบั้ม
-                <input type="file" accept="image/*" onChange={(e) => (onPhoto(e.target.files?.[0]), (e.target.value = ""))} />
-              </label>
+              <small className="nb-empty-note">รูปนี้ร้านเก็บไว้เป็นหลักฐานของบิล</small>
             </div>
           )}
           {scanning && <p className="nb-chip">กำลังอ่าน QR…</p>}
@@ -444,6 +526,39 @@ export default function BarPage() {
               );
             })}
           </ul>
+          {shot && count > 0 && (
+            <div className="nb-count">
+              <div>
+                <b>นับเช็ก: ในถาดมีทั้งหมดกี่ชิ้น?</b>
+                <small>นับทุกซองและทุกถ้วยท็อปปิ้งในถาด</small>
+              </div>
+              <div className="nb-stepper">
+                <button aria-label="ลดจำนวนที่นับ" disabled={!declared || declared <= 1} onClick={() => setDeclared((d) => (d ?? 1) - 1)}>
+                  <Svg d={I.minus} size={18} />
+                </button>
+                <span className="q" aria-live="polite">{declared ?? "–"}</span>
+                <button aria-label="เพิ่มจำนวนที่นับ" disabled={(declared ?? 0) >= 200} onClick={() => setDeclared((d) => (d ?? 0) + 1)}>
+                  <Svg d={I.plus} size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+          {declared !== null && declared !== count && (
+            <p className="nb-warn" role="status">
+              คุณนับได้ {declared} ชิ้น แต่รายการมี {count} ชิ้น ลองถ่ายใหม่ หรือกด + เพิ่มเอง ให้ตรง ถ้ามั่นใจแล้วชำระต่อได้
+            </p>
+          )}
+          {shot && count > 0 && (
+            <fieldset className="nb-terms">
+              <legend>ก่อนชำระเงิน</legend>
+              {TERMS.map((t, i) => (
+                <label key={i}>
+                  <input type="checkbox" checked={agree[i]} onChange={(e) => setAgree((a) => a.map((v, k) => (k === i ? e.target.checked : v)))} />
+                  <span>{t}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
           {err && (
             <p className="nb-err" role="alert">
               {err}
@@ -454,8 +569,8 @@ export default function BarPage() {
               )}
             </p>
           )}
-          <button className="nb-cta" disabled={!count || sending || closed} onClick={checkout}>
-            <span>{sending ? "กำลังสร้างบิล…" : closed ? "ร้านปิดอยู่" : "ไปชำระเงิน"}</span>
+          <button className="nb-cta" disabled={!!ctaHint || sending || closed} onClick={checkout}>
+            <span>{sending ? "กำลังสร้างบิล…" : closed ? "ร้านปิดอยู่" : ctaHint || "ไปชำระเงิน"}</span>
             <span>฿{total}</span>
           </button>
         </section>

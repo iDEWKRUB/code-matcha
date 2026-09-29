@@ -1165,3 +1165,65 @@ a.points-chip { color: inherit; text-decoration: none; }
 .bl-broth { animation: bl-broth 6.4s ease-in-out infinite; }
 @keyframes bl-broth { 0%, 48% { opacity: 0; } 58%, 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .bl-drop, .bl-broth { animation: none; opacity: 0; } }
+
+/* มาม่าบาร์: นับเช็ก + เงื่อนไข + ประวัติ */
+.nb-empty-note { font-size: 12px; color: #B9B3A2; }
+.nb-count { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+.nb-count > div:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nb-count b { font-size: 14px; }
+.nb-count small { font-size: 12px; color: var(--mute); }
+.nb-stepper { display: flex; align-items: center; gap: 6px; }
+.nb-stepper button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid #CFC6AF; background: #fff; display: flex; align-items: center; justify-content: center; }
+.nb-stepper button:disabled { opacity: .4; }
+.nb-stepper .q { min-width: 26px; text-align: center; font-weight: 700; font-size: 18px; }
+.nb-warn { margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; background: #FBEBD9; color: #8A4B14; font-size: 13px; line-height: 1.5; }
+.nb-terms { margin: 14px 0 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px; }
+.nb-terms legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--mute); }
+.nb-terms label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.nb-terms input { flex-shrink: 0; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--deep); }
+.nb-histbtn { margin: 16px 20px 0; min-height: 52px; padding: 0 16px; border-radius: 16px; background: #fff; border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; color: var(--deep); font-size: 15px; font-weight: 600; }
+.nb-histbtn span { flex: 1; text-align: left; }
+.nb-pad { padding: 8px 24px; }
+.nb-history .nb-bar { color: var(--ink2); }
+.nb-bills { list-style: none; margin: 4px 16px 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.nb-bills li { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 12px; display: flex; gap: 12px; }
+.nb-bill-photo { width: 92px; height: 92px; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--mute); }
+.nb-bill-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nb-bill-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nb-bill-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.nb-bill-items { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+.nb-bill-total { font-size: 16px; color: var(--deep); }
+.nb-chip-s { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.nb-chip-s.ok { background: #E3EBD3; color: var(--deep); }
+.nb-chip-s.wait { background: #FBEBD9; color: #8A4B14; }
+
+/* หลังร้าน: บิลมาม่าบาร์ */
+.nba-date { min-height: 40px; border: 1px solid var(--edge); border-radius: 10px; padding: 0 10px; font: inherit; font-size: 14px; background: #fff; color: var(--ink); }
+.nba-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 14px; }
+.nba-check-inline { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 13px; color: var(--stone); cursor: pointer; }
+.nba-check-inline input { width: 18px; height: 18px; accent-color: var(--matcha); }
+.nba-bills { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.nba-bills li { display: flex; gap: 14px; padding: 12px; border: 1px solid var(--hair); border-radius: 14px; }
+.nba-bills li.warn { border-color: #e8a15a; background: #fffaf3; }
+.nba-bill-photo { width: 120px; height: 120px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: #f1efe7; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--stone); }
+.nba-bill-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nba-bill-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.nba-bill-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.nba-st { margin-left: auto; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: #fbebd9; color: #8a4b14; }
+.nba-st.ok { background: #e7f0d6; color: var(--matcha); }
+.nba-bill-items { margin: 0; font-size: 14px; }
+.nba-bill-meta { margin: 0; font-size: 13px; color: var(--stone); }
+.nba-bill-meta a { color: var(--matcha); font-weight: 600; }
+.nba-flags, .nba-extra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.nba-flag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 8px; }
+.nba-flag.warn { background: #fbe0c8; color: #8a4b14; }
+.nba-flag.info { background: #eef0e8; color: var(--stone); }
+.nba-extra .nba-ghost { min-height: 34px; font-size: 13px; }
+.nba-extra-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.nba-extra-form input { min-height: 38px; border: 1px solid var(--edge); border-radius: 10px; padding: 0 10px; font: inherit; font-size: 14px; }
+.nba-extra-form input[type="number"] { width: 150px; }
+.nba-extra-form input:not([type="number"]) { flex: 1; min-width: 160px; }
+@media (max-width: 560px) {
+  .nba-bills li { flex-direction: column; }
+  .nba-bill-photo { width: 100%; height: 200px; }
+}

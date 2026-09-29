@@ -1,6 +1,28 @@
 import "server-only";
-import type { BarItem } from "./bar";
+import { TRAY_KEEP_DAYS, type BarItem } from "./bar";
 import { db } from "./supabase";
+
+// ลิงก์ดูรูปถาดชั่วคราว (bucket ส่วนตัว) คืน map path → url
+export async function trayUrls(paths: (string | null)[]) {
+  const list = [...new Set(paths.filter((p): p is string => !!p))];
+  if (!list.length) return new Map<string, string>();
+  const { data, error } = await db().storage.from("trays").createSignedUrls(list, 60 * 60);
+  if (error) {
+    console.error("tray signed urls failed", error);
+    return new Map<string, string>();
+  }
+  return new Map(data.filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl]));
+}
+
+// ลบรูปถาดที่เก่ากว่ากำหนด (เรียกตอนร้านเปิดดูบิล ทีละไม่เกิน 100 รูป)
+export async function purgeOldTrays() {
+  const before = new Date(Date.now() - TRAY_KEEP_DAYS * 86400000).toISOString();
+  const { data, error } = await db().from("orders").select("id,tray_path").not("tray_path", "is", null).lt("created_at", before).limit(100);
+  if (error || !data.length) return;
+  const { error: rmErr } = await db().storage.from("trays").remove(data.map((o) => o.tray_path as string));
+  if (rmErr) return console.error("purge trays failed", rmErr);
+  await db().from("orders").update({ tray_path: null }).in("id", data.map((o) => o.id));
+}
 
 export async function getBarItems(availableOnly = true): Promise<BarItem[]> {
   let q = db().from("bar_items").select("id,name,kind,price,available,sort,image_url").order("sort").order("name");

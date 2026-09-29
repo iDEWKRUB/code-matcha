@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { BAR_MAX_QTY, type BarLine } from "@/lib/bar";
+import { BAR_MAX_QTY, TERMS_VERSION, type BarLine, type BarScan } from "@/lib/bar";
 import { getBarItems } from "@/lib/barServer";
 import { SHOP } from "@/lib/config";
 import { isFriend, verifyIdToken } from "@/lib/line";
@@ -11,6 +11,7 @@ import { nowInShop } from "@/lib/time";
 export const dynamic = "force-dynamic";
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
+const MAX_PHOTO = 4 * 1024 * 1024;
 
 async function user(req: Request) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -24,11 +25,31 @@ export async function POST(req: Request) {
   if (SHOP.requireFriend && u.userId !== "dev" && !(await isFriend(u.userId)))
     return fail("กรุณาเพิ่ม Code-matcha เป็นเพื่อนใน LINE ก่อนสั่ง", 403);
 
-  const body = (await req.json().catch(() => null)) as { lines?: unknown } | null;
-  const lines = body?.lines;
+  // ส่งมาเป็น form: รายการ + ผลสแกน + จำนวนที่ลูกค้านับ + ยอมรับเงื่อนไข + รูปถาด (หลักฐาน)
+  const form = await req.formData().catch(() => null);
+  if (!form) return fail("ข้อมูลไม่ถูกต้อง");
+  const parse = (k: string) => {
+    try {
+      return JSON.parse(String(form.get(k) ?? "null"));
+    } catch {
+      return null;
+    }
+  };
+  const lines = parse("lines");
   if (!Array.isArray(lines) || lines.length === 0 || lines.length > 30) return fail("ถาดว่างอยู่ สแกนของก่อนนะ");
+  if (form.get("accept") !== String(TERMS_VERSION)) return fail("กรุณาติ๊กยอมรับเงื่อนไขทั้ง 2 ข้อก่อนชำระเงิน");
+  const declared = Number(form.get("declared"));
+  if (!Number.isInteger(declared) || declared < 1 || declared > 200) return fail("กรุณาบอกจำนวนชิ้นในถาด");
+  const photo = form.get("photo");
+  if (!(photo instanceof File) || !photo.type.startsWith("image/")) return fail("กรุณาถ่ายรูปถาดก่อนชำระเงิน");
+  if (photo.size > MAX_PHOTO) return fail("รูปใหญ่เกินไป ลองถ่ายใหม่");
 
   const catalog = new Map((await getBarItems()).map((i) => [i.id, i]));
+  const rawScan = (parse("scan") ?? {}) as { detected?: Record<string, unknown>; unknown?: unknown };
+  const detected: Record<string, number> = {};
+  for (const [id, n] of Object.entries(rawScan.detected ?? {}))
+    if (catalog.has(id) && Number.isInteger(n) && (n as number) > 0) detected[id] = Math.min(n as number, 200);
+  const unknownQr = Number.isInteger(rawScan.unknown) ? Math.min(Math.max(rawScan.unknown as number, 0), 200) : 0;
   const qtyById = new Map<string, number>();
   for (const raw of lines as Partial<BarLine>[]) {
     const id = String(raw?.id ?? "");
@@ -55,6 +76,16 @@ export async function POST(req: Request) {
 
   const now = nowInShop();
   const time = `${String(Math.floor(now.minutes / 60)).padStart(2, "0")}:${String(now.minutes % 60).padStart(2, "0")}`;
+
+  // เก็บรูปก่อนสร้างบิล: ไม่มีรูป = ไม่มีหลักฐาน ไม่ให้สร้างบิล
+  const trayPath = `${now.date}/${crypto.randomUUID()}.jpg`;
+  const up = await db().storage.from("trays").upload(trayPath, await photo.arrayBuffer(), { contentType: photo.type });
+  if (up.error) {
+    console.error("tray upload failed", up.error);
+    return fail("อัปโหลดรูปถาดไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
+  }
+  const dropPhoto = () => db().storage.from("trays").remove([trayPath]);
+
   const { data, error } = await db().rpc("place_order", {
     p_date: now.date,
     p_time: time,
@@ -69,14 +100,27 @@ export async function POST(req: Request) {
     p_points: 0,
   });
   if (error) {
+    await dropPhoto();
     console.error("bar place_order failed", error);
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string };
-  const { error: srcErr } = await db().from("orders").update({ source: "bar", service: "dine_in" }).eq("id", row.order_id);
+  const scan: BarScan = { detected, unknown: unknownQr, declared, final: Object.fromEntries(qtyById) };
+  const { error: srcErr } = await db()
+    .from("orders")
+    .update({
+      source: "bar",
+      service: "dine_in",
+      tray_path: trayPath,
+      bar_scan: scan,
+      terms_at: new Date().toISOString(),
+      terms_version: TERMS_VERSION,
+    })
+    .eq("id", row.order_id);
   if (srcErr) {
-    // ติดป้ายไม่ได้ = จะไปปนกับออเดอร์ปกติ ยกเลิกทิ้งดีกว่า
+    // ติดป้าย/หลักฐานไม่ได้ = จะไปปนกับออเดอร์ปกติ ยกเลิกทิ้งดีกว่า
     await db().from("orders").update({ status: "cancelled" }).eq("id", row.order_id);
+    await dropPhoto();
     console.error("bar set source failed", srcErr);
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }

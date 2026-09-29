@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { BAR_KINDS, barQrText, type BarItem, type BarKind } from "@/lib/bar";
 import BarArt from "../../bar/BarArt";
+import BarBills from "./BarBills";
 import { uploadImage } from "../upload";
 
 type Draft = { id?: string; name: string; kind: BarKind; price: string; sort: string; available: boolean; imageUrl: string | null };
@@ -101,6 +102,8 @@ export default function BarAdmin() {
           </button>
         </div>
       </header>
+
+      <BarBills items={items} />
 
       <section className="nba-card nba-noprint">
         <div className="nba-row-head">
