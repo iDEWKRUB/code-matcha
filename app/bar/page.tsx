@@ -4,9 +4,10 @@ import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BAR_MAX_QTY, COOK_SECONDS, barIdFromQr, type BarItem } from "@/lib/bar";
 import { SHOP } from "@/lib/config";
-import type { MenuItem, Payment } from "@/lib/menu";
+import type { Payment } from "@/lib/menu";
+import Icon from "../Icon";
+import Seal from "../Seal";
 import BarLoader from "./BarLoader";
-import MenuArt from "../MenuArt";
 import BarArt from "./BarArt";
 import Slurp from "./Slurp";
 import type { TrayScan } from "./scan";
@@ -71,9 +72,8 @@ const I = {
   check: "M5 12.5l4.5 4.5L19 7.5",
   timer: "M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM12 9v4l2.5 2M10 2h4",
   home: "M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
-  menu: "M5 7h14M5 12h14M5 17h9",
-  user: "M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20c1.5-4 4.5-5 8-5s6.5 1 8 5",
-  chat: "M4 5h16v11H9l-5 4z",
+  phone: "M8.5 2.5h7a2.5 2.5 0 0 1 2.5 2.5v14a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 6 19V5a2.5 2.5 0 0 1 2.5-2.5ZM9.5 7.5h2v2h-2zM12.5 7.5h2v2h-2zM9.5 10.5h2v2h-2zM10 17h4",
+  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 8v5M12 16h.01",
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
 };
@@ -84,7 +84,8 @@ export default function BarPage() {
   const [items, setItems] = useState<BarItem[]>([]);
   const [hours, setHours] = useState<Hours | null>(null);
   const [autoSlip, setAutoSlip] = useState(false);
-  const [drinks, setDrinks] = useState<MenuItem[]>([]);
+  const [name, setName] = useState("");
+  const [points, setPoints] = useState(0);
   const [tray, setTray] = useState<Record<string, number>>({});
   const [shot, setShot] = useState<TrayScan | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -112,9 +113,6 @@ export default function BarPage() {
           if (!r.ok) throw new Error("โหลดรายการไม่สำเร็จ");
           return r.json() as Promise<{ items: BarItem[]; hours: Hours; autoSlip: boolean }>;
         });
-        const menuP = fetch("/api/menu", { cache: "no-store" })
-          .then((r) => (r.ok ? r.json() : { menu: [] }))
-          .catch(() => ({ menu: [] })) as Promise<{ menu: MenuItem[] }>;
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
         if (liffId) {
           const l = (await import("@line/liff")).default;
@@ -124,16 +122,19 @@ export default function BarPage() {
             return;
           }
           liff.current = l;
+          l.getProfile()
+            .then((p) => setName(p.displayName))
+            .catch(() => {});
         } else if (process.env.NODE_ENV === "production") throw new Error("ยังไม่ได้ตั้งค่า LIFF");
-        const [bar, m] = await Promise.all([barP, menuP]);
+        else setName("Dev (โหมดทดสอบ)");
+        const bar = await barP;
         setItems(bar.items);
         setHours(bar.hours);
         setAutoSlip(bar.autoSlip);
-        const d = m.menu.filter((x) => x.kind === "drink" && x.available);
-        setDrinks([...d.filter((x) => x.recommended), ...d.filter((x) => !x.recommended)].slice(0, 4));
         // มีบิลมาม่าบาร์ค้างอยู่ → กลับไปหน้าจ่าย/รอตรวจต่อ
         const r = await fetch("/api/bar/orders", { headers: { Authorization: `Bearer ${tok()}` }, cache: "no-store" });
-        const j = r.ok ? ((await r.json()) as { pending: Pending | null }) : { pending: null };
+        const j = r.ok ? ((await r.json()) as { pending: Pending | null; points: number }) : { pending: null, points: 0 };
+        setPoints(j.points ?? 0);
         if (j.pending) {
           setPay(j.pending);
           if (j.pending.status === "payment_review") setReview({ reason: "" });
@@ -294,38 +295,26 @@ export default function BarPage() {
       </main>
     );
 
-  const nav = (
-    <nav className="nb-nav" aria-label="เมนูหลัก">
-      <button className={phase === "home" ? "on" : ""} onClick={() => setPhase("home")}>
-        <Svg d={I.home} />หน้าแรก
-      </button>
-      <a href="/">
-        <Svg d={I.menu} />เมนูมัทฉะ
-      </a>
-      <button className="nb-nav-scan" onClick={() => setPhase("scan")} aria-label="สแกนถาด">
-        <span>
-          <Svg d={I.scan} size={26} />
-        </span>
-        สแกน
-      </button>
-      <a href="/member">
-        <Svg d={I.user} />สมาชิก
-      </a>
-      <button onClick={addFriend}>
-        <Svg d={I.chat} />แชทร้าน
-      </button>
-    </nav>
-  );
-
   if (phase === "home")
     return (
       <main className="nb nb-home">
-        <header className="nb-brand">
-          <span className="nb-seal">暗号</span>
-          <div>
-            <b>CODE-MATCHA</b>
-            <small>Matcha &amp; Working Space</small>
+        <header className="hero">
+          <div className="hero-in">
+            <span className="hero-seal">
+              <Seal size={52} />
+            </span>
+            <div>
+              <p className="hero-jp">いらっしゃいませ</p>
+              <h1>CODE-MATCHA</h1>
+              <p>สวัสดี {name} วันนี้ต้มมาม่ากันไหม?</p>
+              <a className="points-chip" href="/member">
+                <Icon name="gift" size={15} /> แต้มสะสม {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
+              </a>
+            </div>
           </div>
+          <svg className="wave" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
+          </svg>
         </header>
         <div className="nb-mode" role="group" aria-label="โหมดสั่ง">
           <a href="/">สั่งกลับบ้าน / ล่วงหน้า</a>
@@ -333,47 +322,47 @@ export default function BarPage() {
         </div>
         {err && <p className="nb-err" role="alert">{err}</p>}
         <section className="nb-hero">
-          <p className="nb-kicker">SELF-SERVE NOODLE BAR</p>
-          <h1>
-            มาม่าบาร์
-            <br />
-            บริการตัวเองทั้งร้าน
-          </h1>
-          <ol className="nb-steps3">
+          <div className="nb-hero-text">
+            <p className="nb-kicker">SELF-SERVE NOODLE BAR</p>
+            <h2>
+              มาม่าบาร์
+              <br />
+              บริการตัวเองทั้งร้าน
+            </h2>
+            <button className="nb-hero-cta" onClick={() => setPhase("scan")} disabled={closed}>
+              {!closed && <Svg d={I.scan} size={20} />}
+              {closed ? `ร้านเปิด ${hours?.openTime}–${hours?.closeTime} น.` : "เริ่มสแกนถาด"}
+            </button>
+          </div>
+          <svg className="nb-hero-art" width="92" height="92" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M16 12c-2-3 2-4 0-7M24 12c-2-3 2-4 0-7M32 12c-2-3 2-4 0-7" fill="none" stroke="#C9DBAE" strokeWidth="1.8" strokeLinecap="round" />
+            <ellipse cx="24" cy="20" rx="17" ry="4.5" fill="#E9A23B" />
+            <path d="M13 19c2-2 3 2 5 0s3 2 5 0 3 2 5 0 3 2 5 0" fill="none" stroke="#FFE7A8" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M7 20c1 11 8 17 17 17s16-6 17-17c-4 3-10 4.5-17 4.5S11 23 7 20z" fill="#FDFAF3" />
+            <path d="M9 28c4 3 9 4.5 15 4.5s11-1.5 15-4.5" stroke="#B8412C" strokeWidth="3" fill="none" />
+          </svg>
+        </section>
+        <section className="nb-howto" aria-labelledby="nb-howto-h">
+          <h2 id="nb-howto-h">วิธีใช้มาม่าบาร์</h2>
+          <ol>
             <li>
-              <Svg d={I.tray} size={24} />วางบนถาด
+              <span><Svg d={I.tray} size={20} /></span>หยิบใส่ถาด
             </li>
             <li>
-              <Svg d={I.scan} size={24} />ถ่ายรูปสแกน
+              <span><Svg d={I.camera} size={20} /></span>ถ่ายรูป<br />1 รูป
             </li>
             <li>
-              <Svg d={I.bowl} size={24} />จ่าย &amp; ต้มเอง
+              <span><Svg d={I.phone} size={20} /></span>จ่าย &amp;<br />แนบสลิป
+            </li>
+            <li>
+              <span><Svg d={I.bowl} size={20} /></span>ต้มกิน<br />ได้เลย
             </li>
           </ol>
-          <button className="nb-hero-cta" onClick={() => setPhase("scan")} disabled={closed}>
-            {closed ? `ร้านเปิด ${hours?.openTime}–${hours?.closeTime} น.` : "เริ่มสแกนถาด"}
-          </button>
         </section>
-        {drinks.length > 0 && (
-          <>
-            <div className="nb-sec">
-              <h2>มัทฉะที่บาร์</h2>
-              <a href="/">ดูทั้งหมด</a>
-            </div>
-            <div className="nb-drinks">
-              {drinks.map((d) => (
-                <a key={d.id} href="/" className="nb-drink">
-                  <span className="nb-drink-art">
-                    <MenuArt item={d} size={72} />
-                  </span>
-                  <b>{d.name}</b>
-                  <small>฿{d.promoPrice ?? d.price}</small>
-                </a>
-              ))}
-            </div>
-          </>
-        )}
-        {nav}
+        <p className="nb-tip">
+          <Svg d={I.info} size={16} />
+          สแกนไม่ติด กด + เพิ่มเอง ได้ หรือเรียกพนักงานที่เคาน์เตอร์
+        </p>
       </main>
     );
 
