@@ -44,14 +44,14 @@ const Check = ({ cx, cy, r, className }: { cx: number; cy: number; r: number; cl
   </g>
 );
 
-export default function PayHowTo({ auto }: { auto: boolean }) {
+export default function PayHowTo({ auto, big }: { auto: boolean; big?: boolean }) {
   const steps = [
-    { t: "บันทึกรูป QR", d: "กดปุ่มบันทึก หรือกดค้างที่ QR" },
+    { t: "บันทึกรูป QR", d: "กดปุ่มบันทึกรูป QR หรือแคปหน้าจอ" },
     { t: "สแกนจ่ายในแอปธนาคาร", d: "เลือกรูป QR จากอัลบั้ม ยอดขึ้นให้เอง" },
     { t: "แนบสลิปที่นี่", d: auto ? "ระบบตรวจให้ใน 2–3 วินาที" : "ร้านตรวจยอดให้สักครู่" },
   ];
   return (
-    <section className="ph" aria-label="วิธีชำระเงิน 3 ขั้น">
+    <section className={big ? "ph ph-big" : "ph"} aria-label="วิธีชำระเงิน 3 ขั้น">
       <div className="ph-stage" aria-hidden="true">
         <svg viewBox="0 0 240 160" width="100%" height="100%">
           <ellipse cx="120" cy="152" rx="62" ry="6" fill="#1c2118" opacity=".08" />

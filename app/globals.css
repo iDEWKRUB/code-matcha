@@ -1532,3 +1532,34 @@ a.points-chip { color: inherit; text-decoration: none; }
   .ph-finger, .ph-ripple, .ph-pop, .ph-scan, .ph-amount, .ph-coin, .ph-slip, .ph-ok, .ph-spark path, .pp-line, .pp-seal, .pp-glass { animation: none; }
   .ph-pop, .ph-ok { opacity: 1; }
 }
+
+/* มาม่าบาร์: หน้าวิธีจ่าย (ก่อนเห็น QR) + นับถอยหลัง + บันทึกรูป QR */
+.pp-intro { padding-bottom: 120px; }
+.hw-head { margin: 4px 20px 0; }
+.hw-head small { font-size: 13px; color: var(--mute); }
+.hw-head h2 { margin: 2px 0 0; font-family: var(--font-serif-th), var(--sans); font-size: 26px; color: var(--deep); }
+.ph.ph-big { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
+.ph-big .ph-stage { aspect-ratio: 3 / 2.1; }
+.ph-big .ph-steps { gap: 8px; }
+.ph-big .ph-steps li { padding: 10px 12px; gap: 12px; align-items: center; }
+.ph-big .ph-steps b { font-size: 16px; }
+.ph-big .ph-steps small { font-size: 13px; }
+.ph-big .ph-n { width: 30px; height: 30px; font-size: 15px; }
+.hw-count { position: fixed; inset: 0; z-index: 20; background: rgba(243,239,228,.96); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.hw-ring { position: relative; width: 150px; height: 150px; }
+.hw-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.hw-arc { stroke-dasharray: 327; stroke-dashoffset: 0; animation: hw-arc 5s linear forwards; }
+@keyframes hw-arc { to { stroke-dashoffset: 327; } }
+.hw-ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-serif-th), var(--sans); font-size: 68px; color: var(--deep); animation: hw-tick 1s ease-out; }
+@keyframes hw-tick { 0% { transform: scale(1.5); opacity: 0; } 30% { transform: scale(1); opacity: 1; } }
+.hw-count p { margin: 8px 0 0; font-size: 17px; font-weight: 700; color: var(--ink2); }
+.hw-count small { font-size: 13px; color: var(--mute); }
+button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
+.pp-hint { margin-top: -4px; font-size: 12px; color: var(--mute); text-align: center; }
+.pp-again { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 14px auto 0; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink2); font-size: 13px; font-weight: 600; font-family: inherit; }
+.pp-view { position: fixed; inset: 0; z-index: 30; background: #F3EFE4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; text-align: center; }
+.pp-view img { width: min(320px, 82vw); border-radius: 18px; box-shadow: 0 18px 40px -24px rgba(28,33,24,.6); -webkit-touch-callout: default; user-select: auto; }
+.pp-view p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink2); }
+.pp-view .nb-btn { min-width: 160px; }
+@media (prefers-reduced-motion: reduce) { .hw-arc, .hw-ring b { animation: none; } }
+.ph-big::before { display: none; }

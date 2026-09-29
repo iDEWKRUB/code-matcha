@@ -145,6 +145,11 @@ export default function BarPage() {
   const [pay, setPay] = useState<Pending | null>(null);
   const [uploading, setUploading] = useState(false);
   const [review, setReview] = useState<{ reason: string } | null>(null);
+  // บิลใหม่: ดูวิธีจ่ายก่อน กดรับทราบแล้วค่อยเห็นยอด + QR
+  const [howto, setHowto] = useState(false);
+  const [qrCard, setQrCard] = useState<{ file: File; url: string } | null>(null);
+  const [qrView, setQrView] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [cookEnd, setCookEnd] = useState<number | null>(null);
@@ -212,6 +217,85 @@ export default function BarPage() {
       beep();
     }
   }, [now, cookEnd]);
+
+  // กดรับทราบ → นับ 5 4 3 2 1 แล้วไปหน้า QR
+  useEffect(() => {
+    if (countdown === null) return;
+    const t = setTimeout(() => {
+      if (countdown > 1) setCountdown(countdown - 1);
+      else {
+        setCountdown(null);
+        setHowto(false);
+        window.scrollTo(0, 0);
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  // เตรียมรูป QR สำหรับบันทึก (ทำไว้ก่อน เพื่อให้กดแชร์ได้ทันทีในจังหวะที่ลูกค้ากด)
+  useEffect(() => {
+    if (!pay?.qr) return setQrCard(null);
+    let url = "";
+    let live = true;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = 720;
+      c.height = 980;
+      const g = c.getContext("2d");
+      if (!g) return;
+      g.fillStyle = "#F3EFE4";
+      g.fillRect(0, 0, 720, 980);
+      g.fillStyle = "#2F4A2A";
+      g.fillRect(0, 0, 720, 150);
+      g.textAlign = "center";
+      g.fillStyle = "#F3EFE4";
+      g.font = "800 46px sans-serif";
+      g.fillText("CODE-MATCHA", 360, 78);
+      g.font = "500 26px sans-serif";
+      g.fillStyle = "#C9DBAE";
+      g.fillText(`มาม่าบาร์ · บิล #${pay.no}`, 360, 120);
+      g.fillStyle = "#fff";
+      g.fillRect(90, 190, 540, 540);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, 110, 210, 500, 500);
+      g.fillStyle = "#1C2118";
+      g.font = "500 28px sans-serif";
+      g.fillText("ยอดที่ต้องชำระ (ใส่ไว้ใน QR แล้ว)", 360, 800);
+      g.fillStyle = "#2F4A2A";
+      g.font = "800 84px sans-serif";
+      g.fillText(`฿${pay.total.toLocaleString()}`, 360, 895);
+      g.fillStyle = "#8a8574";
+      g.font = "400 22px sans-serif";
+      g.fillText("สแกนจ่ายในแอปธนาคาร แล้วแนบสลิปในหน้ามาม่าบาร์", 360, 945);
+      c.toBlob((b) => {
+        if (!b || !live) return;
+        url = URL.createObjectURL(b);
+        setQrCard({ file: new File([b], `codematcha-${pay.no}.png`, { type: "image/png" }), url });
+      }, "image/png");
+    };
+    img.src = pay.qr;
+    return () => {
+      live = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [pay?.qr, pay?.no, pay?.total]);
+
+  // บันทึกรูป QR: เบราว์เซอร์ LINE ไม่รองรับลิงก์ดาวน์โหลด → ใช้เมนูแชร์ของมือถือ ถ้าไม่มีก็เปิดรูปใหญ่ให้กดค้าง/แคปหน้าจอ
+  function saveQr() {
+    if (!qrCard) return setQrView(true);
+    const data = { files: [qrCard.file] };
+    if (typeof navigator.canShare === "function" && navigator.canShare(data)) {
+      navigator.share(data).catch((e) => {
+        if (e?.name !== "AbortError") setQrView(true);
+      });
+    } else if (!liff.current?.isInClient()) {
+      const a = document.createElement("a");
+      a.href = qrCard.url;
+      a.download = qrCard.file.name;
+      a.click();
+    } else setQrView(true);
+  }
 
   // รอร้านตรวจสลิป: ถามสถานะทุก 4 วินาที
   useEffect(() => {
@@ -347,6 +431,7 @@ export default function BarPage() {
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
       setPay(j as Pending);
       setReview(null);
+      setHowto(true);
       setPhase("pay");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "สั่งไม่สำเร็จ");
@@ -817,6 +902,42 @@ export default function BarPage() {
           </div>
         </main>
       );
+    if (howto)
+      return (
+        <main className="nb nb-pay2 pp-intro">
+          <header className="nb-bar">
+            <button onClick={cancelBill} aria-label="ยกเลิกบิล กลับไปแก้ถาด">
+              <Svg d={I.back} />
+            </button>
+            <h1>วิธีชำระเงิน</h1>
+            <span />
+          </header>
+          <div className="hw-head">
+            <small>บิล #{pay.no} · ก่อนจ่าย ดูการ์ตูนนี้ก่อนนะ</small>
+            <h2>จ่ายง่าย ๆ 3 ขั้น</h2>
+          </div>
+          <PayHowTo auto={autoSlip} big />
+          <div className="pp-dock">
+            <button className="nb-btn solid pp-attach" onClick={() => setCountdown(5)} disabled={countdown !== null}>
+              <Svg d={I.check} size={20} />
+              รับทราบ ไปหน้าชำระเงิน
+            </button>
+          </div>
+          {countdown !== null && (
+            <div className="hw-count" role="status" aria-live="assertive">
+              <div className="hw-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#E4DDCB" strokeWidth="8" />
+                  <circle className="hw-arc" cx="60" cy="60" r="52" fill="none" stroke="#2F4A2A" strokeWidth="8" strokeLinecap="round" />
+                </svg>
+                <b key={countdown}>{countdown}</b>
+              </div>
+              <p>กำลังเตรียม QR ของคุณ…</p>
+              <small>ยอด ฿{pay.total.toLocaleString()} · บิล #{pay.no}</small>
+            </div>
+          )}
+        </main>
+      );
     return (
       <main className="nb nb-pay2">
         <header className="nb-bar">
@@ -862,13 +983,32 @@ export default function BarPage() {
           <p className="pp-to">
             จ่ายให้ <b>CODE-MATCHA</b> · ยอดใส่ไว้ใน QR แล้ว <b>฿{pay.total}</b>
           </p>
-          <a className="pp-save" href={pay.qr} download={`codematcha-${pay.no}.png`}>
+          <button className="pp-save" onClick={saveQr}>
             <Svg d={I.download} size={18} />
             บันทึกรูป QR
-          </a>
+          </button>
+          <small className="pp-hint">หรือแคปหน้าจอนี้ แล้วเลือกรูปในแอปธนาคารก็ได้</small>
         </section>
 
-        <PayHowTo auto={autoSlip} />
+        <button className="pp-again" onClick={() => setHowto(true)}>
+          <Svg d={I.info} size={16} />
+          ดูวิธีจ่ายอีกครั้ง
+        </button>
+
+        {qrView && qrCard && (
+          <div className="pp-view" role="dialog" aria-label="รูป QR สำหรับบันทึก" onClick={() => setQrView(false)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrCard.url} alt={`QR พร้อมเพย์ ยอด ${pay.total} บาท`} onClick={(e) => e.stopPropagation()} />
+            <p>
+              <b>กดค้างที่รูป</b> แล้วเลือก &quot;บันทึกรูปภาพ&quot;
+              <br />
+              หรือ <b>แคปหน้าจอ</b> ตอนนี้เลยก็ได้
+            </p>
+            <button className="nb-btn outline" onClick={() => setQrView(false)}>
+              เสร็จแล้ว
+            </button>
+          </div>
+        )}
 
         <div className="pp-dock">
           {err && <p className="nb-err" role="alert">{err}</p>}
