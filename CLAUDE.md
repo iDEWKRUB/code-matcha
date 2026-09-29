@@ -91,7 +91,15 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
   - SlipOK pass → order goes straight to `completed` and earns points (no board alarm).
   - Fail, or no key set → `payment_review`. The barista's confirm button moves bar orders straight to `completed`.
 - Env: `SLIPOK_API_KEY` + `SLIPOK_BRANCH_ID` are set in Vercel (not in `.env.local`). Prices are placeholders; the owner edits them at `/admin/bar`.
-- Not yet verified with a real slip or a real phone camera. Real order creation couldn't be tested because the shop was closed during testing.
+- SlipOK was verified on a real slip (2026-09-29).
+- Evidence (migration 020, commit d9a4b46):
+  - Each bar order stores `tray_path` (private bucket `trays`, signed URLs, purged after 90 days by `purgeOldTrays` when the admin opens bills).
+  - It also stores `bar_scan` {detected, unknown, declared, final}, `terms_at`/`terms_version`, and `bar_extra`/`bar_extra_note` (back-charge record).
+  - Ordering requires a live camera photo (no album option), the customer's own item count, and both `TERMS` ticked.
+  - `barFlags()` in `lib/bar.ts` flags suspicious bills.
+  - Customer history: `/api/bar/history`. Shop view: `BarBills` in `/admin/bar`, API `/api/admin/bar/orders`.
+- Home: CODE-MATCHA header + mini how-to (no matcha section or bottom nav). Loader: `app/bar/BarLoader.tsx`.
+- NEXT (owner chose): stock system. Per-item stock that is cut automatically on sale, "รับของเข้า", and a closing count showing the variance vs sold.
 
 ### Original plan (for reference)
 Design: https://claude.ai/artifact/P429zSsnvHE1htYp7gAjmm (canvas "CODE-MACHA × มาม่า Self-Service", 4 phone screens, palette cream #F3EFE4 / matcha #2F4A2A / seal red #B8412C).
