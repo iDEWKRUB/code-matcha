@@ -103,7 +103,15 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
   - Shop picks the unpaid items in `BarBills` (prefilled from detected−final).
   - The PATCH `action: send` pushes a Flex card with the tray photo (30-day signed URL) linking to `/bar?extra=<id>`.
   - The customer pays via `/api/bar/orders/[id]/extra`: SlipOK → paid, else review → shop confirms.
-- NEXT (owner chose): stock system. Per-item stock that is cut automatically on sale, "รับของเข้า", and a closing count showing the variance vs sold.
+- Extra-paid thank-you card: `notifyExtraPaid` in `lib/barServer.ts`. The bills UI (`BarBills`) has tiles, filters, and a detail drawer with a 4-step timeline.
+  - Timeline state classes are `bbs-*` because `.done` and `.sum` clash globally.
+- Stock (migration 022, commit 8bb8ced):
+  - `bar_items.stock`, table `bar_stock_moves` (in/sale/count), table `bar_counts` (closing counts, lines with diff/waste).
+  - RPC `bar_stock_set_order` (idempotent per order) and RPC `bar_stock_add`.
+  - `applySale()` runs when a bar bill is paid (SlipOK path + admin confirm).
+  - Back-charge items do NOT move stock: they left at pick time; the count shows the loss and the trace attributes it.
+  - UI `app/admin/bar/BarStock.tsx`, API `/api/admin/bar/stock` (GET overview/trace, POST in/count/waste).
+  - The customer scan page shows a red `.nb-alert` notice before paying. Per-item stock that is cut automatically on sale, "รับของเข้า", and a closing count showing the variance vs sold.
 
 ### Original plan (for reference)
 Design: https://claude.ai/artifact/P429zSsnvHE1htYp7gAjmm (canvas "CODE-MACHA × มาม่า Self-Service", 4 phone screens, palette cream #F3EFE4 / matcha #2F4A2A / seal red #B8412C).
