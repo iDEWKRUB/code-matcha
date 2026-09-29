@@ -4,6 +4,16 @@ import { orderUri } from "./flex";
 import { pushCard } from "./line";
 import { db } from "./supabase";
 
+// บิลมาม่าบาร์จ่ายแล้ว → ตัดสต๊อกตามรายการที่จ่าย (เรียกซ้ำได้ ไม่ตัดซ้ำ) ไม่ให้ล้มการจ่ายเงินถ้าตัดไม่สำเร็จ
+export async function applySale(orderId: number) {
+  const { data, error } = await db().from("orders").select("bar_scan").eq("id", orderId).maybeSingle();
+  if (error || !data?.bar_scan) return;
+  const final = (data.bar_scan as { final?: Record<string, number> }).final ?? {};
+  const lines = Object.entries(final).map(([id, qty]) => ({ id, qty }));
+  const { error: e } = await db().rpc("bar_stock_set_order", { p_order: orderId, p_kind: "sale", p_lines: lines });
+  if (e) console.error("applySale failed", orderId, e);
+}
+
 // ลูกค้าจ่ายยอดเพิ่มครบแล้ว → ส่งการ์ดยืนยันรับเงิน + ขออภัยในความไม่สะดวก
 export async function notifyExtraPaid(id: number) {
   const { data: o, error } = await db()

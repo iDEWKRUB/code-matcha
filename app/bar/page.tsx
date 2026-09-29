@@ -704,6 +704,15 @@ export default function BarPage() {
             </p>
           )}
           {shot && count > 0 && (
+            <p className="nb-alert" role="note">
+              <Svg d={I.info} size={20} />
+              <span>
+                <b>ร้านเก็บรูปถาดทุกบิลและนับสต๊อกทุกวัน</b>
+                หากพบของในถาดไม่ตรงกับที่จ่าย ร้านจะเรียกเก็บเงินย้อนหลังตามจำนวนจริง กรุณาตรวจรายการให้ครบก่อนชำระ
+              </span>
+            </p>
+          )}
+          {shot && count > 0 && (
             <fieldset className="nb-terms">
               <legend>ก่อนชำระเงิน</legend>
               {TERMS.map((t, i) => (

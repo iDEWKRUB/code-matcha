@@ -4,6 +4,7 @@ import { orderUri, type Card } from "@/lib/flex";
 import { pushCard } from "@/lib/line";
 import type { OrderStatus } from "@/lib/menu";
 import { ORDER_COLUMNS, earnPoints, itemLines, pointsBalance, queueAhead, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
+import { applySale } from "@/lib/barServer";
 import { rewardReferral } from "@/lib/referral";
 import { db } from "@/lib/supabase";
 
@@ -46,6 +47,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const no = current.daily_no;
   const notify = (c: Card) => pushCard(current.line_user_id, c, { name: current.customer_name, orderNo: no });
   if (to === "pending" && bar) {
+    await applySale(current.id);
     const earned = await earnPoints(current);
     await rewardReferral(current);
     await notify({

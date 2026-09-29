@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { barFlags, EXTRA_LABEL, TRAY_KEEP_DAYS, type BarItem, type BarScan, type ExtraItem, type ExtraStatus } from "@/lib/bar";
 import type { OrderItem } from "@/lib/menu";
 
@@ -73,6 +73,7 @@ export default function BarBills({ items }: { items: BarItem[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [openId, setOpenId] = useState<number | null>(null);
   const [edit, setEdit] = useState<Edit | null>(null);
+  const pendingOpen = useRef<number | null>(null);
   const [err, setErr] = useState("");
   const name = (id: string) => items.find((i) => i.id === id)?.name ?? id;
 
@@ -83,6 +84,10 @@ export default function BarBills({ items }: { items: BarItem[] }) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return setErr(j.error ?? "โหลดบิลไม่สำเร็จ");
     setBills(j.bills);
+    if (pendingOpen.current) {
+      setOpenId(pendingOpen.current);
+      pendingOpen.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -90,6 +95,20 @@ export default function BarBills({ items }: { items: BarItem[] }) {
     setOpenId(null);
     load(date);
   }, [date, load]);
+
+  // ส่วนสต๊อกขอให้เปิดบิล (ตามของหาย)
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent<{ id: number; date: string }>).detail;
+      setFilter("all");
+      if (d.date !== date) {
+        pendingOpen.current = d.id;
+        setDate(d.date);
+      } else setOpenId(d.id);
+    };
+    window.addEventListener("bar:open-bill", onOpen);
+    return () => window.removeEventListener("bar:open-bill", onOpen);
+  }, [date]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && !edit && setOpenId(null);

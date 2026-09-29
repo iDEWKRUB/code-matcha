@@ -39,6 +39,10 @@ export const TERMS = [
 // เก็บรูปถาดไว้เป็นหลักฐานกี่วัน
 export const TRAY_KEEP_DAYS = 90;
 
+// สต๊อก: เหลือเท่านี้หรือน้อยกว่า = ใกล้หมด
+export const LOW_STOCK = 5;
+export type CountLine = { id: string; name: string; price: number; expected: number; counted: number; diff: number; waste: number };
+
 // เรียกเก็บเพิ่ม: รายการที่อยู่ในถาดแต่ไม่ได้จ่าย (ราคา ณ ตอนเรียกเก็บ)
 export type ExtraItem = { id: string; name: string; qty: number; price: number };
 export type ExtraStatus = "none" | "due" | "review" | "paid";

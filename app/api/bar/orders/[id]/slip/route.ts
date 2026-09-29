@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkSlip } from "@/lib/barServer";
+import { applySale, checkSlip } from "@/lib/barServer";
 import { adminUri } from "@/lib/flex";
 import { pushCard, verifyIdToken } from "@/lib/line";
 import { earnPoints, itemLines, pointsBalance } from "@/lib/orders";
@@ -58,6 +58,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     else if (!done?.length) return fail("ออเดอร์นี้ไม่ได้รอชำระเงินแล้ว", 409);
     else {
       if (order.slip_path) await db().storage.from("slips").remove([order.slip_path]);
+      await applySale(id);
       const earned = await earnPoints(order);
       await rewardReferral(order);
       return NextResponse.json({ status: "paid", no: order.daily_no, total: order.total, earned, points: await pointsBalance(user.userId) });
