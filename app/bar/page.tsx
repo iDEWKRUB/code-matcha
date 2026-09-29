@@ -4,7 +4,6 @@ import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BAR_MAX_QTY,
-  COOK_SECONDS,
   EXTRA_LABEL,
   TERMS,
   TERMS_VERSION,
@@ -14,7 +13,7 @@ import {
   type ExtraItem,
   type ExtraStatus,
 } from "@/lib/bar";
-import { SHOP } from "@/lib/config";
+import { SHOP, pointsEarned } from "@/lib/config";
 import type { OrderItem, Payment } from "@/lib/menu";
 import Icon from "../Icon";
 import Seal from "../Seal";
@@ -74,23 +73,6 @@ const mmss = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-function beep() {
-  try {
-    const ctx = new AudioContext();
-    [0, 0.35, 0.7].forEach((t) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.frequency.value = 880;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.28);
-      o.connect(g).connect(ctx.destination);
-      o.start(ctx.currentTime + t);
-      o.stop(ctx.currentTime + t + 0.3);
-    });
-    navigator.vibrate?.([300, 150, 300]);
-  } catch {}
-}
 
 const Svg = ({ d, size = 22 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -152,9 +134,7 @@ export default function BarPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [cookEnd, setCookEnd] = useState<number | null>(null);
   const liff = useRef<Liff | null>(null);
-  const beeped = useRef(false);
 
   const tok = () => (liff.current ? liff.current.getIDToken() : "dev");
   const byId = useCallback((id: string) => items.find((i) => i.id === id), [items]);
@@ -206,17 +186,10 @@ export default function BarPage() {
   }, []);
 
   useEffect(() => {
-    if (phase !== "pay" && !cookEnd) return;
+    if (phase !== "pay") return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [phase, cookEnd]);
-
-  useEffect(() => {
-    if (cookEnd && now >= cookEnd && !beeped.current) {
-      beeped.current = true;
-      beep();
-    }
-  }, [now, cookEnd]);
+  }, [phase]);
 
   // หน้าวิธีจ่าย: การ์ตูนเล่นครบ 3 ฉาก (9 วินาที) → ปุ่มรับทราบนับ 5 4 3 2 1 แล้วไปหน้า QR เอง
   // ลูกค้าที่คล่องแล้วกดปุ่มข้ามได้ทันที
@@ -468,6 +441,21 @@ export default function BarPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  // จบบิลแล้ว → กลับหน้าแรกของมาม่าบาร์ (ถาดว่าง พร้อมสั่งรอบใหม่)
+  function toBarHome() {
+    setDone(null);
+    setPay(null);
+    setReview(null);
+    setTray({});
+    setShot(null);
+    setDetected({});
+    setUnreadable(0);
+    setUnknownQr(0);
+    setErr("");
+    setPhase("home");
+    window.scrollTo(0, 0);
   }
 
   async function cancelBill() {
@@ -958,10 +946,13 @@ export default function BarPage() {
             <span>ยอดที่ต้องชำระ</span>
             <b>฿{pay.total.toLocaleString()}</b>
           </div>
-          <span className={`pp-timer${left > 0 ? "" : " late"}`} role="timer">
-            <Svg d={I.timer} size={15} />
-            {left > 0 ? `จองไว้อีก ${mmss(left)}` : "ยังแนบสลิปได้"}
-          </span>
+          <div className="pp-chips">
+            <span className={`pp-timer${left > 0 ? "" : " late"}`} role="timer">
+              <Svg d={I.timer} size={15} />
+              {left > 0 ? `จองไว้อีก ${mmss(left)}` : "ยังแนบสลิปได้"}
+            </span>
+            {pointsEarned(pay.total) > 0 && <span className="pp-pts">จ่ายแล้วได้ +{pointsEarned(pay.total)} แต้ม</span>}
+          </div>
         </section>
 
         <section className="pp-qr">
@@ -1042,7 +1033,6 @@ export default function BarPage() {
   }
 
   if (phase === "done" && done) {
-    const cookLeft = cookEnd ? cookEnd - now : 0;
     return (
       <main className="nb nb-done">
         <div className="nb-ok">
@@ -1054,37 +1044,34 @@ export default function BarPage() {
           <h1>Enjoy! ต้มกินให้อร่อยนะ</h1>
           <p>ไปต้มมาม่าที่บาร์ได้เลย</p>
         </div>
+        {done.earned > 0 && (
+          <section className="pt-card" aria-label="แต้มที่ได้รับ">
+            <span className="pt-coin" aria-hidden="true">
+              P
+            </span>
+            <div>
+              <small>ได้รับแต้มจากบิลนี้</small>
+              <b>+{done.earned} แต้ม</b>
+            </div>
+            {done.points > 0 && (
+              <div className="pt-total">
+                <small>แต้มสะสมทั้งหมด</small>
+                <b>{done.points.toLocaleString()}</b>
+              </div>
+            )}
+          </section>
+        )}
         <section className="nb-card">
           <h2>ไปต้มได้เลย</h2>
           <ol className="nb-cook">
             <li>ใส่เส้นลงถ้วย เติมน้ำร้อนถึงขีด</li>
             <li>ใส่ท็อปปิ้ง ปิดฝารอ</li>
           </ol>
-          {cookEnd ? (
-            <div className={`nb-timer${cookLeft <= 0 ? " end" : ""}`} role="timer" aria-live="polite">
-              {cookLeft > 0 ? mmss(cookLeft) : "ได้เวลาแล้ว คนให้เข้ากันแล้วทานได้เลย"}
-              <button className="nb-link" onClick={() => setCookEnd(null)}>
-                {cookLeft > 0 ? "หยุด" : "ปิด"}
-              </button>
-            </div>
-          ) : (
-            <button
-              className="nb-btn dark"
-              onClick={() => {
-                beeped.current = false;
-                setNow(Date.now());
-                setCookEnd(Date.now() + COOK_SECONDS * 1000);
-              }}
-            >
-              <Svg d={I.timer} size={18} />
-              เริ่มจับเวลา {COOK_SECONDS / 60} นาที
-            </button>
-          )}
         </section>
-        <a className="nb-btn solid wide" href="/">
+        <button className="nb-btn solid wide" onClick={toBarHome}>
           <Svg d={I.home} size={20} />
-          กลับหน้าหลัก
-        </a>
+          กลับหน้าหลักมาม่าบาร์
+        </button>
       </main>
     );
   }

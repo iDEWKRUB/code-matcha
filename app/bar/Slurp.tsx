@@ -18,18 +18,22 @@ export default function Slurp({ size = 260 }: { size?: number }) {
       <path d="M112 174l18 18 18-18" fill="#F3EFE4" />
       <path d="M130 192v46" stroke="#3D5C37" strokeWidth="3" />
 
+      {/* หัวทั้งหมดขยับลงมาชิดถ้วย ไม่ให้คอดูลอย */}
+      <g transform="translate(0 14)">
       {/* ผม (ด้านหลัง) + ดังโงะ */}
       <circle cx="130" cy="30" r="17" fill="#2B211C" />
       <rect x="116" y="42" width="28" height="7" rx="3.5" fill="#B8412C" />
       <path d="M80 96c-6-44 18-66 50-66s56 22 50 66l-4 42c-8 6-18 8-24 6l-22-40-22 40c-6 2-16 0-24-6z" fill="#2B211C" />
 
-      {/* หน้า */}
+      {/* คอ + หน้า */}
+      <rect x="120" y="128" width="20" height="20" rx="6" fill="#F2D2BC" />
       <ellipse cx="130" cy="98" rx="44" ry="42" fill="#FCE5D2" />
       <path d="M86 90c6-26 24-40 44-40s38 14 44 40c-14-4-24-14-28-24-8 12-26 22-60 24z" fill="#2B211C" />
       <path d="M111 99q7-8 14 0M135 99q7-8 14 0" fill="none" stroke="#2B211C" strokeWidth="3.4" strokeLinecap="round" />
       <ellipse cx="107" cy="111" rx="8" ry="5" fill="#F4A3A0" opacity=".75" />
       <ellipse cx="153" cy="111" rx="8" ry="5" fill="#F4A3A0" opacity=".75" />
       <path d="M122 113q8 12 16 0z" fill="#C2554A" />
+      </g>
 
       {/* แขนขวา + ตะเกียบ + เส้นที่คีบขึ้นมา */}
       <path d="M176 196c10-18 14-40 8-64" stroke="#2F4A2A" strokeWidth="20" strokeLinecap="round" fill="none" />
