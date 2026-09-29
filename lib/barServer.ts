@@ -1,8 +1,30 @@
 import "server-only";
-import { TRAY_KEEP_DAYS, type BarItem, type ExtraItem } from "./bar";
+import { TRAY_KEEP_DAYS, type BarHours, type BarItem, type ExtraItem } from "./bar";
 import { orderUri } from "./flex";
 import { pushCard } from "./line";
 import { db } from "./supabase";
+import { nowInShop, toMinutes } from "./time";
+
+export async function getBarHours(): Promise<BarHours> {
+  const { data, error } = await db()
+    .from("shop_settings")
+    .select("bar_enabled,bar_open_time,bar_close_time,bar_all_day")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) throw error;
+  const h = {
+    enabled: data?.bar_enabled ?? false,
+    allDay: data?.bar_all_day ?? false,
+    openTime: data?.bar_open_time ?? "14:00",
+    closeTime: data?.bar_close_time ?? "23:59",
+  };
+  const m = nowInShop().minutes;
+  const open = toMinutes(h.openTime);
+  const close = toMinutes(h.closeTime);
+  // เวลาปิดก่อนเวลาเปิด = เปิดข้ามเที่ยงคืน (เช่น 14:00–02:00)
+  const openNow = h.allDay || (close > open ? m >= open && m < close : m >= open || m < close);
+  return { ...h, openNow };
+}
 
 // บิลมาม่าบาร์จ่ายแล้ว → ตัดสต๊อกตามรายการที่จ่าย (เรียกซ้ำได้ ไม่ตัดซ้ำ) ไม่ให้ล้มการจ่ายเงินถ้าตัดไม่สำเร็จ
 export async function applySale(orderId: number) {

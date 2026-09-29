@@ -8,7 +8,9 @@ import {
   TERMS,
   TERMS_VERSION,
   TRAY_KEEP_DAYS,
+  barHoursText,
   barIdFromQr,
+  type BarHours,
   type BarItem,
   type ExtraItem,
   type ExtraStatus,
@@ -23,7 +25,7 @@ import BarArt from "./BarArt";
 import Slurp from "./Slurp";
 import type { TrayScan } from "./scan";
 
-type Hours = { openNow: boolean; openTime: string; closeTime: string; accepting: boolean };
+type Hours = BarHours;
 type Pending = Payment & { status?: string };
 type Done = { no: number; total: number; earned: number; points: number };
 type Phase = "loading" | "error" | "home" | "scan" | "pay" | "done" | "history" | "extra";
@@ -509,6 +511,11 @@ export default function BarPage() {
           <a href="/">สั่งกลับบ้าน / ล่วงหน้า</a>
           <span className="on" aria-current="true">อยู่ที่ร้าน</span>
         </div>
+        {hours && !hours.enabled && (
+          <p className="nb-testmode" role="note">
+            โหมดทดสอบ · มาม่าบาร์ยังปิดอยู่ ลูกค้าไม่เห็นปุ่มเข้ามาในหน้าหลัก
+          </p>
+        )}
         {err && <p className="nb-err" role="alert">{err}</p>}
         <section className="nb-hero">
           <div className="nb-hero-text">
@@ -520,7 +527,7 @@ export default function BarPage() {
             </h2>
             <button className="nb-hero-cta" onClick={() => setPhase("scan")} disabled={closed}>
               {!closed && <Svg d={I.scan} size={20} />}
-              {closed ? `ร้านเปิด ${hours?.openTime}–${hours?.closeTime} น.` : "เริ่มสแกนถาด"}
+              {closed && hours ? `มาม่าบาร์${barHoursText(hours)}` : "เริ่มสแกนถาด"}
             </button>
           </div>
           <svg className="nb-hero-art" width="92" height="92" viewBox="0 0 48 48" aria-hidden="true">

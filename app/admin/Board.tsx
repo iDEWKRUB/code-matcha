@@ -10,9 +10,10 @@ import CostTab from "./CostTab";
 import ReportTab from "./ReportTab";
 import { askNotify, chime, notify, unlock } from "./alarm";
 import SettingsTab from "./SettingsTab";
+import BarAdmin from "./bar/BarAdmin";
 
 const POLL_MS = 5000;
-type Tab = "orders" | "menu" | "report" | "cost" | "settings";
+type Tab = "orders" | "menu" | "bar" | "report" | "cost" | "settings";
 
 const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = [
   {
@@ -28,6 +29,12 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
     icon: (
       <path d="M6 8h11l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16.6M9 4c0 1 1 1 1 2M12 3c0 1 1 1 1 2" />
     ),
+  },
+  {
+    id: "bar",
+    label: "มาม่าบาร์",
+    hint: "เปิด/ปิดขาย · เวลาเปิด · บิล · สต๊อก · ของในบาร์ · สติ๊กเกอร์ QR",
+    icon: <path d="M3 12h18a9 9 0 0 1-18 0Zm4-4c0-1 1-1 1-2M12 7c0-1 1-1 1-2M16 8c0-1 1-1 1-2" />,
   },
   {
     id: "report",
@@ -218,12 +225,6 @@ export default function Board() {
             </button>
           ))}
         </nav>
-        <a className="adm-extra" href="/admin/bar" title="มาม่าบาร์ (ยังไม่เปิดให้ลูกค้า)">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 12h18a9 9 0 0 1-18 0Zm4-4c0-1 1-1 1-2M12 7c0-1 1-1 1-2M16 8c0-1 1-1 1-2" />
-          </svg>
-          <span>มาม่าบาร์ (ทดลอง)</span>
-        </a>
         <button className="adm-logout" onClick={logout} title="ออกจากระบบ">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />
@@ -286,6 +287,7 @@ export default function Board() {
 
         {tab === "orders" && <OrdersTab orders={orders} stats={stats} fresh={fresh} reload={load} onError={setError} />}
         {tab === "menu" && <MenuTab menu={menu} setMenu={setMenu} reload={load} onError={setError} />}
+        {tab === "bar" && <BarAdmin embedded />}
         {tab === "report" && <ReportTab />}
         {tab === "cost" && <CostTab menu={menu} reload={load} />}
         {tab === "settings" && <SettingsTab menu={menu} reload={load} />}

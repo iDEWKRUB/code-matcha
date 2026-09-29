@@ -1573,3 +1573,34 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .pt-card b { font-family: var(--font-serif-th), var(--sans); font-size: 24px; line-height: 1.2; }
 .pt-card .pt-total { margin-left: auto; text-align: right; padding-left: 12px; border-left: 1px solid rgba(255,255,255,.2); }
 .pt-card .pt-total b { font-size: 18px; }
+/* มาม่าบาร์: แท็บในหลังร้าน + สวิตช์เปิดขาย/เวลาเปิด */
+.nba.nba-embed { max-width: 960px; margin: 0; padding: 0 0 40px; }
+.bh-toggle { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; border: 1px solid var(--edge); background: #f3e3df; color: var(--seal); font-weight: 700; font-size: 14px; cursor: pointer; flex-shrink: 0; }
+.bh-toggle i { width: 44px; height: 26px; border-radius: 999px; background: #d9c9c4; position: relative; transition: background .2s; }
+.bh-toggle i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.bh-toggle.on { background: #e7f0d6; color: var(--matcha); }
+.bh-toggle.on i { background: var(--matcha); }
+.bh-toggle.on i::after { transform: translateX(18px); }
+.bh-hours { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.bh-mode { display: inline-flex; padding: 3px; border-radius: 12px; background: #f1ede2; }
+.bh-mode button { min-height: 38px; padding: 0 16px; border-radius: 9px; font-weight: 600; font-size: 14px; color: var(--stone); background: transparent; cursor: pointer; }
+.bh-mode button[aria-pressed="true"] { background: #fff; color: var(--matcha); box-shadow: 0 1px 4px rgba(28,36,25,.15); }
+.bh-times { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.bh-times label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--stone); }
+.bh-times input { min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
+.bh-now { color: var(--seal); }
+.bh-now.on { color: var(--matcha); }
+@media print {
+  body:has(.nbs-sheet) .adm-side, body:has(.nbs-sheet) .adm-head, body:has(.nbs-sheet) .order-alarm, body:has(.nbs-sheet) .snd-unlock, body:has(.nbs-sheet) .banner { display: none !important; }
+  .nba > *:not(.nbs-sheet) { display: none !important; }
+}
+/* หน้าหลักลูกค้า: การ์ดเข้ามาม่าบาร์ + ป้ายโหมดทดสอบในหน้ามาม่าบาร์ */
+.bar-entry { margin: 14px 16px 0; padding: 12px 16px 12px 12px; border-radius: 18px; background: linear-gradient(150deg, #2F4A2A, #4f7a36); color: #F3EFE4; display: flex; align-items: center; gap: 12px; text-decoration: none; box-shadow: 0 12px 24px -18px rgba(47,74,42,.9); }
+.bar-entry-art { flex-shrink: 0; background: rgba(255,255,255,.1); border-radius: 14px; padding: 4px; }
+.bar-entry-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.bar-entry-txt small { font-size: 12px; color: #C9DBAE; }
+.bar-entry-txt b { font-size: 19px; line-height: 1.25; }
+.bar-entry-txt em { font-style: normal; font-size: 12px; color: #f0c9bd; }
+.bar-entry-txt em.on { color: #d9ecb8; }
+.bar-entry-go { font-size: 28px; line-height: 1; color: #C9DBAE; }
+.nb-testmode { margin: 12px 20px 0; padding: 8px 12px; border-radius: 12px; background: #FFF4D6; border: 1px dashed #E0B84C; color: #7a5a12; font-size: 13px; text-align: center; }

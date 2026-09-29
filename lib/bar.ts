@@ -19,6 +19,11 @@ export type BarItem = {
 
 export type BarLine = { id: string; qty: number };
 
+// เวลาเปิดมาม่าบาร์ (แยกจากมัทฉะ) · enabled = ลูกค้าเห็นปุ่มเข้ามาม่าบาร์ในหน้าหลัก
+export type BarHours = { enabled: boolean; allDay: boolean; openTime: string; closeTime: string; openNow: boolean };
+export const barHoursText = (h: Pick<BarHours, "allDay" | "openTime" | "closeTime">) =>
+  h.allDay ? "เปิด 24 ชม." : `เปิด ${h.openTime}–${h.closeTime} น.`;
+
 export const BAR_MAX_QTY = 20;
 
 // ข้อความใน QR สติ๊กเกอร์ของแต่ละชิ้น

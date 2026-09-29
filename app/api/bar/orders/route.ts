@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { BAR_MAX_QTY, TERMS_VERSION, type BarLine, type BarScan } from "@/lib/bar";
-import { getBarItems } from "@/lib/barServer";
+import { BAR_MAX_QTY, TERMS_VERSION, barHoursText, type BarLine, type BarScan } from "@/lib/bar";
+import { getBarHours, getBarItems } from "@/lib/barServer";
 import { SHOP } from "@/lib/config";
 import { isFriend, verifyIdToken } from "@/lib/line";
 import type { OrderItem } from "@/lib/menu";
-import { getSettings, openNow, paymentFor, pointsBalance } from "@/lib/orders";
+import { paymentFor, pointsBalance } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -71,8 +71,8 @@ export async function POST(req: Request) {
   }
   if (total <= 0) return fail("ยอดรวมไม่ถูกต้อง");
 
-  const shop = await getSettings();
-  if (!openNow(shop)) return fail(`ตอนนี้ร้านยังไม่เปิด (เปิด ${shop.openTime}–${shop.closeTime} น.)`, 409);
+  const hours = await getBarHours();
+  if (!hours.openNow) return fail(`ตอนนี้มาม่าบาร์ยังไม่เปิด (${barHoursText(hours)})`, 409);
   if (!process.env.PROMPTPAY_ID) return fail("ร้านยังไม่ได้ตั้งค่าการรับเงิน กรุณาติดต่อร้าน", 503);
 
   const now = nowInShop();

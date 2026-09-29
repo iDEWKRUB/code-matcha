@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { BAR_KINDS, barQrText, type BarItem, type BarKind } from "@/lib/bar";
 import BarArt from "../../bar/BarArt";
 import BarBills from "./BarBills";
+import BarHoursPanel from "./BarHoursPanel";
 import BarStock from "./BarStock";
 import { uploadImage } from "../upload";
 
@@ -12,7 +13,8 @@ type Draft = { id?: string; name: string; kind: BarKind; price: string; sort: st
 const blank: Draft = { name: "", kind: "noodle", price: "", sort: "0", available: true, imageUrl: null };
 const toDraft = (i: BarItem): Draft => ({ id: i.id, name: i.name, kind: i.kind, price: String(i.price), sort: String(i.sort), available: i.available, imageUrl: i.imageUrl });
 
-export default function BarAdmin() {
+// embedded = อยู่ในแท็บ "มาม่าบาร์" ของหน้าหลังร้าน (ไม่ต้องมีปุ่มกลับ/หัวเรื่องซ้ำ)
+export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [items, setItems] = useState<BarItem[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,15 +83,17 @@ export default function BarAdmin() {
   const stickers = items.flatMap((i) => Array.from({ length: copies[i.id] ?? 0 }, () => i));
 
   return (
-    <main className="nba">
+    <div className={embedded ? "nba nba-embed" : "nba"}>
       <header className="nba-head nba-noprint">
-        <a href="/admin" className="nba-back">
-          ← กลับหลังร้าน
-        </a>
-        <h1>มาม่าบาร์</h1>
-        <p>
-          ยังไม่เปิดให้ลูกค้า: ไม่มีปุ่มไหนลิงก์มาที่นี่ เปิดทดสอบได้จากลิงก์ลับด้านล่างเท่านั้น
-        </p>
+        {!embedded && (
+          <>
+            <a href="/admin" className="nba-back">
+              ← กลับหลังร้าน
+            </a>
+            <h1>มาม่าบาร์</h1>
+          </>
+        )}
+        <p>ลิงก์หน้ามาม่าบาร์ของลูกค้า (ใช้ทดสอบ หรือทำ QR ติดหน้าบาร์)</p>
         <div className="nba-link">
           <code>{liffLink}</code>
           <button
@@ -103,6 +107,8 @@ export default function BarAdmin() {
           </button>
         </div>
       </header>
+
+      <BarHoursPanel />
 
       <BarBills items={items} />
 
@@ -271,6 +277,6 @@ export default function BarAdmin() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -25,6 +25,7 @@ import {
   whenText,
   type Slot,
 } from "@/lib/menu";
+import type { BarHours } from "@/lib/bar";
 import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
 import { promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
@@ -160,6 +161,7 @@ export default function OrderPage() {
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   const [promoErr, setPromoErr] = useState("");
   const [promoBusy, setPromoBusy] = useState(false);
+  const [bar, setBar] = useState<BarHours | null>(null);
   const liff = useRef<Liff | null>(null);
 
   // ออเดอร์ที่ค้างจ่าย + แต้มคงเหลือ
@@ -175,7 +177,8 @@ export default function OrderPage() {
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
     if (!r.ok) throw new Error("โหลดเมนูไม่สำเร็จ");
-    const j = (await r.json()) as { menu: MenuItem[]; powders: Powder[]; slots: Slot[]; banner: string; hours: Hours };
+    const j = (await r.json()) as { menu: MenuItem[]; powders: Powder[]; slots: Slot[]; banner: string; hours: Hours; bar: BarHours | null };
+    setBar(j.bar ?? null);
     setMenu(j.menu);
     setPowders(j.powders ?? []);
     setSlots(j.slots);
@@ -543,6 +546,23 @@ export default function OrderPage() {
           <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
         </svg>
       </header>
+      {bar && (
+        <a className="bar-entry" href="/bar">
+          <svg className="bar-entry-art" width="54" height="54" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M16 12c-2-3 2-4 0-7M24 12c-2-3 2-4 0-7M32 12c-2-3 2-4 0-7" fill="none" stroke="#C9DBAE" strokeWidth="1.8" strokeLinecap="round" />
+            <ellipse cx="24" cy="20" rx="17" ry="4.5" fill="#E9A23B" />
+            <path d="M13 19c2-2 3 2 5 0s3 2 5 0 3 2 5 0 3 2 5 0" fill="none" stroke="#FFE7A8" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M7 20c1 11 8 17 17 17s16-6 17-17c-4 3-10 4.5-17 4.5S11 23 7 20z" fill="#FDFAF3" />
+            <path d="M9 28c4 3 9 4.5 15 4.5s11-1.5 15-4.5" stroke="#B8412C" strokeWidth="3" fill="none" />
+          </svg>
+          <span className="bar-entry-txt">
+            <small>อยู่ที่ร้าน · บริการตัวเอง</small>
+            <b>มาม่าบาร์</b>
+            <em className={bar.openNow ? "on" : ""}>{bar.openNow ? "เปิดอยู่ตอนนี้" : "ยังไม่เปิด"} · {bar.allDay ? "24 ชม." : `${bar.openTime}–${bar.closeTime} น.`}</em>
+          </span>
+          <span className="bar-entry-go" aria-hidden="true">›</span>
+        </a>
+      )}
       {closed && <ClosedNotice hours={hours!} />}
       {friendCard && <div className="friend-wrap">{friendCard}</div>}
       {invitedBy && (
