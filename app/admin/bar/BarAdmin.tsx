@@ -105,11 +105,23 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [copies, setCopies] = useState<Record<string, number>>({});
   // รูปแบบกระดาษ: a4 = แผ่น A4 · roll = ม้วน Sbarco 3 ดวงต่อแถว 32×25 มม. (จำไว้ในเครื่องนี้)
   const [layout, setLayout] = useState<"a4" | "roll">("a4");
+  // ปรับตำแหน่งให้ตรงดวงบนม้วน (มม.): เลื่อนซ้าย/ขวา · ขึ้น/ลง · ระยะห่างระหว่างดวง
+  const [tune, setTune] = useState({ x: 0, y: 0, gap: 3 });
   useEffect(() => {
     try {
       if (localStorage.getItem("adm-sticker-layout") === "roll") setLayout("roll");
+      const saved = JSON.parse(localStorage.getItem("adm-sticker-tune") ?? "null");
+      if (saved) setTune({ x: Number(saved.x) || 0, y: Number(saved.y) || 0, gap: Number.isFinite(saved.gap) ? saved.gap : 3 });
     } catch {}
   }, []);
+  function changeTune(k: "x" | "y" | "gap", v: string) {
+    const n = Math.max(k === "gap" ? 0 : -8, Math.min(8, Number(v) || 0));
+    const next = { ...tune, [k]: n };
+    setTune(next);
+    try {
+      localStorage.setItem("adm-sticker-tune", JSON.stringify(next));
+    } catch {}
+  }
   function pickLayout(l: "a4" | "roll") {
     setLayout(l);
     try {
@@ -318,6 +330,22 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 ตอนสั่งพิมพ์: เลือกเครื่อง Sbarco · ขนาดกระดาษ 102 × 25 มม. · ขอบ (Margins) = ไม่มี · สเกล 100% · ไม่ต้องพิมพ์หัว/ท้ายกระดาษ
               </p>
             )}
+            {layout === "roll" && (
+              <div className="nba-tune">
+                <label>
+                  เลื่อนซ้าย(−) / ขวา(+) มม.
+                  <input type="number" step={0.5} value={tune.x} onChange={(e) => changeTune("x", e.target.value)} />
+                </label>
+                <label>
+                  เลื่อนขึ้น(−) / ลง(+) มม.
+                  <input type="number" step={0.5} value={tune.y} onChange={(e) => changeTune("y", e.target.value)} />
+                </label>
+                <label>
+                  ระยะห่างระหว่างดวง มม.
+                  <input type="number" step={0.5} min={0} value={tune.gap} onChange={(e) => changeTune("gap", e.target.value)} />
+                </label>
+              </div>
+            )}
             <div className="nba-copies">
               {items.map((i) => (
                 <label key={i.id}>
@@ -349,7 +377,11 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
           </section>
 
           {stickers.length > 0 && layout === "roll" && (
-            <div className="nbs-roll" aria-label="ตัวอย่างสติ๊กเกอร์ม้วน">
+            <div
+              className="nbs-roll"
+              aria-label="ตัวอย่างสติ๊กเกอร์ม้วน"
+              style={{ "--lx": `${tune.x}mm`, "--ly": `${tune.y}mm`, "--gx": `${tune.gap}mm` } as React.CSSProperties}
+            >
               {Array.from({ length: Math.ceil(stickers.length / 3) }, (_, r) => (
                 <div className="nbs-row" key={r}>
                   {[0, 1, 2].map((c) => {

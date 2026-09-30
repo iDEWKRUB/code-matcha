@@ -1895,18 +1895,26 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .seal > span { color: #fff; }
 /* สติ๊กเกอร์ QR มาม่าบาร์: ม้วน Sbarco 3 ดวงต่อแถว (ดวง 32×25 มม. · หน้ากว้าง 102 มม. สูง 25 มม. = 1 แถว) */
 .nbs-roll { display: flex; flex-direction: column; gap: 3mm; align-items: center; background: #fff; padding: 8px; border-radius: 12px; }
-.nbs-row { page: roll3; width: 102mm; height: 25mm; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; break-after: page; overflow: hidden; }
+.nbs-row { page: roll3; width: 102mm; height: 24.8mm; box-sizing: border-box; display: flex; justify-content: center; column-gap: var(--gx, 3mm); align-items: center; break-after: page; overflow: hidden; }
 .nbs-row:last-child { break-after: auto; }
-.nbs-lb { width: 32mm; height: 25mm; box-sizing: border-box; padding: 1mm 0.8mm 0.8mm; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4mm; overflow: hidden; text-align: center; outline: 0.3mm dashed #bbb; outline-offset: -0.15mm; border-radius: 2mm; }
+.nbs-lb { transform: translate(var(--lx, 0mm), var(--ly, 0mm)); flex-shrink: 0; width: 32mm; height: 24.8mm; box-sizing: border-box; padding: 1mm 0.8mm 0.8mm; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4mm; overflow: hidden; text-align: center; outline: 0.3mm dashed #bbb; outline-offset: -0.15mm; border-radius: 2mm; }
 .nbs-lb.empty { outline-color: #eee; }
 .nbs-lb img { width: 17mm; height: 17mm; image-rendering: pixelated; flex-shrink: 0; }
 .nbs-lb b { max-width: 100%; font-size: 7pt; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000; }
 .nbs-lb small { font-size: 4.6pt; line-height: 1; color: #444; white-space: nowrap; }
 @page roll3 { size: 102mm 25mm; margin: 0; }
 @media print {
+  /* พิมพ์จากในหน้าหลังร้าน: ล้างระยะขอบของหน้า ไม่ให้แถวแรกถูกดันจนล้นไปหน้า 2 */
+  body:has(.nbs-roll), body:has(.nbs-sheet) { margin: 0; background: #fff; }
+  body:has(.nbs-roll) .adm, body:has(.nbs-sheet) .adm { display: block; min-height: 0; background: #fff; }
+  body:has(.nbs-roll) .adm-main, body:has(.nbs-sheet) .adm-main { padding: 0; }
+  body:has(.nbs-roll) .nba, body:has(.nbs-sheet) .nba { padding: 0; margin: 0; gap: 0; display: block; }
   .nbs-roll { padding: 0; gap: 0; border-radius: 0; display: block; }
   .nbs-lb { outline: 0; border-radius: 0; }
 }
 .nba-layout { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #f1ede2; align-self: flex-start; flex-wrap: wrap; }
 .nba-layout button { min-height: 38px; padding: 0 14px; border-radius: 9px; background: transparent; color: var(--stone); font-weight: 600; font-size: 13px; cursor: pointer; }
 .nba-layout button[aria-pressed="true"] { background: #fff; color: var(--matcha); box-shadow: 0 1px 4px rgba(28,36,25,.15); }
+.nba-tune { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.nba-tune label { display: grid; gap: 4px; font-size: 13px; color: var(--stone); font-weight: 600; }
+.nba-tune input { width: 90px; min-height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
