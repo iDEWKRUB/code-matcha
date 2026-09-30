@@ -42,7 +42,7 @@ const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 type Opts = Omit<CartLine, "itemId">;
 type Hours = { accepting: boolean; openTime: string; closeTime: string; openNow: boolean };
 type AppliedPromo = Pick<PromoRule, "code" | "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly">;
-type Done = { no: number; pickupTime: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean };
+type Done = { no: number; pickupTime: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean; paid?: boolean; earned?: number; ahead?: number; reason?: string };
 
 const SERVICES: { id: Service; icon: IconName; title: string; sub: string }[] = [
   { id: "dine_in", icon: "bowl", title: "ทานที่ร้าน", sub: "อยู่ร้านแล้ว ทำให้เลย" },
@@ -395,7 +395,10 @@ export default function OrderPage() {
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
       if (!r.ok) throw new Error(j.error ?? "ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้ง");
-      setDone({ no: pay.no, pickupTime: pay.pickupTime, service: pay.service, tableNo: pay.tableNo, total: pay.total, discount: pay.discount });
+      // SlipOK ตรวจผ่าน = เข้าคิวแล้ว · ไม่ผ่าน = รอร้านตรวจ (บอกเหตุผลด้วย)
+      const paid = j.status === "paid";
+      setDone({ no: pay.no, pickupTime: pay.pickupTime, service: pay.service, tableNo: pay.tableNo, total: pay.total, discount: pay.discount, paid, earned: j.earned, ahead: j.ahead, reason: j.reason || "" });
+      if (paid && typeof j.balance === "number") setPoints(j.balance);
       setPay(null);
       setPhase("done");
     } catch (e) {
@@ -496,9 +499,21 @@ export default function OrderPage() {
               จะแจ้งทาง LINE เมื่อเครื่องดื่มพร้อมรับ
             </p>
           </>
+        ) : done.paid ? (
+          <>
+            <h2>ชำระเรียบร้อย เข้าคิวแล้ว</h2>
+            <p className="t">
+              ยอด ฿{done.total} · <strong>{whenText(done)}</strong>
+              <br />
+              {done.ahead ? `มี ${done.ahead} คิวก่อนหน้า` : "ไม่มีคิวก่อนหน้า ร้านเริ่มทำเลย"}
+              <br />
+              ได้รับ <strong>{done.earned ?? 0} แต้ม</strong> · จะแจ้งทาง LINE เมื่อเครื่องดื่มพร้อม
+            </p>
+          </>
         ) : (
           <>
             <h2>ส่งสลิปแล้ว รอร้านตรวจยอด</h2>
+            {done.reason && <p className="t">ตรวจอัตโนมัติไม่ผ่าน: {done.reason}</p>}
             <p className="t">
               ยอด ฿{done.total} · <strong>{whenText(done)}</strong>
               <br />

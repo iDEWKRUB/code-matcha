@@ -8,7 +8,7 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
 - Supabase: Postgres plus Storage buckets `slips` (private) and `promo` (public). The service-role key is used **server-side only**. RLS is on with no policies.
 - LINE: LIFF `2011734262-vT6PURmn`, Login channel `2011734262`, Messaging channel `2011734053`, OA `@745plqxi`. Rich menu `richmenu-8aef16dcb224457b29352dcf1fe946db`; its `chatBarText` is limited to 14 characters.
 - Hosting: Vercel, region sin1. Push to `main` on github.com/iDEWKRUB/code-matcha and it auto-deploys to https://code-matcha.vercel.app (`/admin`, `/member`, `/poster`).
-- Payment: PromptPay EMV QR generated in `lib/promptpay.ts`. The customer uploads a slip and the barista confirms it by hand.
+- Payment: PromptPay EMV QR generated in `lib/promptpay.ts`. The customer uploads a slip; SlipOK (`checkSlip` in `lib/barServer.ts`) verifies it for both matcha and mama bar. Pass → matcha order goes to `pending` (queue, `afterMatchaPaid` in `lib/paid.ts`); fail → `payment_review` and the barista confirms by hand.
 - Secrets live only in `.env.local` (gitignored) and in Vercel env vars. Never print them or commit them.
 
 ## File map

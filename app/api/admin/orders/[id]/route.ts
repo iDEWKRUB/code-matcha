@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { orderUri, type Card } from "@/lib/flex";
+import type { Card } from "@/lib/flex";
 import { pushCard } from "@/lib/line";
 import type { OrderStatus } from "@/lib/menu";
-import { ORDER_COLUMNS, earnPoints, itemLines, pointsBalance, queueAhead, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
+import { ORDER_COLUMNS, earnPoints, itemLines, pointsBalance, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
 import { applySale } from "@/lib/barServer";
+import { afterMatchaPaid } from "@/lib/paid";
 import { rewardReferral } from "@/lib/referral";
 import { db } from "@/lib/supabase";
 
@@ -62,30 +63,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       items: itemLines(current.items),
     });
   } else if (to === "pending") {
-    const earned = await earnPoints(current);
-    const bonus = await rewardReferral(current); // ออเดอร์แรกของเพื่อนที่ถูกชวน
-    const [ahead, balance] = await Promise.all([
-      queueAhead(current.pickup_date, current.pickup_time, no),
-      pointsBalance(current.line_user_id),
-    ]);
-    await notify({
-      tone: "matcha",
-      title: "ร้านได้รับชำระเงินแล้ว",
-      subtitle: `ออเดอร์ #${no} เข้าคิวเรียบร้อย`,
-      rows: [
-        ["ออเดอร์", `#${no}`, true],
-        ["วิธีรับ", rowWhen(current)],
-        ...(current.promo_discount > 0 ? ([[`โค้ด ${current.promo_code}`, `−฿${current.promo_discount}`]] as [string, string][]) : []),
-        ...(current.discount > 0 ? ([["ส่วนลดแต้ม", `−฿${current.discount}`]] as [string, string][]) : []),
-        ["ยอดชำระ", `฿${current.total}`],
-        ["คิวก่อนหน้า", ahead ? `${ahead} คิว` : "ไม่มี ทำต่อเลย"],
-        ["แต้มสะสม", earned > 0 ? `+${earned} (รวม ${balance})` : `${balance} แต้ม`],
-        ...(bonus > 0 ? ([["โบนัสเพื่อนชวน", `+${bonus} แต้ม`, true]] as [string, string, boolean][]) : []),
-      ],
-      items: itemLines(current.items),
-      note: "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง",
-      button: { label: "สั่งเพิ่ม", uri: orderUri() },
-    });
+    await afterMatchaPaid(current);
   }
   if (to === "ready") {
     const served = current.service === "dine_in" && current.table_no;
