@@ -15,7 +15,8 @@ import {
   type ExtraItem,
   type ExtraStatus,
 } from "@/lib/bar";
-import { SHOP, pointsEarned } from "@/lib/config";
+import { POINTS, SHOP, pointsEarned } from "@/lib/config";
+import { promoDiscount, type PromoRule } from "@/lib/promo";
 import type { OrderItem, Payment } from "@/lib/menu";
 import Icon from "../Icon";
 import Seal from "../Seal";
@@ -28,6 +29,7 @@ import type { TrayScan } from "./scan";
 type Hours = BarHours;
 type Pending = Payment & { status?: string };
 type Done = { no: number; total: number; earned: number; points: number };
+type AppliedPromo = Pick<PromoRule, "code" | "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly">;
 type Phase = "loading" | "error" | "home" | "scan" | "pay" | "done" | "history" | "extra";
 type Bill = {
   id: number;
@@ -110,6 +112,11 @@ export default function BarPage() {
   const [autoSlip, setAutoSlip] = useState(false);
   const [name, setName] = useState("");
   const [points, setPoints] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<AppliedPromo | null>(null);
+  const [promoErr, setPromoErr] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
   const [tray, setTray] = useState<Record<string, number>>({});
   const [shot, setShot] = useState<TrayScan | null>(null);
   const [detected, setDetected] = useState<Record<string, number>>({});
@@ -303,6 +310,12 @@ export default function BarPage() {
   const lines = Object.entries(tray).filter(([id, q]) => q > 0 && byId(id));
   const count = lines.reduce((n, [, q]) => n + q, 0);
   const total = lines.reduce((n, [id, q]) => n + (byId(id)?.price ?? 0) * q, 0);
+  // โค้ดส่วนลดหักก่อน แล้วค่อยใช้แต้มกับยอดที่เหลือ (เหมือนฝั่งมัทฉะ)
+  const promoOff = promo ? promoDiscount(promo, total) : 0;
+  const afterPromo = total - promoOff;
+  const usable = Math.min(points, afterPromo) >= POINTS.minRedeem ? Math.min(points, afterPromo) : 0;
+  const pointsToUse = usePoints ? usable : 0;
+  const payAmount = afterPromo - pointsToUse;
   const closed = !!hours && !hours.openNow;
   const agreed = agree.every(Boolean);
   const ctaHint = !count
@@ -398,6 +411,26 @@ export default function BarPage() {
     setHistory(j.bills);
   }
 
+  async function applyPromo() {
+    setPromoErr("");
+    setPromoBusy(true);
+    try {
+      const r = await fetch("/api/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+        body: JSON.stringify({ code: promoInput, subtotal: total }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? "ใช้โค้ดไม่ได้");
+      setPromo(j as AppliedPromo);
+    } catch (e) {
+      setPromo(null);
+      setPromoErr(e instanceof Error ? e.message : "ใช้โค้ดไม่ได้");
+    } finally {
+      setPromoBusy(false);
+    }
+  }
+
   async function checkout() {
     setSending(true);
     setErr("");
@@ -409,11 +442,26 @@ export default function BarPage() {
       fd.append("scan", JSON.stringify({ detected, unknown: unknownQr, unreadable }));
       fd.append("declared", String(count));
       fd.append("accept", String(TERMS_VERSION));
+      fd.append("points", String(pointsToUse));
+      fd.append("promoCode", promo?.code ?? "");
       fd.append("photo", await (await fetch(shot.photo)).blob(), "tray.jpg");
       const r = await fetch("/api/bar/orders", { method: "POST", headers: { Authorization: `Bearer ${tok()}` }, body: fd });
       const j = await r.json().catch(() => ({}));
       if (r.status === 403) setNeedFriend(true);
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
+      setPromo(null);
+      setPromoInput("");
+      setUsePoints(false);
+      // แต้ม/โค้ดจ่ายครบ ไม่ต้องโอน → จบบิลเลย
+      if (j.free) {
+        setPoints(j.points ?? 0);
+        setDone({ no: j.no, total: 0, earned: 0, points: j.points ?? 0 });
+        setTray({});
+        setShot(null);
+        setDetected({});
+        setPhase("done");
+        return;
+      }
       setPay(j as Pending);
       setReview(null);
       setHowto(true);
@@ -818,6 +866,81 @@ export default function BarPage() {
               <b className="nb-count-sum">฿{total}</b>
             </div>
           )}
+          {shot && count > 0 && (
+            <section className="nb-disc" aria-label="ส่วนลด">
+              <h3>โค้ดส่วนลด</h3>
+              {promo ? (
+                <div className="nb-promo-on">
+                  <span className="nb-code">{promo.code}</span>
+                  <span>{promoOff > 0 ? `ลด ฿${promoOff}` : `ใช้ได้เมื่อซื้อครบ ฿${promo.minSpend}`}</span>
+                  <button
+                    aria-label="ยกเลิกโค้ด"
+                    onClick={() => {
+                      setPromo(null);
+                      setPromoInput("");
+                    }}
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="nb-promo-in">
+                  <input
+                    placeholder="เช่น CMNEW10"
+                    autoCapitalize="characters"
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && promoInput && applyPromo()}
+                  />
+                  <button disabled={!promoInput || promoBusy} onClick={applyPromo}>
+                    {promoBusy ? "…" : "ใช้โค้ด"}
+                  </button>
+                </div>
+              )}
+              {promoErr && (
+                <p className="nb-err" role="alert">
+                  {promoErr}
+                </p>
+              )}
+              <h3>
+                แต้มสะสม <small>มี {points.toLocaleString()} แต้ม</small>
+              </h3>
+              {usable > 0 ? (
+                <label className="nb-pts-row">
+                  <span>
+                    ใช้ {usable} แต้ม <small>ลด ฿{usable}</small>
+                  </span>
+                  <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} />
+                </label>
+              ) : (
+                <p className="nb-muted nb-pts-note">
+                  {points < POINTS.minRedeem
+                    ? `สะสมครบ ${POINTS.minRedeem} แต้มเพื่อใช้เป็นส่วนลด (อีก ${POINTS.minRedeem - points} แต้ม)`
+                    : `ใช้แต้มได้เมื่อยอดตั้งแต่ ฿${POINTS.minRedeem} ขึ้นไป`}
+                </p>
+              )}
+              {(promoOff > 0 || pointsToUse > 0) && (
+                <dl className="nb-disc-sum">
+                  <dt>ราคารวม</dt>
+                  <dd>฿{total}</dd>
+                  {promoOff > 0 && (
+                    <>
+                      <dt>โค้ด {promo?.code}</dt>
+                      <dd>−฿{promoOff}</dd>
+                    </>
+                  )}
+                  {pointsToUse > 0 && (
+                    <>
+                      <dt>ใช้ {pointsToUse} แต้ม</dt>
+                      <dd>−฿{pointsToUse}</dd>
+                    </>
+                  )}
+                  <dt className="tot">ยอดที่ต้องจ่าย</dt>
+                  <dd className="tot">฿{payAmount}</dd>
+                </dl>
+              )}
+            </section>
+          )}
           {shot && unreadable > 0 && (
             <p className="nb-alert" role="alert">
               <Svg d={I.retake} size={20} />
@@ -858,8 +981,8 @@ export default function BarPage() {
             </p>
           )}
           <button className="nb-cta" disabled={!!ctaHint || sending || closed} onClick={checkout}>
-            <span>{sending ? "กำลังสร้างบิล…" : closed ? "ร้านปิดอยู่" : ctaHint || "ไปชำระเงิน"}</span>
-            <span>฿{total}</span>
+            <span>{sending ? "กำลังสร้างบิล…" : closed ? "ร้านปิดอยู่" : ctaHint || (payAmount === 0 && count > 0 ? "ยืนยัน · ไม่ต้องโอน" : "ไปชำระเงิน")}</span>
+            <span>฿{payAmount}</span>
           </button>
         </section>
         {picker && (
@@ -978,6 +1101,13 @@ export default function BarPage() {
             </small>
             <span>ยอดที่ต้องชำระ</span>
             <b>฿{pay.total.toLocaleString()}</b>
+            {(pay.discount > 0 || pay.promoDiscount > 0) && (
+              <small className="pp-disc">
+                {[pay.promoCode && pay.promoDiscount > 0 && `โค้ด ${pay.promoCode} −฿${pay.promoDiscount}`, pay.discount > 0 && `ใช้ ${pay.discount} แต้ม −฿${pay.discount}`]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </small>
+            )}
           </div>
           <div className="pp-chips">
             <span className={`pp-timer${left > 0 ? "" : " late"}`} role="timer">

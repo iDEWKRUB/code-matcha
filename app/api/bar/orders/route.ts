@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { BAR_MAX_QTY, TERMS_VERSION, barHoursText, type BarLine, type BarScan } from "@/lib/bar";
-import { getBarHours, getBarItems } from "@/lib/barServer";
-import { SHOP } from "@/lib/config";
+import { applySale, getBarHours, getBarItems } from "@/lib/barServer";
+import { POINTS, SHOP } from "@/lib/config";
 import { isFriend, verifyIdToken } from "@/lib/line";
 import type { OrderItem } from "@/lib/menu";
 import { paymentFor, pointsBalance } from "@/lib/orders";
+import { promoDiscount } from "@/lib/promo";
+import { checkPromo } from "@/lib/promoServer";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -78,6 +80,22 @@ export async function POST(req: Request) {
   if (!hours.openNow) return fail(`ตอนนี้มาม่าบาร์ยังไม่เปิด (${barHoursText(hours)})`, 409);
   if (!process.env.PROMPTPAY_ID) return fail("ร้านยังไม่ได้ตั้งค่าการรับเงิน กรุณาติดต่อร้าน", 503);
 
+  // โค้ดส่วนลด (ตรวจสิทธิ์ใหม่ที่เซิร์ฟเวอร์) หักก่อน แล้วค่อยใช้แต้มกับยอดที่เหลือ (เหมือนฝั่งมัทฉะ)
+  let promoCode: string | null = null;
+  let promoOff = 0;
+  const rawCode = String(form.get("promoCode") ?? "").trim();
+  if (rawCode) {
+    const r = await checkPromo(rawCode, u.userId, total);
+    if ("error" in r) return fail(r.error, 409);
+    promoCode = r.rule.code;
+    promoOff = promoDiscount(r.rule, total);
+  }
+  const afterPromo = total - promoOff;
+  const points = Number(form.get("points") ?? 0);
+  if (!Number.isInteger(points) || points < 0 || points > afterPromo) return fail("จำนวนแต้มไม่ถูกต้อง");
+  if (points > 0 && points < POINTS.minRedeem) return fail(`ใช้แต้มได้ครั้งละอย่างน้อย ${POINTS.minRedeem} แต้ม`);
+  const pay = afterPromo - points;
+
   const now = nowInShop();
   const time = `${String(Math.floor(now.minutes / 60)).padStart(2, "0")}:${String(now.minutes % 60).padStart(2, "0")}`;
 
@@ -97,18 +115,21 @@ export async function POST(req: Request) {
     p_user: u.userId,
     p_name: u.name,
     p_items: items,
-    p_total: total,
+    p_total: pay,
     p_cups: count,
     p_note: "",
     p_hold_minutes: SHOP.holdMinutes,
-    p_points: 0,
+    p_points: points,
   });
   if (error) {
     await dropPhoto();
+    if (error.message.includes("POINTS_LOW")) return fail("แต้มสะสมไม่พอ", 409);
     console.error("bar place_order failed", error);
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
-  const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string };
+  const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string; order_status: string };
+  // ใช้แต้ม/โค้ดจ่ายครบ = ไม่ต้องโอน บิลจบทันที (ตัดสต๊อกเลย)
+  const free = row.order_status === "pending";
   const scan: BarScan = { detected, unknown: unknownQr, unreadable, declared, final: Object.fromEntries(qtyById) };
   const { error: srcErr } = await db()
     .from("orders")
@@ -119,6 +140,9 @@ export async function POST(req: Request) {
       bar_scan: scan,
       terms_at: new Date().toISOString(),
       terms_version: TERMS_VERSION,
+      promo_code: promoCode,
+      promo_discount: promoOff,
+      ...(free ? { status: "completed" } : {}),
     })
     .eq("id", row.order_id);
   if (srcErr) {
@@ -128,18 +152,22 @@ export async function POST(req: Request) {
     console.error("bar set source failed", srcErr);
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
+  if (free) {
+    await applySale(row.order_id);
+    return NextResponse.json({ free: true, no: row.order_no, total: 0, earned: 0, points: await pointsBalance(u.userId) });
+  }
   return NextResponse.json(
     await paymentFor({
       id: row.order_id,
       daily_no: row.order_no,
-      total,
-      discount: 0,
+      total: pay,
+      discount: points,
       pickup_time: time,
       expires_at: row.order_expires,
       service: "dine_in",
       table_no: "",
-      promo_code: null,
-      promo_discount: 0,
+      promo_code: promoCode,
+      promo_discount: promoOff,
     }),
   );
 }

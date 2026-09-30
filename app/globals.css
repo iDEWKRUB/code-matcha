@@ -1658,3 +1658,24 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nb-tag { margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-style: normal; font-size: 11px; font-weight: 600; background: #EEF3E3; color: var(--deep); }
 .nb-tag.add { background: #FFF1D6; color: #8a5a0a; }
 .nb-addown { width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px; border: 1.5px dashed #CFC6AF; background: none; color: var(--mute); font: inherit; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+/* มาม่าบาร์ หน้าสรุป: โค้ดส่วนลด + ใช้แต้ม */
+.nb-disc { margin-top: 14px; padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.nb-disc h3 { margin: 4px 0 0; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; }
+.nb-disc h3 small { font-size: 12px; font-weight: 500; color: var(--mute); }
+.nb-promo-in { display: flex; gap: 8px; }
+.nb-promo-in input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); font: inherit; font-size: 16px; letter-spacing: .04em; background: var(--cream); }
+.nb-promo-in button { min-height: 44px; padding: 0 16px; border-radius: 12px; background: var(--deep); color: var(--cream); font: inherit; font-weight: 700; font-size: 14px; }
+.nb-promo-in button:disabled { opacity: .45; }
+.nb-promo-on { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 12px; background: #EEF3E3; font-size: 14px; }
+.nb-promo-on span:nth-child(2) { flex: 1; font-weight: 600; color: var(--deep); }
+.nb-promo-on button { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--mute); background: #fff; }
+.nb-code { padding: 3px 10px; border-radius: 8px; border: 1.5px dashed var(--deep); font-weight: 800; font-size: 13px; letter-spacing: .05em; color: var(--deep); }
+.nb-pts-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: var(--cream); font-size: 14px; font-weight: 600; cursor: pointer; }
+.nb-pts-row small { font-weight: 400; color: var(--mute); margin-left: 4px; }
+.nb-pts-row input { width: 22px; height: 22px; accent-color: var(--deep); }
+.nb-pts-note { margin: 0; font-size: 13px; }
+.nb-disc-sum { margin: 6px 0 0; padding-top: 10px; border-top: 1px dashed var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 14px; }
+.nb-disc-sum dt { color: var(--mute); }
+.nb-disc-sum dd { margin: 0; text-align: right; }
+.nb-disc-sum .tot { font-weight: 800; color: var(--deep); font-size: 16px; }
+.pp-disc { margin-top: 2px; font-size: 12px; color: #F3C44C; }
