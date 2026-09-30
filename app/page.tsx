@@ -547,21 +547,14 @@ export default function OrderPage() {
         </svg>
       </header>
       {bar && (
-        <a className="bar-entry" href="/bar">
-          <svg className="bar-entry-art" width="54" height="54" viewBox="0 0 48 48" aria-hidden="true">
-            <path d="M16 12c-2-3 2-4 0-7M24 12c-2-3 2-4 0-7M32 12c-2-3 2-4 0-7" fill="none" stroke="#C9DBAE" strokeWidth="1.8" strokeLinecap="round" />
-            <ellipse cx="24" cy="20" rx="17" ry="4.5" fill="#E9A23B" />
-            <path d="M13 19c2-2 3 2 5 0s3 2 5 0 3 2 5 0 3 2 5 0" fill="none" stroke="#FFE7A8" strokeWidth="1.4" strokeLinecap="round" />
-            <path d="M7 20c1 11 8 17 17 17s16-6 17-17c-4 3-10 4.5-17 4.5S11 23 7 20z" fill="#FDFAF3" />
-            <path d="M9 28c4 3 9 4.5 15 4.5s11-1.5 15-4.5" stroke="#B8412C" strokeWidth="3" fill="none" />
-          </svg>
-          <span className="bar-entry-txt">
-            <small>อยู่ที่ร้าน · บริการตัวเอง</small>
-            <b>มาม่าบาร์</b>
-            <em className={bar.openNow ? "on" : ""}>{bar.openNow ? "เปิดอยู่ตอนนี้" : "ยังไม่เปิด"} · {bar.allDay ? "24 ชม." : `${bar.openTime}–${bar.closeTime} น.`}</em>
+        <nav className="mode-sw" aria-label="เลือกหมวด">
+          <span className="on" aria-current="page">
+            <Icon name="cup" size={18} /> มัทฉะ &amp; เครื่องดื่ม
           </span>
-          <span className="bar-entry-go" aria-hidden="true">›</span>
-        </a>
+          <a href="/bar">
+            <Icon name="bowl" size={18} /> มาม่าบาร์
+          </a>
+        </nav>
       )}
       {closed && <ClosedNotice hours={hours!} />}
       {friendCard && <div className="friend-wrap">{friendCard}</div>}

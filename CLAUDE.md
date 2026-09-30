@@ -115,7 +115,7 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
 
 - Merged into the main system (migration 023): shop_settings `bar_enabled` (default off), `bar_open_time`/`bar_close_time` (close < open = overnight), `bar_all_day`.
   - `getBarHours()` in `lib/barServer.ts`; bar ordering uses these hours, not the matcha hours.
-  - Customer: `/api/menu` returns `bar` only when enabled → `.bar-entry` card on `app/page.tsx`. `/bar` still works via the link when off (shows a test-mode note).
+  - Customer: `/api/menu` returns `bar` only when enabled → `.mode-sw` switch (มัทฉะ & เครื่องดื่ม | มาม่าบาร์) on `app/page.tsx` and `/bar`. `/bar` still works via the link when off (shows a test-mode note).
   - Admin: "มาม่าบาร์" tab in `Board.tsx` renders `<BarAdmin embedded/>` with `BarHoursPanel` (API `/api/admin/bar/hours`).
 - Idea only (not built): "pay at counter" option during staffed hours.
 

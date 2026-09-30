@@ -507,10 +507,14 @@ export default function BarPage() {
             <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
           </svg>
         </header>
-        <div className="nb-mode" role="group" aria-label="โหมดสั่ง">
-          <a href="/">สั่งกลับบ้าน / ล่วงหน้า</a>
-          <span className="on" aria-current="true">อยู่ที่ร้าน</span>
-        </div>
+        <nav className="mode-sw" aria-label="เลือกหมวด">
+          <a href="/">
+            <Icon name="cup" size={18} /> มัทฉะ &amp; เครื่องดื่ม
+          </a>
+          <span className="on" aria-current="page">
+            <Icon name="bowl" size={18} /> มาม่าบาร์
+          </span>
+        </nav>
         {hours && !hours.enabled && (
           <p className="nb-testmode" role="note">
             โหมดทดสอบ · มาม่าบาร์ยังปิดอยู่ ลูกค้าไม่เห็นปุ่มเข้ามาในหน้าหลัก
