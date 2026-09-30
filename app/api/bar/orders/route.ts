@@ -59,6 +59,9 @@ export async function POST(req: Request) {
     if (!Number.isInteger(qty) || qty < 1 || qty > BAR_MAX_QTY) return fail("จำนวนไม่ถูกต้อง");
     qtyById.set(id, (qtyById.get(id) ?? 0) + qty);
   }
+  // จำนวนที่อ่านได้จากรูปลดไม่ได้ (ไม่ตรงต้องถ่ายใหม่)
+  for (const [id, n] of Object.entries(detected))
+    if ((qtyById.get(id) ?? 0) < Math.min(n, BAR_MAX_QTY)) return fail("รายการน้อยกว่าที่อ่านได้จากรูป ถ้าไม่ตรงกับของในถาด กรุณาถ่ายใหม่");
   const items: OrderItem[] = [];
   let total = 0;
   let count = 0;

@@ -313,13 +313,18 @@ export default function BarPage() {
         ? "ติ๊กยอมรับเงื่อนไขก่อน"
         : "";
 
+  // จำนวนที่อ่านได้จากรูปล็อกไว้ ลดไม่ได้ (ไม่ตรง = ถ่ายใหม่) · เพิ่มเองได้เฉพาะชิ้นที่สแกนไม่ติด
   const setQty = (id: string, q: number) =>
     setTray((t) => {
       const n = { ...t };
-      if (q <= 0) delete n[id];
-      else n[id] = Math.min(BAR_MAX_QTY, q);
+      const v = Math.min(BAR_MAX_QTY, Math.max(detected[id] ?? 0, q));
+      if (v <= 0) delete n[id];
+      else n[id] = v;
       return n;
     });
+  const retakeInput = (
+    <input type="file" accept="image/*" capture="environment" onChange={(e) => (onPhoto(e.target.files?.[0]), (e.target.value = ""))} />
+  );
 
   async function onPhoto(file?: File) {
     if (!file) return;
@@ -715,7 +720,7 @@ export default function BarPage() {
           <h1>สแกนถาด</h1>
           <label className={`nb-icon-btn${shot ? "" : " hide"}`} aria-label="ถ่ายใหม่">
             <Svg d={I.retake} />
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => (onPhoto(e.target.files?.[0]), (e.target.value = ""))} />
+            {retakeInput}
           </label>
         </header>
         <div className="nb-stage">
@@ -763,37 +768,52 @@ export default function BarPage() {
         <section className="nb-sheet">
           <div className="nb-sheet-head">
             <h2>รายการในถาด</h2>
-            <button className="nb-link" onClick={() => setPicker(true)}>
-              + เพิ่มเอง
-            </button>
+            {shot && (
+              <label className="nb-link nb-retake">
+                <Svg d={I.retake} size={16} />
+                ถ่ายใหม่
+                {retakeInput}
+              </label>
+            )}
           </div>
-          {lines.length === 0 && <p className="nb-muted">ยังไม่มีรายการ ถ่ายรูปถาดหรือกดเพิ่มเอง</p>}
+          {lines.length === 0 && <p className="nb-muted">{shot ? "ยังอ่าน QR ไม่ได้ ลองถ่ายใหม่ หรือกดเพิ่มเองด้านล่าง" : "ถ่ายรูปถาดก่อน ระบบจะอ่านรายการให้เอง"}</p>}
           <ul className="nb-lines">
             {lines.map(([id, q]) => {
               const it = byId(id)!;
+              const fromPhoto = detected[id] ?? 0;
+              const added = q - fromPhoto;
               return (
                 <li key={id}>
                   <BarArt kind={it.kind} size={36} />
                   <div>
                     <b>{it.name}</b>
-                    <small>฿{it.price}</small>
+                    <small>
+                      ฿{it.price}
+                      {fromPhoto > 0 && <em className="nb-tag">จากรูป {fromPhoto}</em>}
+                      {added > 0 && <em className="nb-tag add">เพิ่มเอง {added}</em>}
+                    </small>
                   </div>
-                  <button aria-label={`ลด ${it.name}`} onClick={() => setQty(id, q - 1)}>
-                    <Svg d={I.minus} size={18} />
-                  </button>
+                  {added > 0 && (
+                    <button aria-label={`ลบ ${it.name} ที่เพิ่มเอง 1 ชิ้น`} onClick={() => setQty(id, q - 1)}>
+                      <Svg d={I.minus} size={18} />
+                    </button>
+                  )}
                   <span className="q">{q}</span>
-                  <button aria-label={`เพิ่ม ${it.name}`} onClick={() => setQty(id, q + 1)} disabled={q >= BAR_MAX_QTY}>
-                    <Svg d={I.plus} size={18} />
-                  </button>
                 </li>
               );
             })}
           </ul>
+          {shot && (
+            <button className="nb-addown" onClick={() => setPicker(true)}>
+              <Svg d={I.plus} size={16} />
+              เพิ่มเอง (เฉพาะชิ้นที่สแกนไม่ติด)
+            </button>
+          )}
           {shot && count > 0 && (
             <div className="nb-count">
               <div>
                 <b>รวมในถาด {count} ชิ้น</b>
-                <small>เช็กว่าตรงกับของที่หยิบมา ถ้าไม่ครบกด + เพิ่มเอง</small>
+                <small>ไม่ตรงกับของในถาด? กด &quot;ถ่ายใหม่&quot; · ชิ้นที่สแกนไม่ติด กดเพิ่มเอง</small>
               </div>
               <b className="nb-count-sum">฿{total}</b>
             </div>
@@ -803,7 +823,7 @@ export default function BarPage() {
               <Svg d={I.retake} size={20} />
               <span>
                 <b>มี QR อ่านไม่ออก {unreadable} จุด (กรอบแดงในรูป)</b>
-                กดปุ่มถ่ายใหม่มุมขวาบน ถ่ายให้ชัด ไม่ให้แสงสะท้อน หรือกด + เพิ่มเอง ให้ครบตามของในถาด
+                กด "ถ่ายใหม่" ถ่ายให้ชัด ไม่ให้แสงสะท้อน หรือกดเพิ่มเองให้ครบตามของในถาด
               </span>
             </p>
           )}
@@ -846,7 +866,7 @@ export default function BarPage() {
           <div className="nb-modal" role="dialog" aria-modal="true" aria-label="เพิ่มของเอง" onClick={() => setPicker(false)}>
             <div className="nb-pick" onClick={(e) => e.stopPropagation()}>
               <div className="nb-sheet-head">
-                <h2>เพิ่มของเอง</h2>
+                <h2>เพิ่มชิ้นที่สแกนไม่ติด</h2>
                 <button className="nb-link" onClick={() => setPicker(false)}>
                   เสร็จ
                 </button>
@@ -861,13 +881,15 @@ export default function BarPage() {
                     </div>
                     {tray[it.id] ? (
                       <>
-                        <button aria-label={`ลด ${it.name}`} onClick={() => setQty(it.id, tray[it.id] - 1)}>
-                          <Svg d={I.minus} size={18} />
-                        </button>
+                        {(tray[it.id] ?? 0) > (detected[it.id] ?? 0) && (
+                          <button aria-label={`ลบ ${it.name} ที่เพิ่มเอง 1 ชิ้น`} onClick={() => setQty(it.id, tray[it.id] - 1)}>
+                            <Svg d={I.minus} size={18} />
+                          </button>
+                        )}
                         <span className="q">{tray[it.id]}</span>
                       </>
                     ) : null}
-                    <button aria-label={`เพิ่ม ${it.name}`} onClick={() => setQty(it.id, (tray[it.id] ?? 0) + 1)}>
+                    <button aria-label={`เพิ่ม ${it.name}`} onClick={() => setQty(it.id, (tray[it.id] ?? 0) + 1)} disabled={(tray[it.id] ?? 0) >= BAR_MAX_QTY}>
                       <Svg d={I.plus} size={18} />
                     </button>
                   </li>

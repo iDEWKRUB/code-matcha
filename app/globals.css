@@ -1653,3 +1653,8 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nb .mode-sw { margin: 4px 20px 0; }
 .mode-sw > * { flex: 1; min-height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 500; color: #5C6152; text-decoration: none; }
 .mode-sw .on { background: #2F4A2A; color: #F3EFE4; font-weight: 600; }
+/* มาม่าบาร์ หน้าสแกน: จำนวนจากรูปล็อกไว้ · ถ่ายใหม่ · เพิ่มเองเฉพาะชิ้นที่สแกนไม่ติด */
+.nb-retake { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.nb-tag { margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-style: normal; font-size: 11px; font-weight: 600; background: #EEF3E3; color: var(--deep); }
+.nb-tag.add { background: #FFF1D6; color: #8a5a0a; }
+.nb-addown { width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px; border: 1.5px dashed #CFC6AF; background: none; color: var(--mute); font: inherit; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
