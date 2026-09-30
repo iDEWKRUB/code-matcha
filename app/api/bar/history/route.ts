@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const since = new Date(Date.now() - TRAY_KEEP_DAYS * 86400000).toISOString();
   const { data, error } = await db()
     .from("orders")
-    .select("id,daily_no,created_at,items,total,status,tray_path,bar_extra,bar_extra_note,bar_extra_status")
+    .select("id,daily_no,created_at,paid_at,items,total,discount,promo_code,promo_discount,slip_ref,channel,status,tray_path,bar_extra,bar_extra_note,bar_extra_status")
     .eq("line_user_id", user.userId)
     .eq("source", "bar")
     .in("status", [...PAID, "payment_review"])
@@ -38,6 +38,13 @@ export async function GET(req: Request) {
       extra: o.bar_extra,
       extraNote: o.bar_extra_note,
       extraStatus: o.bar_extra_status,
+      // ใบเสร็จอิเล็กทรอนิกส์
+      paidAt: o.paid_at,
+      discount: o.discount ?? 0,
+      promoCode: o.promo_code,
+      promoDiscount: o.promo_discount ?? 0,
+      slipRef: o.slip_ref ? `…${String(o.slip_ref).slice(-6)}` : null,
+      counter: o.channel === "pos",
     })),
   });
 }

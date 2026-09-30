@@ -89,7 +89,8 @@ const flexMessage = (c: Card) => ({ type: "flex", altText: altText(c), contents:
 // ส่งการ์ด Flex (ล้มเหลวก็ไม่กระทบออเดอร์) และบันทึกประวัติ
 export async function pushCard(to: string | undefined, c: Card, meta: { name?: string; orderNo?: number } = {}) {
   const staff = !!to && to === process.env.LINE_STAFF_GROUP_ID;
-  if (!to || to === "dev") {
+  // หน้าร้าน (pos) และโหมดทดสอบ (dev) ไม่มีบัญชี LINE ให้ส่ง
+  if (!to || to === "dev" || (!staff && !to.startsWith("U"))) {
     console.log("[LINE card skipped]", to, altText(c));
     return;
   }

@@ -225,6 +225,12 @@ export default function Board() {
             </button>
           ))}
         </nav>
+        <a className="adm-extra adm-pos" href="/admin/pos" title="หน้าร้าน (POS): คิดเงินลูกค้าที่ไม่สั่งผ่าน LINE">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v10H4zM8 19h8M12 15v4M7 9h4M7 12h2" />
+          </svg>
+          <span>หน้าร้าน (POS)</span>
+        </a>
         <button className="adm-logout" onClick={logout} title="ออกจากระบบ">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />

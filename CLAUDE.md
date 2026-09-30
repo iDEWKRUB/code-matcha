@@ -117,7 +117,12 @@ Shop name is **CODE-MATCHA** (with T). The repo folder `code-macha` and the Desk
   - `getBarHours()` in `lib/barServer.ts`; bar ordering uses these hours, not the matcha hours.
   - Customer: `/api/menu` returns `bar` only when enabled → `.mode-sw` switch (มัทฉะ & เครื่องดื่ม | มาม่าบาร์) on `app/page.tsx` and `/bar`. `/bar` still works via the link when off (shows a test-mode note).
   - Admin: "มาม่าบาร์" tab in `Board.tsx` renders `<BarAdmin embedded/>` with `BarHoursPanel` (API `/api/admin/bar/hours`).
-- Idea only (not built): "pay at counter" option during staffed hours.
+- POS หน้าร้าน (migration 024, design https://claude.ai/artifact/Vhd4DvhCU9X7ihRGeJQp4J): `/admin/pos` (`app/admin/pos/Pos.tsx`), API `/api/admin/pos` (GET + POST actions order/pay/qr/promo/label/void), server `lib/pos.ts`.
+  - Table `pos_bills` (1 bill = 1 receipt, many orders; open → paid/void). `orders.channel` ('line'|'pos') + `orders.pos_bill_id`. POS orders use `line_user_id = 'pos'` (pushCard skips non-U ids).
+  - Matcha POS orders go to the kitchen board as `pending` with `paid_at` null ("หน้าร้าน · ยังไม่จ่าย" tag); bar POS orders are `completed` and `applySale` runs at bill pay. Revenue (board + report) counts pos orders only once `paid_at` is set.
+  - Receipt `/admin/pos/receipt/[id]` (80 mm print) with claim QR → LIFF `/claim?t=` → `/api/pos/claim` moves the bill's orders to the member and earns points (once, 7 days).
+  - Mama bar e-receipt in `/bar` history (`EReceipt`). Report shows LINE / POS-QR / POS-cash split.
+  - Shared cart validation: `buildItems` in `lib/cartServer.ts`.
 
 ### Original plan (for reference)
 Design: https://claude.ai/artifact/P429zSsnvHE1htYp7gAjmm (canvas "CODE-MACHA × มาม่า Self-Service", 4 phone screens, palette cream #F3EFE4 / matcha #2F4A2A / seal red #B8412C).

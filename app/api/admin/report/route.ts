@@ -44,6 +44,8 @@ type Row = {
   promo_discount: number;
   cups: number;
   service: string;
+  channel: string | null;
+  pos_bills: { pay_method: string | null } | null;
   items: { name: string; qty: number; price: number }[];
 };
 
@@ -53,13 +55,14 @@ async function fetchPaid(from: string, to: string) {
   for (let off = 0; ; off += 1000) {
     const { data, error } = await db()
       .from("orders")
-      .select("pickup_date,total,discount,promo_discount,cups,service,items")
+      .select("pickup_date,total,discount,promo_discount,cups,service,channel,items,pos_bills(pay_method)")
       .gte("pickup_date", from)
       .lte("pickup_date", to)
       .in("status", PAID)
+      .or("channel.eq.line,paid_at.not.is.null") // บิลหน้าร้านนับเมื่อเช็คบิลแล้ว
       .range(off, off + 999);
     if (error) throw error;
-    rows.push(...(data as Row[]));
+    rows.push(...(data as unknown as Row[]));
     if (data.length < 1000) return rows;
   }
 }
@@ -100,6 +103,12 @@ export async function GET(req: Request) {
     takeaway: { orders: 0, revenue: 0 },
     pickup: { orders: 0, revenue: 0 },
   };
+  // ช่องทางขาย/วิธีรับเงิน: สั่งผ่าน LINE (โอน) · หน้าร้าน QR · หน้าร้านเงินสด (ใช้นับเงินในลิ้นชัก)
+  const channels: Record<string, { orders: number; revenue: number }> = {
+    line: { orders: 0, revenue: 0 },
+    pos_qr: { orders: 0, revenue: 0 },
+    pos_cash: { orders: 0, revenue: 0 },
+  };
 
   for (const r of rows) {
     const b = series.find((s) => r.pickup_date >= s.start && r.pickup_date <= s.end);
@@ -111,6 +120,9 @@ export async function GET(req: Request) {
     const svc = services[r.service] ?? services.pickup;
     svc.orders += 1;
     svc.revenue += r.total;
+    const ch = channels[r.channel === "pos" ? (r.pos_bills?.pay_method === "cash" ? "pos_cash" : "pos_qr") : "line"];
+    ch.orders += 1;
+    ch.revenue += r.total;
     for (const i of r.items ?? []) {
       const t = top.get(i.name) ?? { name: i.name, qty: 0, revenue: 0 };
       t.qty += i.qty;
@@ -146,5 +158,6 @@ export async function GET(req: Request) {
     trackingSince: since.data?.[0]?.first_at ?? null,
     top: [...top.values()].sort((a, b) => b.qty - a.qty).slice(0, 8),
     services,
+    channels,
   });
 }

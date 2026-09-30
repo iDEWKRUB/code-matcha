@@ -165,10 +165,13 @@ type OrderRow = {
   promo_code: string | null;
   promo_discount: number;
   source: "menu" | "bar";
+  channel: "line" | "pos";
+  paid_at: string | null;
+  pos_bill_id: number | null;
 };
 
 export const ORDER_COLUMNS =
-  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no,promo_code,promo_discount,source";
+  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no,promo_code,promo_discount,source,channel,paid_at,pos_bill_id";
 
 export function toOrder(r: OrderRow): Order {
   return {
@@ -190,6 +193,8 @@ export function toOrder(r: OrderRow): Order {
     promoCode: r.promo_code ?? null,
     promoDiscount: r.promo_discount ?? 0,
     source: r.source ?? "menu",
+    channel: r.channel ?? "line",
+    unpaid: r.channel === "pos" && !r.paid_at,
   };
 }
 

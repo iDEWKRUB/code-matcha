@@ -20,7 +20,7 @@ export async function GET() {
       .order("pickup_time")
       .order("daily_no"),
     getMenu(),
-    db().from("orders").select("total,cups").eq("pickup_date", date).in("status", PAID),
+    db().from("orders").select("total,cups").eq("pickup_date", date).in("status", PAID).or("channel.eq.line,paid_at.not.is.null"),
   ]);
   if (error) throw error;
   if (paid.error) throw paid.error;

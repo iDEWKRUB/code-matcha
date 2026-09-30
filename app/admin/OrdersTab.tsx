@@ -96,6 +96,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                         </span>
                       )}
                       {o.discount > 0 && <span className="tag">ใช้แต้ม −฿{o.discount}</span>}
+                      {o.channel === "pos" && <span className={`tag pos${o.unpaid ? " unpaid" : ""}`}>{o.unpaid ? "หน้าร้าน · ยังไม่จ่าย" : "หน้าร้าน · จ่ายแล้ว"}</span>}
                     </p>
                     <ul className="its">
                       {o.items.map((i, k) => (

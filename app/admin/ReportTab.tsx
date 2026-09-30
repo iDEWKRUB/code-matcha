@@ -22,6 +22,7 @@ type Report = {
   trackingSince: string | null;
   top: { name: string; qty: number; revenue: number }[];
   services: Record<Service, { orders: number; revenue: number }>;
+  channels?: Record<"line" | "pos_qr" | "pos_cash", { orders: number; revenue: number }>;
 };
 
 const PERIODS: {
@@ -349,6 +350,27 @@ export default function ReportTab() {
                   </li>
                 ))}
               </ul>
+
+              {data.channels && (
+                <>
+                  <h3 className="report-sub">แยกตามช่องทางและวิธีรับเงิน</h3>
+                  <ul className="svc-split">
+                    {(
+                      [
+                        ["line", "สั่งผ่าน LINE · โอน"],
+                        ["pos_qr", "หน้าร้าน · QR"],
+                        ["pos_cash", "หน้าร้าน · เงินสด"],
+                      ] as const
+                    ).map(([k, t]) => (
+                      <li key={k}>
+                        <span>{t}</span>
+                        <b>{data.channels![k].orders} ออเดอร์</b>
+                        <small>{baht(data.channels![k].revenue)}</small>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </section>
           </div>
 

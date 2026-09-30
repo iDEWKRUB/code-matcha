@@ -4,19 +4,8 @@ import { adminUri } from "@/lib/flex";
 import { promoDiscount } from "@/lib/promo";
 import { checkPromo } from "@/lib/promoServer";
 import { isFriend, pushCard, verifyIdToken } from "@/lib/line";
-import {
-  MAX_QTY,
-  MILKS,
-  SWEET,
-  hasPowder,
-  lineDetail,
-  linePrice,
-  optionGroups,
-  whenText,
-  type CartLine,
-  type OrderItem,
-  type Service,
-} from "@/lib/menu";
+import { buildItems } from "@/lib/cartServer";
+import { whenText, type Service } from "@/lib/menu";
 import { getMenu, getPowders, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
@@ -52,51 +41,9 @@ export async function POST(req: Request) {
 
   // คำนวณราคาใหม่ที่เซิร์ฟเวอร์ทุกครั้ง ไม่เชื่อราคาจากหน้าเว็บ
   const [menuList, powders] = await Promise.all([getMenu(), getPowders()]);
-  const menu = new Map(menuList.map((m) => [m.id, m]));
-  const items: OrderItem[] = [];
-  let total = 0;
-  let cups = 0;
-  for (const raw of lines as Partial<CartLine>[]) {
-    const item = menu.get(String(raw?.itemId));
-    if (!item) return fail("ไม่พบเมนูนี้");
-    if (!item.available || item.hidden) return fail(`${item.name} หมดแล้ว`);
-    const qty = Number(raw.qty);
-    if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) return fail("จำนวนไม่ถูกต้อง");
-    let line: CartLine;
-    if (item.kind === "food") {
-      // อาหาร: ใช้แค่ท็อปปิ้ง (ต้องเป็นของเมนูนี้ ไม่ซ้ำ)
-      const tops = Array.isArray(raw.toppings) ? [...new Set(raw.toppings.map(String))] : [];
-      if (tops.some((id) => !item.toppings.some((t) => t.id === id))) return fail("ท็อปปิ้งไม่ถูกต้อง");
-      // ตัวเลือกแบบกลุ่ม ต้องเลือกกลุ่มละ 1 อย่างพอดี
-      for (const g of optionGroups(item))
-        if (g.options.filter((o) => tops.includes(o.id)).length !== 1) return fail(`กรุณาเลือก${g.name}`);
-      line = { itemId: item.id, temp: item.temps[0] ?? "hot", sweet: 0, milk: null, powder: null, extraShot: false, softCream: false, toppings: tops, qty };
-    } else {
-      line = {
-        itemId: item.id,
-        temp: raw.temp as CartLine["temp"],
-        sweet: Number(raw.sweet),
-        milk: item.milk ? String(raw.milk) : null,
-        powder: hasPowder(item) && powders.length ? String(raw.powder ?? powders[0].id) : null,
-        extraShot: raw.extraShot === true,
-        iceSep: raw.iceSep === true,
-        softCream: raw.softCream === true,
-        toppings: [],
-        qty,
-      };
-      if (!item.temps.includes(line.temp)) return fail("อุณหภูมิไม่ถูกต้อง");
-      if (!SWEET.includes(line.sweet)) return fail("ระดับความหวานไม่ถูกต้อง");
-      if (item.milk && !MILKS.some((m) => m.id === line.milk)) return fail("ชนิดนมไม่ถูกต้อง");
-      if (line.powder !== null && !powders.some((p) => p.id === line.powder)) return fail("ผงมัทฉะนี้ไม่มีแล้ว กรุณาเลือกใหม่");
-      if (line.softCream && line.temp !== "iced") return fail("ท็อปซอฟต์ครีมได้เฉพาะเครื่องดื่มเย็น");
-      if (!item.addons && (line.extraShot || line.softCream)) return fail(`${item.name} ไม่มีท็อปปิ้งให้เลือก`);
-      if (line.iceSep && line.temp !== "iced") return fail("แยกน้ำแข็งได้เฉพาะเครื่องดื่มเย็น");
-    }
-    const price = linePrice(item, line, powders);
-    items.push({ name: item.name, qty: line.qty, detail: lineDetail(item, line, powders), price });
-    total += price;
-    cups += line.qty;
-  }
+  const built = buildItems(lines, menuList, powders);
+  if ("error" in built) return fail(built.error);
+  const { items, total, cups } = built;
   const shop = await getSettings();
   if (!shop.accepting) return fail("ร้านปิดรับออเดอร์ชั่วคราว", 409);
 

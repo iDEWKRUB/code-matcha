@@ -38,6 +38,12 @@ type Bill = {
   items: OrderItem[];
   total: number;
   paid: boolean;
+  paidAt: string | null;
+  discount: number;
+  promoCode: string | null;
+  promoDiscount: number;
+  slipRef: string | null;
+  counter: boolean;
   photo: string | null;
   extra: number;
   extraNote: string;
@@ -124,6 +130,7 @@ export default function BarPage() {
   const [unreadable, setUnreadable] = useState(0);
   const [agree, setAgree] = useState<boolean[]>(TERMS.map(() => false));
   const [history, setHistory] = useState<Bill[] | null>(null);
+  const [receipt, setReceipt] = useState<Bill | null>(null);
   const [extra, setExtra] = useState<Extra | null>(null);
   const [extraErr, setExtraErr] = useState("");
   const [extraBusy, setExtraBusy] = useState(false);
@@ -659,7 +666,14 @@ export default function BarPage() {
                     {new Date(b.at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" })}
                   </small>
                   <p className="nb-bill-items">{b.items.map((i) => `${i.name} ×${i.qty}`).join(" · ")}</p>
-                  <b className="nb-bill-total">฿{b.total}</b>
+                  <div className="nb-bill-foot">
+                    <b className="nb-bill-total">฿{b.total}</b>
+                    {b.paid && (
+                      <button className="nb-link" onClick={() => setReceipt(b)}>
+                        ใบเสร็จ ›
+                      </button>
+                    )}
+                  </div>
                   {b.extraStatus !== "none" && b.extra > 0 && (
                     <button className={`nb-extra-row ${b.extraStatus}`} onClick={() => openExtra(b.id)}>
                       <span>
@@ -674,6 +688,7 @@ export default function BarPage() {
           </ul>
         )}
         <p className="nb-muted nb-pad">เก็บประวัติพร้อมรูปถาดย้อนหลัง {TRAY_KEEP_DAYS} วัน</p>
+        {receipt && <EReceipt b={receipt} onClose={() => setReceipt(null)} />}
       </main>
     );
 
@@ -1243,4 +1258,72 @@ export default function BarPage() {
     );
   }
   return null;
+}
+
+// ใบเสร็จอิเล็กทรอนิกส์ของบิลมาม่าบาร์ (ในประวัติการมากิน)
+function EReceipt({ b, onClose }: { b: Bill; onClose: () => void }) {
+  const gross = b.items.reduce((n, i) => n + i.price, 0);
+  const at = new Date(b.paidAt ?? b.at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
+  return (
+    <div className="nb-modal" role="dialog" aria-modal="true" aria-label={`ใบเสร็จบิล #${b.no}`} onClick={onClose}>
+      <article className="er" onClick={(e) => e.stopPropagation()}>
+        <header className="er-head">
+          <Seal size={44} />
+          <div>
+            <b>CODE-MATCHA</b>
+            <small>มาม่าบาร์ · ใบเสร็จอิเล็กทรอนิกส์</small>
+          </div>
+          <span className="er-paid">ชำระแล้ว</span>
+        </header>
+        <div className="er-row er-mute">
+          <span>บิล #{b.no}</span>
+          <span>{at}</span>
+        </div>
+        <hr />
+        {b.items.map((i, k) => (
+          <div className="er-row" key={k}>
+            <span>
+              {i.name} ×{i.qty}
+            </span>
+            <span>฿{i.price.toLocaleString()}</span>
+          </div>
+        ))}
+        {(b.promoDiscount > 0 || b.discount > 0) && (
+          <>
+            <hr />
+            <div className="er-row er-mute">
+              <span>รวม</span>
+              <span>฿{gross.toLocaleString()}</span>
+            </div>
+          </>
+        )}
+        {b.promoDiscount > 0 && (
+          <div className="er-row er-mute">
+            <span>โค้ด {b.promoCode}</span>
+            <span>−฿{b.promoDiscount}</span>
+          </div>
+        )}
+        {b.discount > 0 && (
+          <div className="er-row er-mute">
+            <span>ใช้ {b.discount} แต้ม</span>
+            <span>−฿{b.discount}</span>
+          </div>
+        )}
+        <div className="er-row er-total">
+          <b>ยอดสุทธิ</b>
+          <b>฿{b.total.toLocaleString()}</b>
+        </div>
+        <div className="er-row er-mute">
+          <span>{b.counter ? "ชำระที่เคาน์เตอร์" : b.slipRef ? "พร้อมเพย์ · ตรวจสลิปอัตโนมัติ" : "พร้อมเพย์"}</span>
+          {pointsEarned(b.total) > 0 && <span>+{pointsEarned(b.total)} แต้ม</span>}
+        </div>
+        {b.slipRef && <small className="er-ref">เลขอ้างอิงสลิป {b.slipRef}</small>}
+        <p className="er-jp">ありがとうございました</p>
+        <small className="er-note">แคปหน้าจอเก็บไว้เป็นหลักฐานได้เลย</small>
+        <button className="nb-btn solid" onClick={onClose}>
+          ปิด
+        </button>
+      </article>
+    </div>
+  );
 }
