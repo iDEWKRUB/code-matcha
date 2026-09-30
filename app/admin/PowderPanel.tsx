@@ -248,11 +248,16 @@ export default function PowderPanel({ menu, data, items }: { menu: MenuItem[]; d
       </section>
 
       <section className="panel">
-        <header>
-          <h2>ราคาขายใน LINE และกำไร ตามผงที่ลูกค้าเลือก</h2>
-          <p>
-            ต้นทุนคิดจากสูตรในแท็บ “ต้นทุนรายเมนู” โดยเปลี่ยนเฉพาะผงมัทฉะตามที่เลือก × กรัมของเมนู · ราคานี้ยังไม่รวมนมทางเลือกและท็อปปิ้ง
-          </p>
+        <header className="panel-head">
+          <div>
+            <h2>ราคาขายใน LINE และกำไร ตามผงที่ลูกค้าเลือก</h2>
+            <p>
+              ต้นทุนคิดจากสูตรในแท็บ “ต้นทุนรายเมนู” โดยเปลี่ยนเฉพาะผงมัทฉะตามที่เลือก × กรัมของเมนู · ราคานี้ยังไม่รวมนมทางเลือกและท็อปปิ้ง
+            </p>
+          </div>
+          <a className="btn primary-sm" href="/admin/menu-board" target="_blank" rel="noopener">
+            พิมพ์เมนูหน้าร้าน
+          </a>
         </header>
         {withGrams.length === 0 ? (
           <p className="empty">ยังไม่มีเมนูที่ใส่กรัมผงมัทฉะ — ใส่ได้ที่ ตั้งค่าร้าน › เมนู</p>
