@@ -37,7 +37,7 @@ export async function getPowders(activeOnly = true): Promise<Powder[]> {
 export async function getSettings(): Promise<ShopSettings> {
   const { data, error } = await db()
     .from("shop_settings")
-    .select("banner,banner_active,open_time,close_time,slot_minutes,slot_capacity,accepting")
+    .select("banner,banner_active,open_time,close_time,slot_minutes,slot_capacity,accepting,order_no_start")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw error;
@@ -49,6 +49,7 @@ export async function getSettings(): Promise<ShopSettings> {
     slotMinutes: data?.slot_minutes ?? 15,
     slotCapacity: data?.slot_capacity ?? 8,
     accepting: data?.accepting ?? true,
+    orderNoStart: data?.order_no_start ?? 1,
   };
 }
 

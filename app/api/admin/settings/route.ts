@@ -47,6 +47,12 @@ export async function PUT(req: Request) {
     row.slot_capacity = c;
   }
 
+  if ("orderNoStart" in b) {
+    const n = b.orderNoStart as number;
+    if (!Number.isInteger(n) || n < 1 || n > 900) return bad("เลขออเดอร์แรกต้องอยู่ระหว่าง 1–900");
+    row.order_no_start = n;
+  }
+
   const { error } = await db().from("shop_settings").upsert(row);
   if (error) throw error;
   return NextResponse.json(await getSettings());

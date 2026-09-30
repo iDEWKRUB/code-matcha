@@ -42,6 +42,7 @@ export type ShopSettings = {
   slotMinutes: number;
   slotCapacity: number; // แก้วสูงสุดต่อรอบ
   accepting: boolean; // สวิตช์เปิด/ปิดรับออเดอร์
+  orderNoStart: number; // เลขออเดอร์แรกของแต่ละวัน
 };
 
 // แบบหน้าตาแก้วการ์ตูนที่เลือกให้เมนูใหม่ได้ (ต้องตรงกับสูตรใน app/Cup.tsx)

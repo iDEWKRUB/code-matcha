@@ -138,6 +138,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
     slotMinutes: 15,
     slotCapacity: 8,
     accepting: true,
+    orderNoStart: 1,
   });
   const [bannerMsg, setBannerMsg] = useState("");
   const [hoursMsg, setHoursMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -306,6 +307,15 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
               onChange={(e) => setSettings({ ...settings, slotCapacity: Number(e.target.value.replace(/\D/g, "")) || 0 })}
             />
           </label>
+          <label>
+            เลขออเดอร์แรกของแต่ละวัน
+            <input
+              className="text"
+              inputMode="numeric"
+              value={settings.orderNoStart}
+              onChange={(e) => setSettings({ ...settings, orderNoStart: Number(e.target.value.replace(/\D/g, "")) || 0 })}
+            />
+          </label>
         </div>
         <div className="panel-row">
           <button
@@ -316,6 +326,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                 closeTime: settings.closeTime,
                 slotMinutes: settings.slotMinutes,
                 slotCapacity: settings.slotCapacity,
+                orderNoStart: settings.orderNoStart,
               })
             }
           >
