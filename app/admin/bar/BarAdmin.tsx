@@ -103,6 +103,19 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [err, setErr] = useState("");
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [copies, setCopies] = useState<Record<string, number>>({});
+  // รูปแบบกระดาษ: a4 = แผ่น A4 · roll = ม้วน Sbarco 3 ดวงต่อแถว 32×25 มม. (จำไว้ในเครื่องนี้)
+  const [layout, setLayout] = useState<"a4" | "roll">("a4");
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("adm-sticker-layout") === "roll") setLayout("roll");
+    } catch {}
+  }, []);
+  function pickLayout(l: "a4" | "roll") {
+    setLayout(l);
+    try {
+      localStorage.setItem("adm-sticker-layout", l);
+    } catch {}
+  }
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
 
@@ -291,7 +304,20 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
         <>
           <section className="nba-card nba-noprint">
             <h2>พิมพ์สติ๊กเกอร์ QR</h2>
-            <p className="nba-muted">ติดสติ๊กเกอร์ 1 ดวงต่อ 1 ชิ้น (ซอง/ถ้วย) ใส่จำนวนที่ต้องการ แล้วกดพิมพ์ (A4 · ดวงละ 3.5 ซม.)</p>
+            <p className="nba-muted">ติดสติ๊กเกอร์ 1 ดวงต่อ 1 ชิ้น (ซอง/ถ้วย) ใส่จำนวนที่ต้องการ แล้วกดพิมพ์</p>
+            <div className="nba-layout" role="group" aria-label="กระดาษที่ใช้พิมพ์">
+              <button aria-pressed={layout === "a4"} onClick={() => pickLayout("a4")}>
+                แผ่น A4 · ดวงละ 3.6 ซม.
+              </button>
+              <button aria-pressed={layout === "roll"} onClick={() => pickLayout("roll")}>
+                ม้วน Sbarco · 3 ดวง/แถว · 32×25 มม.
+              </button>
+            </div>
+            {layout === "roll" && (
+              <p className="nba-muted">
+                ตอนสั่งพิมพ์: เลือกเครื่อง Sbarco · ขนาดกระดาษ 102 × 25 มม. · ขอบ (Margins) = ไม่มี · สเกล 100% · ไม่ต้องพิมพ์หัว/ท้ายกระดาษ
+              </p>
+            )}
             <div className="nba-copies">
               {items.map((i) => (
                 <label key={i.id}>
@@ -322,7 +348,29 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
             </div>
           </section>
 
-          {stickers.length > 0 && (
+          {stickers.length > 0 && layout === "roll" && (
+            <div className="nbs-roll" aria-label="ตัวอย่างสติ๊กเกอร์ม้วน">
+              {Array.from({ length: Math.ceil(stickers.length / 3) }, (_, r) => (
+                <div className="nbs-row" key={r}>
+                  {[0, 1, 2].map((c) => {
+                    const i = stickers[r * 3 + c];
+                    return i ? (
+                      <div className="nbs-lb" key={c}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
+                        <b>{i.name.replace(/^ท็อปปิ้งs*/, "")}</b>
+                        <small>CODE-MATCHA · มาม่าบาร์</small>
+                      </div>
+                    ) : (
+                      <div className="nbs-lb empty" key={c} />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {stickers.length > 0 && layout === "a4" && (
             <div className="nbs-sheet" aria-label="ตัวอย่างสติ๊กเกอร์">
               {stickers.map((i, k) => (
                 <div className="nbs" key={k}>
