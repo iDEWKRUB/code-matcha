@@ -1927,3 +1927,10 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nba-logo-n input { width: 90px; min-height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
 .nbs-lb.logo { padding: 1mm 1.5mm; }
 .nbs.logo { padding: 2mm; }
+/* โลโก้แนวตั้ง: ออกแบบ 25×32 แล้วหมุนลงดวง 32×25 */
+.nbs-lb.logo.v, .nbs-lb.logo.v2 { position: relative; padding: 0; }
+.nbs-lb.logo.v .logo-mark, .nbs-lb.logo.v2 .logo-mark { position: absolute; left: 50%; top: 50%; width: 23.4mm; height: 29.9mm; transform: translate(-50%, -50%) rotate(-90deg); }
+.nbs-lb.logo.v2 .logo-mark { transform: translate(-50%, -50%) rotate(90deg); }
+.nba-logo-in { position: relative; display: block; width: 100%; height: 100%; }
+.nba-logo-in.v .logo-mark, .nba-logo-in.v2 .logo-mark { position: absolute; left: 50%; top: 50%; width: 92px; height: 118px; transform: translate(-50%, -50%) rotate(-90deg); }
+.nba-logo-in.v2 .logo-mark { transform: translate(-50%, -50%) rotate(90deg); }

@@ -106,6 +106,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [copies, setCopies] = useState<Record<string, number>>({});
   const [logoCopies, setLogoCopies] = useState(0);
   const [logoStyle, setLogoStyle] = useState<"solid" | "line">("solid");
+  // ทิศโลโก้ในดวง 32×25: h = แนวนอน · v = แนวตั้ง (หมุนซ้าย) · v2 = แนวตั้ง (หมุนขวา)
+  const [logoDir, setLogoDir] = useState<"h" | "v" | "v2">("h");
   // รูปแบบกระดาษ: a4 = แผ่น A4 · roll = ม้วน Sbarco 3 ดวงต่อแถว 32×25 มม. (จำไว้ในเครื่องนี้)
   const [layout, setLayout] = useState<"a4" | "roll">("a4");
   // ปรับตำแหน่งให้ตรงดวงบนม้วน (มม.): เลื่อนซ้าย/ขวา · ขึ้น/ลง · ระยะห่างระหว่างดวง
@@ -375,7 +377,9 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
             </div>
             <div className="nba-logo">
               <span className="nba-logo-prev">
-                <LogoMark variant={logoStyle} />
+                <span className={`nba-logo-in ${logoDir}`}>
+                  <LogoMark variant={logoStyle} vertical={logoDir !== "h"} />
+                </span>
               </span>
               <div>
                 <b>สติ๊กเกอร์โลโก้ร้าน (หมึกดำ)</b>
@@ -385,6 +389,17 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                   </button>
                   <button aria-pressed={logoStyle === "line"} onClick={() => setLogoStyle("line")}>
                     ตราเส้น (ประหยัดหมึก)
+                  </button>
+                </div>
+                <div className="nba-layout" role="group" aria-label="ทิศโลโก้">
+                  <button aria-pressed={logoDir === "h"} onClick={() => setLogoDir("h")}>
+                    แนวนอน
+                  </button>
+                  <button aria-pressed={logoDir === "v"} onClick={() => setLogoDir("v")}>
+                    แนวตั้ง ↺
+                  </button>
+                  <button aria-pressed={logoDir === "v2"} onClick={() => setLogoDir("v2")}>
+                    แนวตั้ง ↻
                   </button>
                 </div>
                 <label className="nba-logo-n">
@@ -422,8 +437,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                     const i = stickers[r * 3 + c];
                     if (i === null)
                       return (
-                        <div className="nbs-lb logo" key={c}>
-                          <LogoMark variant={logoStyle} />
+                        <div className={`nbs-lb logo ${logoDir}`} key={c}>
+                          <LogoMark variant={logoStyle} vertical={logoDir !== "h"} />
                         </div>
                       );
                     return i ? (
@@ -447,7 +462,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
               {stickers.map((i, k) =>
                 i === null ? (
                   <div className="nbs logo" key={k}>
-                    <LogoMark variant={logoStyle} />
+                    <LogoMark variant={logoStyle} vertical={logoDir !== "h"} />
                   </div>
                 ) : (
                 <div className="nbs" key={k}>
