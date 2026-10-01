@@ -8,6 +8,23 @@ import Icon, { type IconName } from "../../Icon";
 import BarBills from "./BarBills";
 import BarHoursPanel from "./BarHoursPanel";
 import LogoMark from "./LogoMark";
+import { SHOP } from "@/lib/config";
+
+// สติ๊กเกอร์อวยพร: QR (แก้ผิดได้สูง) + ตรา 暗号 กลาง QR + "สแกนรับคำอวยพร"
+function WishLabel({ qr }: { qr: string }) {
+  return (
+    <span className="wl">
+      <span className="wl-qr">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {qr && <img src={qr} alt="QR คำอวยพร" />}
+        <span className="wl-seal" aria-hidden="true">
+          暗<br />号
+        </span>
+      </span>
+      <b>สแกนรับคำอวยพร</b>
+    </span>
+  );
+}
 import BarStock from "./BarStock";
 import { uploadImage } from "../upload";
 
@@ -105,6 +122,12 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [copies, setCopies] = useState<Record<string, number>>({});
   const [logoCopies, setLogoCopies] = useState(0);
+  // สติ๊กเกอร์อวยพร: QR มีตรา 暗号 ตรงกลาง → หน้า /gift (การ์ตูนน้องมัทฉะ + คำอวยพร)
+  const [wishCopies, setWishCopies] = useState(0);
+  const [wishQr, setWishQr] = useState("");
+  useEffect(() => {
+    QRCode.toDataURL(`${SHOP.siteUrl}/gift`, { margin: 1, width: 480, errorCorrectionLevel: "H" }).then(setWishQr);
+  }, []);
   const [logoStyle, setLogoStyle] = useState<"solid" | "line">("solid");
   // ทิศโลโก้ในดวง 32×25: h = แนวนอน · v = แนวตั้ง (หมุนซ้าย) · v2 = แนวตั้ง (หมุนขวา)
   const [logoDir, setLogoDir] = useState<"h" | "v" | "v2">("h");
@@ -207,7 +230,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
   const liffLink = liffId ? `https://liff.line.me/${liffId}/bar` : `${origin}/bar`;
   // null = สติ๊กเกอร์โลโก้ร้าน (หมึกดำ) พิมพ์ต่อท้ายในม้วน/แผ่นเดียวกัน
-  const stickers: (BarItem | null)[] = [
+  const stickers: (BarItem | null | "wish")[] = [
+    ...Array.from({ length: wishCopies }, () => "wish" as const),
     ...items.flatMap((i) => Array.from({ length: copies[i.id] ?? 0 }, () => i)),
     ...Array.from({ length: logoCopies }, () => null),
   ];
@@ -415,6 +439,31 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 </label>
               </div>
             </div>
+            <div className="nba-logo">
+              <span className="nba-logo-prev">
+                <WishLabel qr={wishQr} />
+              </span>
+              <div>
+                <b>สติ๊กเกอร์อวยพร (ติดแก้ว)</b>
+                <span className="nba-muted">
+                  ลูกค้าสแกนแล้วเปิดหน้า &quot;มีของขวัญในแก้วของคุณ&quot; แตะกล่อง 3 ครั้ง น้องมัทฉะเด้งออกมาพร้อมคำอวยพร ·{" "}
+                  <a href="/gift" target="_blank" rel="noreferrer">
+                    ลองเปิดดู
+                  </a>
+                </span>
+                <label className="nba-logo-n">
+                  จำนวน
+                  <input
+                    type="number"
+                    min={0}
+                    max={300}
+                    inputMode="numeric"
+                    value={wishCopies}
+                    onChange={(e) => setWishCopies(Math.max(0, Math.min(300, Number(e.target.value) || 0)))}
+                  />
+                </label>
+              </div>
+            </div>
             <div className="nba-acts">
               <button className="nba-ghost" onClick={() => setCopies(Object.fromEntries(items.map((i) => [i.id, 10])))}>
                 ทุกอย่าง 10 ดวง
@@ -435,6 +484,12 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 <div className="nbs-row" key={r}>
                   {[0, 1, 2].map((c) => {
                     const i = stickers[r * 3 + c];
+                    if (i === "wish")
+                      return (
+                        <div className="nbs-lb wish" key={c}>
+                          <WishLabel qr={wishQr} />
+                        </div>
+                      );
                     if (i === null)
                       return (
                         <div className={`nbs-lb logo ${logoDir}`} key={c}>
@@ -460,7 +515,11 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
           {stickers.length > 0 && layout === "a4" && (
             <div className="nbs-sheet" aria-label="ตัวอย่างสติ๊กเกอร์">
               {stickers.map((i, k) =>
-                i === null ? (
+                i === "wish" ? (
+                  <div className="nbs wish" key={k}>
+                    <WishLabel qr={wishQr} />
+                  </div>
+                ) : i === null ? (
                   <div className="nbs logo" key={k}>
                     <LogoMark variant={logoStyle} vertical={logoDir !== "h"} />
                   </div>
