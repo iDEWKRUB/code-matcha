@@ -26,6 +26,7 @@ import {
   type Slot,
 } from "@/lib/menu";
 import type { BarHours } from "@/lib/bar";
+import { MAX_CUP_MSG, MAX_CUP_NAME } from "@/lib/cupMsg";
 import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
 import { promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
@@ -113,6 +114,8 @@ export default function OrderPage() {
   const [service, setService] = useState<Service | null>(null);
   const [tableNo, setTableNo] = useState("");
   const [note, setNote] = useState("");
+  // ข้อความบนแก้ว: ร้านติดสติ๊กเกอร์ QR เฉพาะออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความขึ้น
+  const [cup, setCup] = useState({ msg: "", to: "", from: "" });
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState("");
   const [needLogin, setNeedLogin] = useState(false);
@@ -340,7 +343,7 @@ export default function OrderPage() {
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, points: pointsToUse, promoCode: promo?.code ?? "" }),
+        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, cupMsg: cup.msg, cupTo: cup.to, cupFrom: cup.from, points: pointsToUse, promoCode: promo?.code ?? "" }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
@@ -361,6 +364,7 @@ export default function OrderPage() {
       track("order");
       setCart([]);
       setNote("");
+      setCup({ msg: "", to: "", from: "" });
       setPickup("");
       setUsePoints(false);
       setPromo(null);
@@ -947,6 +951,30 @@ export default function OrderPage() {
 
             <div className="lg">หมายเหตุถึงร้าน</div>
             <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ฝากไว้ใต้ตึก 1,2,3" value={note} onChange={(e) => setNote(e.target.value)} />
+
+            <div className="lg">
+              ข้อความบนแก้ว <span>ไม่บังคับ</span>
+            </div>
+            <div className="cupm-form">
+              <p>เขียนถึงคนที่จะได้แก้วนี้ ร้านจะติดสติ๊กเกอร์ QR ไว้ที่แก้ว สแกนแล้วข้อความจะเด้งขึ้นพร้อมน้องมัทฉะ</p>
+              <textarea
+                rows={3}
+                maxLength={MAX_CUP_MSG}
+                placeholder="เช่น สุขสันต์วันเกิดนะ ขอให้ปีนี้ใจดีกับตัวเองเยอะ ๆ"
+                value={cup.msg}
+                onChange={(e) => setCup({ ...cup, msg: e.target.value })}
+                aria-label="ข้อความบนแก้ว"
+              />
+              <span className="cupm-count">
+                {cup.msg.length}/{MAX_CUP_MSG}
+              </span>
+              {cup.msg.trim() && (
+                <div className="cupm-names">
+                  <input className="text" maxLength={MAX_CUP_NAME} placeholder="ถึง (ชื่อเล่น)" value={cup.to} onChange={(e) => setCup({ ...cup, to: e.target.value })} aria-label="ถึงใคร" />
+                  <input className="text" maxLength={MAX_CUP_NAME} placeholder="จาก (ไม่ใส่ก็ได้)" value={cup.from} onChange={(e) => setCup({ ...cup, from: e.target.value })} aria-label="จากใคร" />
+                </div>
+              )}
+            </div>
 
             <div className="lg">โค้ดส่วนลด</div>
             {promo ? (

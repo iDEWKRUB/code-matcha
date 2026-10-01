@@ -5,6 +5,8 @@ import { promoDiscount } from "@/lib/promo";
 import { checkPromo } from "@/lib/promoServer";
 import { isFriend, pushCard, verifyIdToken } from "@/lib/line";
 import { buildItems } from "@/lib/cartServer";
+import { cleanCupMsg } from "@/lib/cupMsg";
+import crypto from "crypto";
 import { whenText, type Service } from "@/lib/menu";
 import { getMenu, getPowders, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
 import { db } from "@/lib/supabase";
@@ -29,6 +31,9 @@ export async function POST(req: Request) {
     service?: unknown;
     tableNo?: unknown;
     promoCode?: unknown;
+    cupMsg?: unknown;
+    cupTo?: unknown;
+    cupFrom?: unknown;
   };
   try {
     body = await req.json();
@@ -103,10 +108,18 @@ export async function POST(req: Request) {
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string; order_status: string };
-  if (service !== "pickup" || promoCode) {
+  // ข้อความบนแก้ว: ผูกรหัสสุ่มให้ QR ของออเดอร์นี้ (ร้านพิมพ์สติ๊กเกอร์จากหน้าบาริสต้า)
+  const cup = cleanCupMsg(body);
+  if (service !== "pickup" || promoCode || cup) {
     const { error: svcErr } = await db()
       .from("orders")
-      .update({ service, table_no: tableNo, promo_code: promoCode, promo_discount: promoOff })
+      .update({
+        service,
+        table_no: tableNo,
+        promo_code: promoCode,
+        promo_discount: promoOff,
+        ...(cup && { cup_msg: cup.msg, cup_to: cup.to, cup_from: cup.from, cup_token: crypto.randomBytes(12).toString("base64url") }),
+      })
       .eq("id", row.order_id);
     if (svcErr) console.error("set service/promo failed", svcErr);
   }
@@ -127,7 +140,7 @@ export async function POST(req: Request) {
           ["วิธีรับ", when],
         ],
         items: lines,
-        note: cleanNote ? `หมายเหตุ: ${cleanNote}` : undefined,
+        note: [cleanNote && `หมายเหตุ: ${cleanNote}`, cup && "มีข้อความบนแก้ว: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า"].filter(Boolean).join(" · ") || undefined,
         button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
       }, { orderNo: row.order_no }),
       pushCard(user.userId, {

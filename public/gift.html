@@ -44,7 +44,8 @@
   }
   .name-field input::placeholder { color: var(--muted); font-weight: 500; }
   .name-field input:focus-visible { border-color: var(--berry); box-shadow: 0 5px 0 var(--berry); }
-  .open-state .name-field { display: none; }
+  .open-state .name-field, .cup-mode .name-field { display: none; }
+  .msg.cup { white-space: pre-line; overflow-wrap: anywhere; }
 
   /* ===== เวที: ตัวการ์ตูนซ่อนอยู่หลังกล่อง ===== */
   .stage { position: relative; width: 260px; height: 392px; margin: 18px 0 10px; }
@@ -404,6 +405,19 @@ const CONFIG = {
   ]
 };
 
+/* ข้อความบนแก้ว: QR เฉพาะออเดอร์ (?t=รหัส) = ข้อความที่ลูกค้าเขียนตอนสั่ง · หาไม่เจอ = สุ่มคำอวยพรตามปกติ */
+const CUP_TOKEN = new URLSearchParams(location.search).get("t");
+let cupMsg = null;
+if (CUP_TOKEN) {
+  document.documentElement.classList.add("cup-mode");
+  fetch("/api/gift/" + encodeURIComponent(CUP_TOKEN)).then(r => r.ok ? r.json() : null).then(j => {
+    if (j && j.message) {
+      cupMsg = j;
+      if (!opened) headline.textContent = j.to ? `ถึง ${j.to} มีข้อความซ่อนอยู่ในแก้วนี้` : "มีข้อความพิเศษซ่อนอยู่ในแก้วนี้";
+    } else document.documentElement.classList.remove("cup-mode");
+  }).catch(() => document.documentElement.classList.remove("cup-mode"));
+}
+
 /* คำอวยพรที่ร้านแก้เองในหลังร้าน (โหลดไม่ได้ = ใช้ชุดข้างบน) */
 fetch("/api/blessings").then(r => r.ok ? r.json() : null).then(j => {
   if (j && Array.isArray(j.messages) && j.messages.length) CONFIG.messages = j.messages;
@@ -588,6 +602,15 @@ function pickMessage() {
 
 function reveal(first) {
   let item;
+  if (first && cupMsg) {
+    setFace("love");
+    const msgEl = document.getElementById("msg");
+    msgEl.textContent = cupMsg.message;
+    msgEl.classList.add("long", "cup");
+    document.getElementById("from").textContent = cupMsg.from ? `จาก ${cupMsg.from}` : "จากคนที่ส่งแก้วนี้ให้";
+    if (!reduceMotion) burst("hearts");
+    return;
+  }
   if (first && customMsg) item = { mood: "love", text: customMsg };
   else { lastIndex = dailyMessage(); item = CONFIG.messages[lastIndex]; }
   const m = setFace(item.mood);
@@ -620,7 +643,7 @@ gift.addEventListener("click", () => {
     const n = getNick();
     try { if (n) localStorage.setItem("nick", n); } catch (e) {}
     nickInput.blur();
-    headline.textContent = n ? `ถึง ${n} 💌` : "แก้วมัทฉะมีอะไรจะบอก";
+    headline.textContent = cupMsg ? (cupMsg.to ? `ถึง ${cupMsg.to} 💌` : "มีคนฝากข้อความมา 💌") : n ? `ถึง ${n} 💌` : "แก้วมัทฉะมีอะไรจะบอก";
     sub.textContent = "ลองแตะน้องมัทฉะดูสิ";
     Sound.sfx.open();
     setTimeout(() => Sound.startMusic(), 1600);

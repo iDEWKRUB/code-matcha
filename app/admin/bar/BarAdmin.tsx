@@ -9,23 +9,8 @@ import BarBills from "./BarBills";
 import BarHoursPanel from "./BarHoursPanel";
 import LogoMark from "./LogoMark";
 import BlessingsEditor from "./BlessingsEditor";
+import WishLabel from "./WishLabel";
 import { SHOP } from "@/lib/config";
-
-// สติ๊กเกอร์อวยพร: QR (แก้ผิดได้สูง) + ตรา 暗号 กลาง QR + ชื่อร้าน
-function WishLabel({ qr }: { qr: string }) {
-  return (
-    <span className="wl">
-      <span className="wl-qr">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {qr && <img src={qr} alt="QR คำอวยพร" />}
-        <span className="wl-seal" aria-hidden="true">
-          暗<br />号
-        </span>
-      </span>
-      <b>CODE-MATCHA</b>
-    </span>
-  );
-}
 import BarStock from "./BarStock";
 import { uploadImage } from "../upload";
 
@@ -141,6 +126,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     try {
       if (localStorage.getItem("adm-sticker-layout") === "roll") setLayout("roll");
+      const dir = localStorage.getItem("adm-wish-dir");
+      if (dir === "v" || dir === "v2") setWishDir(dir);
       const saved = JSON.parse(localStorage.getItem("adm-sticker-tune") ?? "null");
       if (saved) setTune({ x: Number(saved.x) || 0, y: Number(saved.y) || 0, gap: Number.isFinite(saved.gap) ? saved.gap : 3 });
     } catch {}
@@ -151,6 +138,13 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
     setTune(next);
     try {
       localStorage.setItem("adm-sticker-tune", JSON.stringify(next));
+    } catch {}
+  }
+  // ทิศสติ๊กเกอร์อวยพร (จำไว้ใช้กับสติ๊กเกอร์ข้อความบนแก้วด้วย)
+  function pickWishDir(d: "h" | "v" | "v2") {
+    setWishDir(d);
+    try {
+      localStorage.setItem("adm-wish-dir", d);
     } catch {}
   }
   function pickLayout(l: "a4" | "roll") {
@@ -458,13 +452,13 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                   แก้คำอวยพร
                 </button>
                 <div className="nba-layout" role="group" aria-label="ทิศสติ๊กเกอร์อวยพร">
-                  <button aria-pressed={wishDir === "h"} onClick={() => setWishDir("h")}>
+                  <button aria-pressed={wishDir === "h"} onClick={() => pickWishDir("h")}>
                     แนวนอน
                   </button>
-                  <button aria-pressed={wishDir === "v"} onClick={() => setWishDir("v")}>
+                  <button aria-pressed={wishDir === "v"} onClick={() => pickWishDir("v")}>
                     แนวตั้ง ↺
                   </button>
-                  <button aria-pressed={wishDir === "v2"} onClick={() => setWishDir("v2")}>
+                  <button aria-pressed={wishDir === "v2"} onClick={() => pickWishDir("v2")}>
                     แนวตั้ง ↻
                   </button>
                 </div>

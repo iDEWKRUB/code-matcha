@@ -113,6 +113,21 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                         <Icon name="note" size={16} /> {o.note}
                       </p>
                     )}
+                    {o.cup && (
+                      <div className="cupm-card">
+                        <p>
+                          <Icon name="gift" size={16} />
+                          <span>
+                            {o.cup.to && <small>ถึง {o.cup.to} · </small>}
+                            {o.cup.msg}
+                            {o.cup.from && <small> · จาก {o.cup.from}</small>}
+                          </span>
+                        </p>
+                        <a href={`/admin/cup-label/${o.id}`} target="_blank" rel="noreferrer">
+                          <Icon name="qr" size={16} /> พิมพ์สติ๊กเกอร์ข้อความ
+                        </a>
+                      </div>
+                    )}
                     {st === "payment_review" && o.hasSlip && (
                       <a className="slip" href={`/api/admin/orders/${o.id}/slip`} target="_blank" rel="noreferrer">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
