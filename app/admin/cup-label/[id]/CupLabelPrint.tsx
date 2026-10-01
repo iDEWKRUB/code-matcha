@@ -6,8 +6,9 @@ import WishLabel from "../../bar/WishLabel";
 type Dir = "h" | "v" | "v2";
 
 // ใช้ค่าตำแหน่ง/ทิศเดียวกับหน้าพิมพ์สติ๊กเกอร์ในมาม่าบาร์ (จำไว้ในเครื่องนี้)
-export default function CupLabelPrint(p: { no: number; qr: string; wishQr: string; cups: number; forCup: string }) {
-  const [copies, setCopies] = useState(1);
+export default function CupLabelPrint(p: { no: number; qr: string; wishQr: string; forCup: string }) {
+  // 1 ออเดอร์ = 1 ข้อความ = 1 ดวง (พิมพ์ซ้ำได้ถ้าสติ๊กเกอร์เสีย แต่ไม่เพิ่มดวงเกินหนึ่ง)
+  const copies = 1;
   // ดวงที่เหลือในแถว: เติมสติ๊กเกอร์อวยพรทั่วไป (ใช้ติดแก้วอื่นได้) หรือเว้นว่าง
   const [fill, setFill] = useState(true);
   const [dir, setDir] = useState<Dir>("h");
@@ -47,17 +48,7 @@ export default function CupLabelPrint(p: { no: number; qr: string; wishQr: strin
           </p>
         )}
         <p className="nba-muted">ข้อความของลูกค้าถูกเข้ารหัส ร้านมองไม่เห็น · ติดดวงที่มีเลข {tag} บนแก้วของออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความจะขึ้นพร้อมน้องมัทฉะ</p>
-        <div className="cupm-row">
-          <label>
-            จำนวนดวง
-            <input type="number" min={1} max={9} value={copies} onChange={(e) => setCopies(Math.max(1, Math.min(9, Number(e.target.value) || 1)))} />
-          </label>
-          {p.cups > 1 && copies < p.cups && (
-            <button className="nba-ghost" onClick={() => setCopies(Math.min(9, p.cups))}>
-              ให้ครบ {p.cups} แก้ว
-            </button>
-          )}
-        </div>
+        <p className="nba-muted">1 ออเดอร์ = 1 ข้อความ = 1 ดวง ติดที่แก้วเดียวตามที่ลูกค้าบอก (ดวงที่เหลือในแถวเป็น QR อวยพรทั่วไป)</p>
         <div className="nba-layout" role="group" aria-label="ทิศสติ๊กเกอร์">
           <button aria-pressed={dir === "h"} onClick={() => pickDir("h")}>
             แนวนอน

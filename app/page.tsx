@@ -953,7 +953,7 @@ export default function OrderPage() {
             <textarea rows={2} maxLength={200} placeholder="เช่น แยกน้ำแข็ง, ฝากไว้ใต้ตึก 1,2,3" value={note} onChange={(e) => setNote(e.target.value)} />
 
             <div className="lg">
-              ข้อความบนแก้ว <span>ไม่บังคับ</span>
+              ข้อความบนแก้ว <span>1 ข้อความต่อ 1 ออเดอร์ · ไม่บังคับ</span>
             </div>
             <div className="cupm-form">
               <p>เขียนถึงคนที่จะได้แก้วนี้ ร้านจะติดสติ๊กเกอร์ QR ไว้ที่แก้ว สแกนแล้วข้อความจะเด้งขึ้นพร้อมน้องมัทฉะ · ข้อความถูกเข้ารหัส ร้านมองไม่เห็น</p>
