@@ -124,6 +124,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [logoCopies, setLogoCopies] = useState(0);
   // สติ๊กเกอร์อวยพร: QR มีตรา 暗号 ตรงกลาง → หน้า /gift (การ์ตูนน้องมัทฉะ + คำอวยพร)
   const [wishCopies, setWishCopies] = useState(0);
+  const [wishDir, setWishDir] = useState<"h" | "v" | "v2">("h");
   const [wishQr, setWishQr] = useState("");
   useEffect(() => {
     QRCode.toDataURL(`${SHOP.siteUrl}/gift`, { margin: 1, width: 480, errorCorrectionLevel: "H" }).then(setWishQr);
@@ -440,7 +441,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
               </div>
             </div>
             <div className="nba-logo">
-              <span className="nba-logo-prev">
+              <span className={`nba-logo-prev nba-wish-prev ${wishDir}`}>
                 <WishLabel qr={wishQr} />
               </span>
               <div>
@@ -451,6 +452,17 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                     ลองเปิดดู
                   </a>
                 </span>
+                <div className="nba-layout" role="group" aria-label="ทิศสติ๊กเกอร์อวยพร">
+                  <button aria-pressed={wishDir === "h"} onClick={() => setWishDir("h")}>
+                    แนวนอน
+                  </button>
+                  <button aria-pressed={wishDir === "v"} onClick={() => setWishDir("v")}>
+                    แนวตั้ง ↺
+                  </button>
+                  <button aria-pressed={wishDir === "v2"} onClick={() => setWishDir("v2")}>
+                    แนวตั้ง ↻
+                  </button>
+                </div>
                 <label className="nba-logo-n">
                   จำนวน
                   <input
@@ -486,7 +498,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                     const i = stickers[r * 3 + c];
                     if (i === "wish")
                       return (
-                        <div className="nbs-lb wish" key={c}>
+                        <div className={`nbs-lb wish ${wishDir}`} key={c}>
                           <WishLabel qr={wishQr} />
                         </div>
                       );

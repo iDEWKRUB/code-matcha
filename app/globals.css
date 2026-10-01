@@ -1946,3 +1946,14 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nba-logo-prev .wl-seal { font-size: 7px; border-width: 2px; outline-width: 1px; border-radius: 3px; }
 .nba-logo-prev .wl b { font-size: 10px; }
 .wl b { font-family: var(--font-mincho), "Shippori Mincho", serif; font-weight: 800; letter-spacing: 0.15mm; }
+/* สติ๊กเกอร์อวยพรแนวตั้ง: วาง 25×32 แล้วหมุนลงดวง 32×25 (QR ใหญ่ขึ้น) */
+.nbs-lb.wish.v, .nbs-lb.wish.v2 { position: relative; padding: 0; }
+.nbs-lb.wish.v .wl, .nbs-lb.wish.v2 .wl { position: absolute; left: 50%; top: 50%; width: 23.4mm; height: 29.9mm; transform: translate(-50%, -50%) rotate(-90deg); gap: 1mm; }
+.nbs-lb.wish.v2 .wl { transform: translate(-50%, -50%) rotate(90deg); }
+.nbs-lb.wish.v .wl-qr, .nbs-lb.wish.v2 .wl-qr { width: 21.5mm; height: 21.5mm; }
+.nbs-lb.wish.v .wl-seal, .nbs-lb.wish.v2 .wl-seal { font-size: 2.2mm; }
+.nbs-lb.wish.v .wl b, .nbs-lb.wish.v2 .wl b { font-size: 7pt; }
+.nba-wish-prev { position: relative; }
+.nba-wish-prev.v .wl, .nba-wish-prev.v2 .wl { position: absolute; left: 50%; top: 50%; width: 88px; height: 112px; transform: translate(-50%, -50%) rotate(-90deg); }
+.nba-wish-prev.v2 .wl { transform: translate(-50%, -50%) rotate(90deg); }
+.nba-wish-prev.v .wl-qr, .nba-wish-prev.v2 .wl-qr { width: 80px; height: 80px; }
