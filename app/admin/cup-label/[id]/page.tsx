@@ -14,7 +14,7 @@ export default async function CupLabelPage({ params }: { params: Promise<{ id: s
   if (!(await isAdmin())) return <Login />;
   const { data } = await db()
     .from("orders")
-    .select("daily_no,cup_msg,cup_to,cup_from,cup_token,cups")
+    .select("daily_no,cup_msg,cup_token,cups")
     .eq("id", Number((await params).id))
     .maybeSingle();
   if (!data?.cup_token || !data.cup_msg)
@@ -31,9 +31,6 @@ export default async function CupLabelPage({ params }: { params: Promise<{ id: s
   return (
     <CupLabelPrint
       no={data.daily_no}
-      msg={data.cup_msg}
-      to={data.cup_to ?? ""}
-      from={data.cup_from ?? ""}
       qr={qr}
       wishQr={wishQr}
       cups={data.cups}

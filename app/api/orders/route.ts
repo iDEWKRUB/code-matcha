@@ -6,6 +6,7 @@ import { checkPromo } from "@/lib/promoServer";
 import { isFriend, pushCard, verifyIdToken } from "@/lib/line";
 import { buildItems } from "@/lib/cartServer";
 import { cleanCupMsg } from "@/lib/cupMsg";
+import { sealCup } from "@/lib/cupCrypt";
 import crypto from "crypto";
 import { whenText, type Service } from "@/lib/menu";
 import { getMenu, getPowders, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
@@ -108,8 +109,9 @@ export async function POST(req: Request) {
     return fail("บันทึกออเดอร์ไม่สำเร็จ ลองใหม่อีกครั้ง", 500);
   }
   const row = (Array.isArray(data) ? data[0] : data) as { order_id: number; order_no: number; order_expires: string; order_status: string };
-  // ข้อความบนแก้ว: ผูกรหัสสุ่มให้ QR ของออเดอร์นี้ (ร้านพิมพ์สติ๊กเกอร์จากหน้าบาริสต้า)
+  // ข้อความบนแก้ว: ผูกรหัสสุ่มให้ QR ของออเดอร์นี้ แล้วเก็บแบบเข้ารหัส (ร้านไม่เห็นเนื้อหา มีแค่ปุ่มพิมพ์สติ๊กเกอร์)
   const cup = cleanCupMsg(body);
+  const cupToken = cup ? crypto.randomBytes(12).toString("base64url") : "";
   if (service !== "pickup" || promoCode || cup) {
     const { error: svcErr } = await db()
       .from("orders")
@@ -118,7 +120,7 @@ export async function POST(req: Request) {
         table_no: tableNo,
         promo_code: promoCode,
         promo_discount: promoOff,
-        ...(cup && { cup_msg: cup.msg, cup_to: cup.to, cup_from: cup.from, cup_token: crypto.randomBytes(12).toString("base64url") }),
+        ...(cup && { cup_msg: sealCup(cupToken, cup), cup_token: cupToken }),
       })
       .eq("id", row.order_id);
     if (svcErr) console.error("set service/promo failed", svcErr);

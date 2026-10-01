@@ -6,7 +6,7 @@ import WishLabel from "../../bar/WishLabel";
 type Dir = "h" | "v" | "v2";
 
 // ใช้ค่าตำแหน่ง/ทิศเดียวกับหน้าพิมพ์สติ๊กเกอร์ในมาม่าบาร์ (จำไว้ในเครื่องนี้)
-export default function CupLabelPrint(p: { no: number; msg: string; to: string; from: string; qr: string; wishQr: string; cups: number }) {
+export default function CupLabelPrint(p: { no: number; qr: string; wishQr: string; cups: number }) {
   const [copies, setCopies] = useState(1);
   // ดวงที่เหลือในแถว: เติมสติ๊กเกอร์อวยพรทั่วไป (ใช้ติดแก้วอื่นได้) หรือเว้นว่าง
   const [fill, setFill] = useState(true);
@@ -41,12 +41,7 @@ export default function CupLabelPrint(p: { no: number; msg: string; to: string; 
     <main className="cupm-page">
       <section className="cupm-tools nba-noprint">
         <h1>สติ๊กเกอร์ข้อความบนแก้ว · ออเดอร์ {tag}</h1>
-        <blockquote className="cupm-msg">
-          {p.to && <small>ถึง {p.to}</small>}
-          <p>{p.msg}</p>
-          {p.from && <small>จาก {p.from}</small>}
-        </blockquote>
-        <p className="nba-muted">ติดดวงที่มีเลข {tag} บนแก้วของออเดอร์นี้ · สแกนแล้วข้อความจะขึ้นพร้อมน้องมัทฉะ</p>
+        <p className="nba-muted">ข้อความของลูกค้าถูกเข้ารหัส ร้านมองไม่เห็น · ติดดวงที่มีเลข {tag} บนแก้วของออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความจะขึ้นพร้อมน้องมัทฉะ</p>
         <div className="cupm-row">
           <label>
             จำนวนดวง

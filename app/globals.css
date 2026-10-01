@@ -1971,19 +1971,11 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .cupm-page { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
 .cupm-tools { display: grid; gap: 12px; background: #fff; border: 1px solid var(--edge); border-radius: 16px; padding: 16px; }
 .cupm-tools h1 { margin: 0; font-size: 18px; }
-.cupm-msg { margin: 0; padding: 12px 14px; border-radius: 12px; background: #F3EFE4; border-left: 4px solid var(--seal); display: grid; gap: 4px; }
-.cupm-msg p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; font-weight: 600; }
-.cupm-msg small { color: var(--stone); }
 .cupm-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .cupm-row label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--stone); }
 .cupm-row input { width: 90px; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
 .wl-tag { font-style: normal; margin-left: 0.8mm; font-family: system-ui, sans-serif; letter-spacing: 0; }
 @media print { .cupm-page { padding: 0; max-width: none; display: block; } }
-.ticket .cupm-card { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #FBEDEA; border: 1px dashed var(--seal); font-size: 14px; display: grid; gap: 6px; }
-.cupm-card p { margin: 0; display: flex; gap: 6px; align-items: flex-start; white-space: pre-line; overflow-wrap: anywhere; }
-.cupm-card .ico { margin-top: 2px; color: var(--seal); flex-shrink: 0; }
-.cupm-card small { color: var(--stone); }
-.cupm-card a { justify-self: start; min-height: 36px; padding: 0 12px; border-radius: 10px; background: var(--seal); color: #fff; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .cupm-form { display: grid; gap: 8px; }
 .cupm-form p { margin: 0; font-size: 13px; color: var(--stone); line-height: 1.5; }
 .cupm-names { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1991,3 +1983,4 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .wl b:has(.wl-tag) { font-size: 5.4pt; letter-spacing: 0; }
 .nbs-lb.wish.v .wl b:has(.wl-tag), .nbs-lb.wish.v2 .wl b:has(.wl-tag) { font-size: 6pt; }
 .wl-tag { font-size: 1.15em; font-weight: 800; }
+.ticket .cupm-btn { margin: 8px 0 0; min-height: 36px; padding: 0 12px; border-radius: 10px; background: var(--seal); color: #fff; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
