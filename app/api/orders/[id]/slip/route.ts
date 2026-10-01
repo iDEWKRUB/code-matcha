@@ -71,7 +71,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             ["วิธีรับ", rowWhen(order)],
           ],
           items: itemLines(order.items),
-          note: [order.note && `หมายเหตุ: ${order.note}`, order.cup_msg && "มีข้อความบนแก้ว: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า"].filter(Boolean).join(" · ") || undefined,
+          note: [order.note && `หมายเหตุ: ${order.note}`, order.cup_msg && `มีข้อความบนแก้ว${order.cup_to ? ` (ติดที่: ${order.cup_to})` : ""}: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า`].filter(Boolean).join(" · ") || undefined,
           button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
         }, { orderNo: order.daily_no }),
       ]);

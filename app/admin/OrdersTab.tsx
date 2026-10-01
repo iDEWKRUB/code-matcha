@@ -114,9 +114,12 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                       </p>
                     )}
                     {o.hasCupMsg && (
-                      <a className="cupm-btn" href={`/admin/cup-label/${o.id}`} target="_blank" rel="noreferrer">
-                        <Icon name="gift" size={16} /> พิมพ์สติ๊กเกอร์ข้อความ
-                      </a>
+                      <div className="cupm-wrap">
+                        {o.cupFor && <p className="cupm-for">ลูกค้าให้ติดที่: <b>{o.cupFor}</b></p>}
+                        <a className="cupm-btn" href={`/admin/cup-label/${o.id}`} target="_blank" rel="noreferrer">
+                          <Icon name="gift" size={16} /> พิมพ์สติ๊กเกอร์ข้อความ
+                        </a>
+                      </div>
                     )}
                     {st === "payment_review" && o.hasSlip && (
                       <a className="slip" href={`/api/admin/orders/${o.id}/slip`} target="_blank" rel="noreferrer">

@@ -26,7 +26,7 @@ import {
   type Slot,
 } from "@/lib/menu";
 import type { BarHours } from "@/lib/bar";
-import { MAX_CUP_MSG, MAX_CUP_NAME } from "@/lib/cupMsg";
+import { MAX_CUP_FOR, MAX_CUP_MSG, MAX_CUP_NAME } from "@/lib/cupMsg";
 import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
 import { promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
@@ -115,7 +115,7 @@ export default function OrderPage() {
   const [tableNo, setTableNo] = useState("");
   const [note, setNote] = useState("");
   // ข้อความบนแก้ว: ร้านติดสติ๊กเกอร์ QR เฉพาะออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความขึ้น
-  const [cup, setCup] = useState({ msg: "", to: "", from: "" });
+  const [cup, setCup] = useState({ msg: "", to: "", from: "", forCup: "" });
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState("");
   const [needLogin, setNeedLogin] = useState(false);
@@ -343,7 +343,7 @@ export default function OrderPage() {
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, cupMsg: cup.msg, cupTo: cup.to, cupFrom: cup.from, points: pointsToUse, promoCode: promo?.code ?? "" }),
+        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, cupMsg: cup.msg, cupTo: cup.to, cupFrom: cup.from, cupFor: cup.forCup, points: pointsToUse, promoCode: promo?.code ?? "" }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
@@ -364,7 +364,7 @@ export default function OrderPage() {
       track("order");
       setCart([]);
       setNote("");
-      setCup({ msg: "", to: "", from: "" });
+      setCup({ msg: "", to: "", from: "", forCup: "" });
       setPickup("");
       setUsePoints(false);
       setPromo(null);
@@ -973,6 +973,16 @@ export default function OrderPage() {
                   <input className="text" maxLength={MAX_CUP_NAME} placeholder="ถึง (ชื่อเล่น)" value={cup.to} onChange={(e) => setCup({ ...cup, to: e.target.value })} aria-label="ถึงใคร" />
                   <input className="text" maxLength={MAX_CUP_NAME} placeholder="จาก (ไม่ใส่ก็ได้)" value={cup.from} onChange={(e) => setCup({ ...cup, from: e.target.value })} aria-label="จากใคร" />
                 </div>
+              )}
+              {cup.msg.trim() && (
+                <input
+                  className="text"
+                  maxLength={MAX_CUP_FOR}
+                  placeholder="ติดที่แก้วไหน เช่น แก้วของพี่เอ / แก้วที่ 2 มัทฉะเย็น"
+                  value={cup.forCup}
+                  onChange={(e) => setCup({ ...cup, forCup: e.target.value })}
+                  aria-label="ให้ติดข้อความที่แก้วไหน"
+                />
               )}
             </div>
 

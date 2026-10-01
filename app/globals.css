@@ -1984,3 +1984,6 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nbs-lb.wish.v .wl b:has(.wl-tag), .nbs-lb.wish.v2 .wl b:has(.wl-tag) { font-size: 6pt; }
 .wl-tag { font-size: 1.15em; font-weight: 800; }
 .ticket .cupm-btn { margin: 8px 0 0; min-height: 36px; padding: 0 12px; border-radius: 10px; background: var(--seal); color: #fff; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.cupm-wrap { margin-top: 8px; display: grid; gap: 6px; justify-items: start; }
+.cupm-wrap .cupm-btn { margin: 0; }
+.cupm-for { margin: 0; padding: 6px 10px; border-radius: 8px; background: #FFF4D6; border: 1px dashed #E0B84C; color: #7a5a12; font-size: 14px; }

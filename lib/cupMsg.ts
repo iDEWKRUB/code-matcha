@@ -1,6 +1,8 @@
 // ข้อความบนแก้ว (ลูกค้าเขียนตอนสั่ง → ร้านพิมพ์สติ๊กเกอร์ QR → คนได้แก้วสแกนอ่าน)
 export const MAX_CUP_MSG = 120;
 export const MAX_CUP_NAME = 20;
+// โน้ตบอกร้านว่าให้ติดข้อความที่แก้วไหน (ไม่เข้ารหัส ร้านต้องอ่านได้)
+export const MAX_CUP_FOR = 60;
 // เปิดอ่านได้กี่วันหลังสั่ง
 export const CUP_MSG_DAYS = 60;
 
@@ -13,8 +15,8 @@ function clean(v: unknown, max: number, lines = false) {
   return s.trim().slice(0, max);
 }
 
-export function cleanCupMsg(raw: { cupMsg?: unknown; cupTo?: unknown; cupFrom?: unknown }) {
+export function cleanCupMsg(raw: { cupMsg?: unknown; cupTo?: unknown; cupFrom?: unknown; cupFor?: unknown }) {
   const msg = clean(raw.cupMsg, MAX_CUP_MSG, true);
   if (!msg) return null;
-  return { msg, to: clean(raw.cupTo, MAX_CUP_NAME), from: clean(raw.cupFrom, MAX_CUP_NAME) };
+  return { msg, to: clean(raw.cupTo, MAX_CUP_NAME), from: clean(raw.cupFrom, MAX_CUP_NAME), forCup: clean(raw.cupFor, MAX_CUP_FOR) };
 }

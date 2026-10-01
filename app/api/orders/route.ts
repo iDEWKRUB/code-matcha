@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     cupMsg?: unknown;
     cupTo?: unknown;
     cupFrom?: unknown;
+    cupFor?: unknown;
   };
   try {
     body = await req.json();
@@ -120,7 +121,8 @@ export async function POST(req: Request) {
         table_no: tableNo,
         promo_code: promoCode,
         promo_discount: promoOff,
-        ...(cup && { cup_msg: sealCup(cupToken, cup), cup_token: cupToken }),
+        // cup_to (คอลัมน์เดิม) เก็บโน้ต "ติดที่แก้วไหน" แบบไม่เข้ารหัส · ชื่อ ถึง/จาก อยู่ในข้อความที่เข้ารหัส
+        ...(cup && { cup_msg: sealCup(cupToken, { msg: cup.msg, to: cup.to, from: cup.from }), cup_to: cup.forCup, cup_token: cupToken }),
       })
       .eq("id", row.order_id);
     if (svcErr) console.error("set service/promo failed", svcErr);
@@ -142,7 +144,7 @@ export async function POST(req: Request) {
           ["วิธีรับ", when],
         ],
         items: lines,
-        note: [cleanNote && `หมายเหตุ: ${cleanNote}`, cup && "มีข้อความบนแก้ว: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า"].filter(Boolean).join(" · ") || undefined,
+        note: [cleanNote && `หมายเหตุ: ${cleanNote}`, cup && `มีข้อความบนแก้ว${cup.forCup ? ` (ติดที่: ${cup.forCup})` : ""}: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า`].filter(Boolean).join(" · ") || undefined,
         button: { label: "เปิดหน้าบาริสต้า", uri: adminUri() },
       }, { orderNo: row.order_no }),
       pushCard(user.userId, {
