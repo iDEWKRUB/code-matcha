@@ -1945,3 +1945,4 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nba-logo-prev .wl-qr { width: 70px; height: 70px; }
 .nba-logo-prev .wl-seal { font-size: 7px; border-width: 2px; outline-width: 1px; border-radius: 3px; }
 .nba-logo-prev .wl b { font-size: 10px; }
+.wl b { font-family: var(--font-mincho), "Shippori Mincho", serif; font-weight: 800; letter-spacing: 0.15mm; }

@@ -10,7 +10,7 @@ import BarHoursPanel from "./BarHoursPanel";
 import LogoMark from "./LogoMark";
 import { SHOP } from "@/lib/config";
 
-// สติ๊กเกอร์อวยพร: QR (แก้ผิดได้สูง) + ตรา 暗号 กลาง QR + "สแกนรับคำอวยพร"
+// สติ๊กเกอร์อวยพร: QR (แก้ผิดได้สูง) + ตรา 暗号 กลาง QR + ชื่อร้าน
 function WishLabel({ qr }: { qr: string }) {
   return (
     <span className="wl">
@@ -21,7 +21,7 @@ function WishLabel({ qr }: { qr: string }) {
           暗<br />号
         </span>
       </span>
-      <b>สแกนรับคำอวยพร</b>
+      <b>CODE-MATCHA</b>
     </span>
   );
 }
