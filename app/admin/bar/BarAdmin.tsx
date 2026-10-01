@@ -8,6 +8,7 @@ import Icon, { type IconName } from "../../Icon";
 import BarBills from "./BarBills";
 import BarHoursPanel from "./BarHoursPanel";
 import LogoMark from "./LogoMark";
+import BlessingsEditor from "./BlessingsEditor";
 import { SHOP } from "@/lib/config";
 
 // สติ๊กเกอร์อวยพร: QR (แก้ผิดได้สูง) + ตรา 暗号 กลาง QR + ชื่อร้าน
@@ -125,6 +126,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   // สติ๊กเกอร์อวยพร: QR มีตรา 暗号 ตรงกลาง → หน้า /gift (การ์ตูนน้องมัทฉะ + คำอวยพร)
   const [wishCopies, setWishCopies] = useState(0);
   const [wishDir, setWishDir] = useState<"h" | "v" | "v2">("h");
+  const [editBless, setEditBless] = useState(false);
   const [wishQr, setWishQr] = useState("");
   useEffect(() => {
     QRCode.toDataURL(`${SHOP.siteUrl}/gift`, { margin: 1, width: 480, errorCorrectionLevel: "H" }).then(setWishQr);
@@ -452,6 +454,9 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                     ลองเปิดดู
                   </a>
                 </span>
+                <button className="nba-ghost" style={{ alignSelf: "flex-start" }} onClick={() => setEditBless(true)}>
+                  แก้คำอวยพร
+                </button>
                 <div className="nba-layout" role="group" aria-label="ทิศสติ๊กเกอร์อวยพร">
                   <button aria-pressed={wishDir === "h"} onClick={() => setWishDir("h")}>
                     แนวนอน
@@ -548,6 +553,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
           )}
         </>
       )}
+
+      {editBless && <BlessingsEditor onClose={() => setEditBless(false)} />}
 
       {draft && (
         <div className="nba-modal nba-noprint" role="dialog" aria-modal="true" aria-label={draft.id ? "แก้ไขรายการ" : "เพิ่มรายการ"}>

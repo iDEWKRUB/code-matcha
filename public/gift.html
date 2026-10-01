@@ -404,6 +404,11 @@ const CONFIG = {
   ]
 };
 
+/* คำอวยพรที่ร้านแก้เองในหลังร้าน (โหลดไม่ได้ = ใช้ชุดข้างบน) */
+fetch("/api/blessings").then(r => r.ok ? r.json() : null).then(j => {
+  if (j && Array.isArray(j.messages) && j.messages.length) CONFIG.messages = j.messages;
+}).catch(() => {});
+
 Object.entries(CONFIG.social).forEach(([k, url]) => {
   const a = document.getElementById("s-" + k);
   if (!a) return;
