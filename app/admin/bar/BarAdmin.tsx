@@ -7,6 +7,7 @@ import BarArt from "../../bar/BarArt";
 import Icon, { type IconName } from "../../Icon";
 import BarBills from "./BarBills";
 import BarHoursPanel from "./BarHoursPanel";
+import LogoMark from "./LogoMark";
 import BarStock from "./BarStock";
 import { uploadImage } from "../upload";
 
@@ -103,6 +104,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   const [err, setErr] = useState("");
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [copies, setCopies] = useState<Record<string, number>>({});
+  const [logoCopies, setLogoCopies] = useState(0);
+  const [logoStyle, setLogoStyle] = useState<"solid" | "line">("solid");
   // รูปแบบกระดาษ: a4 = แผ่น A4 · roll = ม้วน Sbarco 3 ดวงต่อแถว 32×25 มม. (จำไว้ในเครื่องนี้)
   const [layout, setLayout] = useState<"a4" | "roll">("a4");
   // ปรับตำแหน่งให้ตรงดวงบนม้วน (มม.): เลื่อนซ้าย/ขวา · ขึ้น/ลง · ระยะห่างระหว่างดวง
@@ -201,7 +204,11 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
 
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
   const liffLink = liffId ? `https://liff.line.me/${liffId}/bar` : `${origin}/bar`;
-  const stickers = items.flatMap((i) => Array.from({ length: copies[i.id] ?? 0 }, () => i));
+  // null = สติ๊กเกอร์โลโก้ร้าน (หมึกดำ) พิมพ์ต่อท้ายในม้วน/แผ่นเดียวกัน
+  const stickers: (BarItem | null)[] = [
+    ...items.flatMap((i) => Array.from({ length: copies[i.id] ?? 0 }, () => i)),
+    ...Array.from({ length: logoCopies }, () => null),
+  ];
 
   return (
     <div className={embedded ? "nba nba-embed" : "nba"}>
@@ -366,6 +373,33 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 </label>
               ))}
             </div>
+            <div className="nba-logo">
+              <span className="nba-logo-prev">
+                <LogoMark variant={logoStyle} />
+              </span>
+              <div>
+                <b>สติ๊กเกอร์โลโก้ร้าน (หมึกดำ)</b>
+                <div className="nba-layout" role="group" aria-label="แบบโลโก้">
+                  <button aria-pressed={logoStyle === "solid"} onClick={() => setLogoStyle("solid")}>
+                    ตราดำทึบ
+                  </button>
+                  <button aria-pressed={logoStyle === "line"} onClick={() => setLogoStyle("line")}>
+                    ตราเส้น (ประหยัดหมึก)
+                  </button>
+                </div>
+                <label className="nba-logo-n">
+                  จำนวน
+                  <input
+                    type="number"
+                    min={0}
+                    max={300}
+                    inputMode="numeric"
+                    value={logoCopies}
+                    onChange={(e) => setLogoCopies(Math.max(0, Math.min(300, Number(e.target.value) || 0)))}
+                  />
+                </label>
+              </div>
+            </div>
             <div className="nba-acts">
               <button className="nba-ghost" onClick={() => setCopies(Object.fromEntries(items.map((i) => [i.id, 10])))}>
                 ทุกอย่าง 10 ดวง
@@ -386,11 +420,17 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 <div className="nbs-row" key={r}>
                   {[0, 1, 2].map((c) => {
                     const i = stickers[r * 3 + c];
+                    if (i === null)
+                      return (
+                        <div className="nbs-lb logo" key={c}>
+                          <LogoMark variant={logoStyle} />
+                        </div>
+                      );
                     return i ? (
                       <div className="nbs-lb" key={c}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
-                        <b>{i.name.replace(/^ท็อปปิ้งs*/, "")}</b>
+                        <b>{i.name.replace(/^ท็อปปิ้ง\s*/, "")}</b>
                         <small>CODE-MATCHA · มาม่าบาร์</small>
                       </div>
                     ) : (
@@ -404,14 +444,20 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
 
           {stickers.length > 0 && layout === "a4" && (
             <div className="nbs-sheet" aria-label="ตัวอย่างสติ๊กเกอร์">
-              {stickers.map((i, k) => (
+              {stickers.map((i, k) =>
+                i === null ? (
+                  <div className="nbs logo" key={k}>
+                    <LogoMark variant={logoStyle} />
+                  </div>
+                ) : (
                 <div className="nbs" key={k}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
                   <b>{i.name.replace(/^ท็อปปิ้ง\s*/, "")}</b>
                   <small>CODE-MATCHA · มาม่าบาร์</small>
                 </div>
-              ))}
+                ),
+              )}
             </div>
           )}
         </>

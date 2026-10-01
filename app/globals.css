@@ -1918,3 +1918,12 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .nba-tune { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .nba-tune label { display: grid; gap: 4px; font-size: 13px; color: var(--stone); font-weight: 600; }
 .nba-tune input { width: 90px; min-height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
+/* สติ๊กเกอร์โลโก้ร้านหมึกดำ (พิมพ์เครื่องความร้อน) */
+.logo-mark { display: block; width: 100%; height: 100%; }
+.nba-logo { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px; border-radius: 14px; background: #f7f5ee; }
+.nba-logo > div { display: flex; flex-direction: column; gap: 8px; }
+.nba-logo-prev { width: 128px; height: 100px; background: #fff; border-radius: 8px; padding: 4px; box-sizing: border-box; outline: 1px dashed #ccc; }
+.nba-logo-n { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.nba-logo-n input { width: 90px; min-height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
+.nbs-lb.logo { padding: 1mm 1.5mm; }
+.nbs.logo { padding: 2mm; }
