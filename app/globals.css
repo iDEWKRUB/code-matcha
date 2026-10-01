@@ -1977,8 +1977,7 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .cupm-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .cupm-row label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--stone); }
 .cupm-row input { width: 90px; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--edge); font: inherit; }
-.wl-tag { font-style: normal; margin-left: 0.8mm; padding: 0 0.6mm; border: 0.2mm solid #000; border-radius: 0.6mm; font-family: system-ui, sans-serif; letter-spacing: 0; }
-.nba-logo-prev .wl-tag { margin-left: 3px; padding: 0 2px; border-width: 1px; border-radius: 2px; }
+.wl-tag { font-style: normal; margin-left: 0.8mm; font-family: system-ui, sans-serif; letter-spacing: 0; }
 @media print { .cupm-page { padding: 0; max-width: none; display: block; } }
 .ticket .cupm-card { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: #FBEDEA; border: 1px dashed var(--seal); font-size: 14px; display: grid; gap: 6px; }
 .cupm-card p { margin: 0; display: flex; gap: 6px; align-items: flex-start; white-space: pre-line; overflow-wrap: anywhere; }
@@ -1989,3 +1988,6 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .cupm-form p { margin: 0; font-size: 13px; color: var(--stone); line-height: 1.5; }
 .cupm-names { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cupm-count { justify-self: end; font-size: 12px; color: var(--stone); }
+.wl b:has(.wl-tag) { font-size: 5.4pt; letter-spacing: 0; }
+.nbs-lb.wish.v .wl b:has(.wl-tag), .nbs-lb.wish.v2 .wl b:has(.wl-tag) { font-size: 6pt; }
+.wl-tag { font-size: 1.15em; font-weight: 800; }
