@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LOW_STOCK, type CountLine } from "@/lib/bar";
+import BarFilter, { useBarFilter } from "../../bar/BarFilter";
 
-type Item = { id: string; name: string; price: number; kind: string; stock: number; available: boolean };
+type Item = { id: string; name: string; price: number; kind: string; stock: number; available: boolean; category: string; group: string; detail: string };
 type Move = { id: number; itemId: string; delta: number; kind: "in" | "sale" | "count"; orderNo: number | null; note: string; at: string };
 type Count = { id: number; date: string; at: string; lines: CountLine[]; missing: number; missingValue: number };
 type TraceBill = { id: number; no: number; at: string; name: string; status: string; photo: string | null; detected: number; paid: number; extra: number; pieces: number; warn: boolean };
@@ -25,6 +26,9 @@ export default function BarStock() {
   const [trace, setTrace] = useState<TraceBill[] | null>(null);
   const [others, setOthers] = useState<TraceBill[]>([]);
   const [err, setErr] = useState("");
+  // ตัวกรองแยกกัน: ตารางคงเหลือ กับหน้าต่างรับของเข้า/นับจริง
+  const listF = useBarFilter(items ?? []);
+  const modalF = useBarFilter(items ?? []);
 
   const load = useCallback(async () => {
     const r = await fetch("/api/admin/bar/stock", { cache: "no-store" });
@@ -158,6 +162,7 @@ export default function BarStock() {
         </div>
       </div>
 
+      <BarFilter f={listF} id="stk-q" />
       <div className="st-table" role="table" aria-label="สต๊อกคงเหลือ">
         <div className="st-tr st-th" role="row">
           <span role="columnheader">รายการ</span>
@@ -166,7 +171,7 @@ export default function BarStock() {
           <span role="columnheader">คงเหลือ</span>
           <span role="columnheader">สถานะ</span>
         </div>
-        {items.map((i) => {
+        {listF.shown.map((i) => {
           const st = i.stock <= 0 ? ["bad", "หมด"] : i.stock <= LOW_STOCK ? ["wait", "ใกล้หมด"] : ["ok", "ปกติ"];
           return (
             <div key={i.id} className={`st-tr${i.stock <= LOW_STOCK ? " low" : ""}`} role="row">
@@ -332,12 +337,13 @@ export default function BarStock() {
               <h2>{modal.kind === "in" ? "รับของเข้า" : "นับจริงตอนปิดร้าน"}</h2>
               <p className="nba-muted">{modal.kind === "in" ? "ใส่จำนวนที่รับเข้ามาเพิ่ม (ไม่ใส่ = ไม่มีรับเข้า)" : "กรอกจำนวนที่เหลือจริงบนชั้น (ไม่กรอก = ไม่นับรอบนี้)"}</p>
             </div>
+            <BarFilter f={modalF} id="stk-modal-q" />
             <div className={`st-grid ${modal.kind}`}>
               <span className="h">รายการ</span>
               <span className="h c">{modal.kind === "in" ? "คงเหลือ" : "ควรเหลือ"}</span>
               <span className="h c">{modal.kind === "in" ? "รับเข้า" : "นับได้"}</span>
               {modal.kind === "count" && <span className="h r">ผล</span>}
-              {items.map((i) => {
+              {modalF.shown.map((i) => {
                 const p = countPreview.find((x) => x.id === i.id);
                 return (
                   <div key={i.id} className={`st-row${p?.diff !== null && p?.diff !== undefined && p.diff < 0 ? " miss" : ""}`}>

@@ -15,7 +15,32 @@ export type BarItem = {
   available: boolean;
   sort: number;
   imageUrl: string | null;
+  category: string; // หมวดหมู่ (ปุ่มกรอง)
+  group: string; // กลุ่มสินค้า เช่น มาม่าเกาหลี (Buldak)
+  detail: string; // รายละเอียด / รสชาติ
+  unit: string; // หน่วย เช่น ซอง แพ็ก ขวด
 };
+
+// หมวดหมู่ที่แนะนำ (เรียงตามนี้ หมวดที่ร้านพิมพ์เองต่อท้าย)
+export const BAR_CATEGORIES = ["บะหมี่กึ่งสำเร็จรูป", "ท็อปปิ้ง", "เครื่องเคียง/วัตถุดิบ", "เครื่องดื่ม", "อื่น ๆ"];
+export const BAR_MAX_CATEGORY = 40;
+
+// หมวดที่มีของอยู่จริง เรียงตาม BAR_CATEGORIES
+export function barCategories(items: Pick<BarItem, "category">[]) {
+  const have = [...new Set(items.map((i) => i.category || "อื่น ๆ"))];
+  const rank = (c: string) => (BAR_CATEGORIES.includes(c) ? BAR_CATEGORIES.indexOf(c) : BAR_CATEGORIES.length);
+  return have.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, "th"));
+}
+
+// ค้นหา: ทุกคำต้องเจอในชื่อ / รายละเอียด / กลุ่ม / หมวด (ไม่สนตัวพิมพ์เล็กใหญ่และช่องว่าง)
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+export function barMatch(item: Pick<BarItem, "name" | "detail" | "group" | "category">, cat: string, q: string) {
+  if (cat && (item.category || "อื่น ๆ") !== cat) return false;
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean).map(norm);
+  if (!words.length) return true;
+  const hay = norm([item.name, item.detail, item.group, item.category].join(" "));
+  return words.every((w) => hay.includes(w));
+}
 
 export type BarLine = { id: string; qty: number };
 

@@ -23,6 +23,7 @@ import Seal from "../Seal";
 import BarLoader from "./BarLoader";
 import PayHowTo from "./PayHowTo";
 import BarArt from "./BarArt";
+import BarFilter, { useBarFilter } from "./BarFilter";
 import Slurp from "./Slurp";
 import type { TrayScan } from "./scan";
 
@@ -137,6 +138,7 @@ export default function BarPage() {
   const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState("");
   const [picker, setPicker] = useState(false);
+  const pickF = useBarFilter(items);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
   const [needFriend, setNeedFriend] = useState(false);
@@ -1009,13 +1011,23 @@ export default function BarPage() {
                   เสร็จ
                 </button>
               </div>
+              <BarFilter f={pickF} id="nb-pick-q" tone="shop" placeholder="พิมพ์ชื่อของที่หยิบมา" />
               <ul className="nb-lines">
-                {items.map((it) => (
+                {pickF.shown.map((it) => (
                   <li key={it.id}>
-                    <BarArt kind={it.kind} size={36} />
+                    {it.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img className="nb-pick-img" src={it.imageUrl} alt="" width={36} height={36} />
+                    ) : (
+                      <BarArt kind={it.kind} size={36} />
+                    )}
                     <div>
                       <b>{it.name}</b>
-                      <small>฿{it.price}</small>
+                      <small>
+                        ฿{it.price}
+                        {it.unit && ` / ${it.unit}`}
+                        {it.detail && ` · ${it.detail}`}
+                      </small>
                     </div>
                     {tray[it.id] ? (
                       <>

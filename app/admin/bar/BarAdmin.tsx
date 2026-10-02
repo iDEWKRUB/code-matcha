@@ -2,7 +2,8 @@
 
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { BAR_KINDS, barQrText, type BarItem, type BarKind } from "@/lib/bar";
+import { BAR_CATEGORIES, BAR_KINDS, BAR_MAX_CATEGORY, barQrText, type BarItem, type BarKind } from "@/lib/bar";
+import BarFilter, { useBarFilter } from "../../bar/BarFilter";
 import BarArt from "../../bar/BarArt";
 import Icon, { type IconName } from "../../Icon";
 import BarBills from "./BarBills";
@@ -22,6 +23,10 @@ type Draft = {
   sort: string;
   available: boolean;
   imageUrl: string | null;
+  category: string;
+  group: string;
+  detail: string;
+  unit: string;
 };
 const blank: Draft = {
   name: "",
@@ -30,6 +35,10 @@ const blank: Draft = {
   sort: "0",
   available: true,
   imageUrl: null,
+  category: "บะหมี่กึ่งสำเร็จรูป",
+  group: "",
+  detail: "",
+  unit: "",
 };
 const toDraft = (i: BarItem): Draft => ({
   id: i.id,
@@ -39,6 +48,10 @@ const toDraft = (i: BarItem): Draft => ({
   sort: String(i.sort),
   available: i.available,
   imageUrl: i.imageUrl,
+  category: i.category,
+  group: i.group,
+  detail: i.detail,
+  unit: i.unit,
 });
 
 type Section = "sell" | "bills" | "stock" | "items" | "qr";
@@ -102,6 +115,8 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
   }
 
   const [items, setItems] = useState<BarItem[]>([]);
+  const itemFilter = useBarFilter(items);
+  const qrFilter = useBarFilter(items);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -295,19 +310,32 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
               {err}
             </p>
           )}
+          <BarFilter f={itemFilter} id="bar-items-q" />
+          {(itemFilter.cat || itemFilter.q) && itemFilter.shown.length > 0 && (
+            <div className="bf-bulk">
+              <span className="nba-muted">ที่แสดงอยู่ {itemFilter.shown.length} รายการ:</span>
+              <button className="nba-ghost" disabled={busy} onClick={() => call("PATCH", { ids: itemFilter.shown.map((i) => i.id), available: true })}>
+                เปิดขายทั้งหมด
+              </button>
+              <button className="nba-ghost" disabled={busy} onClick={() => call("PATCH", { ids: itemFilter.shown.map((i) => i.id), available: false })}>
+                ปิดขายทั้งหมด
+              </button>
+            </div>
+          )}
+          <div className="bf-scroll">
           <table className="nba-table">
             <thead>
               <tr>
                 <th />
                 <th>ชื่อ</th>
-                <th>ประเภท</th>
+                <th>หมวดหมู่</th>
                 <th>ราคา</th>
                 <th>ขาย</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {items.map((i) => (
+              {itemFilter.shown.map((i) => (
                 <tr key={i.id} className={i.available ? "" : "off"}>
                   <td>
                     {i.imageUrl ? (
@@ -317,9 +345,15 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                       <BarArt kind={i.kind} size={36} />
                     )}
                   </td>
-                  <td>{i.name}</td>
-                  <td>{BAR_KINDS.find((k) => k.id === i.kind)?.label}</td>
-                  <td>฿{i.price}</td>
+                  <td>
+                    {i.name}
+                    {(i.detail || i.unit) && <small className="bf-sub">{[i.detail, i.unit && `ต่อ${i.unit}`].filter(Boolean).join(" · ")}</small>}
+                  </td>
+                  <td>
+                    {i.category}
+                    {i.group && <small className="bf-sub">{i.group}</small>}
+                  </td>
+                  <td>{i.price ? `฿${i.price}` : <span className="bf-noprice">ยังไม่ตั้ง</span>}</td>
                   <td>
                     <button
                       className={`nba-switch${i.available ? " on" : ""}`}
@@ -339,6 +373,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 
@@ -376,8 +411,9 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 </label>
               </div>
             )}
+            <BarFilter f={qrFilter} id="bar-qr-q" />
             <div className="nba-copies">
-              {items.map((i) => (
+              {qrFilter.shown.map((i) => (
                 <label key={i.id}>
                   <span>{i.name}</span>
                   <input
@@ -558,8 +594,33 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
               ชื่อ
               <input value={draft.name} maxLength={60} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="เช่น มาม่ารสต้มยำกุ้ง" />
             </label>
+            <div className="nba-2">
+              <label>
+                หมวดหมู่
+                <input list="bar-cat-list" value={draft.category} maxLength={BAR_MAX_CATEGORY} onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
+                <datalist id="bar-cat-list">
+                  {[...new Set([...BAR_CATEGORIES, ...items.map((i) => i.category)])].filter(Boolean).map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </label>
+              <label>
+                กลุ่มสินค้า
+                <input value={draft.group} maxLength={60} placeholder="เช่น มาม่าเกาหลี (Buldak)" onChange={(e) => setDraft({ ...draft, group: e.target.value })} />
+              </label>
+            </div>
+            <div className="nba-2">
+              <label>
+                รายละเอียด / รสชาติ
+                <input value={draft.detail} maxLength={120} onChange={(e) => setDraft({ ...draft, detail: e.target.value })} />
+              </label>
+              <label>
+                หน่วย
+                <input value={draft.unit} maxLength={20} placeholder="ซอง แพ็ก ขวด" onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
+              </label>
+            </div>
             <label>
-              ประเภท
+              รูปการ์ตูน (ถ้าไม่ใส่รูป)
               <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value as BarKind })}>
                 {BAR_KINDS.map((k) => (
                   <option key={k.id} value={k.id}>

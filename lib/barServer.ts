@@ -87,7 +87,7 @@ export async function purgeOldTrays() {
 }
 
 export async function getBarItems(availableOnly = true): Promise<BarItem[]> {
-  let q = db().from("bar_items").select("id,name,kind,price,available,sort,image_url").order("sort").order("name");
+  let q = db().from("bar_items").select("id,name,kind,price,available,sort,image_url,category,item_group,detail,unit").order("sort").order("name");
   if (availableOnly) q = q.eq("available", true);
   const { data, error } = await q;
   if (error) throw error;
@@ -99,6 +99,10 @@ export async function getBarItems(availableOnly = true): Promise<BarItem[]> {
     available: r.available,
     sort: r.sort,
     imageUrl: r.image_url,
+    category: r.category ?? "",
+    group: r.item_group ?? "",
+    detail: r.detail ?? "",
+    unit: r.unit ?? "",
   }));
 }
 
