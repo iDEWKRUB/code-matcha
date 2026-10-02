@@ -205,6 +205,77 @@ details p { margin: 0 0 18px; font-size: 16px; color: var(--muted); }
 footer { background: var(--deeper); color: #9FAE8A; }
 footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; font-size: 14px; }
 
+/* เดโมลองเล่น (dm-) */
+.demo { background: var(--deep); color: #fff; }
+.dm-guide { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: g; }
+.dm-guide li { counter-increment: g; padding: 8px 16px 8px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: var(--on-dark); font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.dm-guide li::before { content: counter(g); width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.14); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.dm-guide li.on { background: var(--leaf); color: var(--deeper); }
+.dm-guide li.on::before { background: var(--deeper); color: #fff; }
+.dm-guide li.done { color: #fff; }
+.dm-guide li.done::before { content: "✓"; background: var(--matcha); }
+.dm-stage { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+.dm-col { flex: 0 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 10px; margin-inline: auto; }
+.dm-col-wide { flex: 1 1 520px; }
+.dm-label { margin: 0; font-size: 14px; font-weight: 600; color: var(--leaf-soft); letter-spacing: .04em; }
+.dm-label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dm-reset { min-height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.dm-reset:hover { border-color: #fff; }
+.dm-phone { margin: 0 auto; }
+.dm-screen { height: 600px; overflow-y: auto; position: relative; padding-bottom: 14px; }
+.dm-screen > * { flex-shrink: 0; }
+.dm-screen h3 { margin: 4px 4px 0; font-size: 17px; color: var(--deep); }
+.dm-screen .note { margin: 0 4px; font-size: 12px; color: var(--muted); }
+.dm-item { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.dm-item:hover { border-color: var(--matcha); }
+.dm-item .plus { margin-left: 8px; width: 28px; height: 28px; border-radius: 50%; background: var(--matcha); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.dm-opt { display: flex; flex-direction: column; gap: 6px; padding: 0 4px; }
+.dm-opt b { font-size: 13px; }
+.dm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dm-chip { min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1.5px solid var(--line); background: #fff; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+.dm-chip[aria-pressed="true"] { border-color: var(--matcha); background: #EAF1D8; color: var(--deep); font-weight: 600; }
+.dm-main { min-height: 46px; width: 100%; border: 0; border-radius: 14px; background: var(--deep); color: #fff; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; flex-shrink: 0; }
+.dm-main.center { justify-content: center; }
+.dm-main.red { background: var(--seal); }
+.dm-main:disabled { opacity: .45; cursor: default; }
+.dm-back { align-self: flex-start; min-height: 32px; border: 0; background: none; color: var(--matcha); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0 4px; }
+.dm-sum { background: #fff; border-radius: 14px; border: 1px solid var(--line); padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+.dm-sum .r { display: flex; justify-content: space-between; gap: 8px; }
+.dm-sum .r small { color: var(--muted); }
+.dm-sum .tot { border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 2px; font-weight: 700; font-size: 15px; }
+.dm-qr { align-self: center; width: 170px; height: 170px; flex-shrink: 0; background: #fff; border-radius: 14px; padding: 12px; display: grid; grid-template-columns: repeat(21, 1fr); border: 1px solid var(--line); position: relative; }
+.dm-qr i { display: block; }
+.dm-qr i.k { background: var(--ink); }
+.dm-qr::after { content: "ตัวอย่าง"; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) rotate(-12deg); background: var(--seal); color: #fff; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 6px; }
+.dm-amt { text-align: center; font-size: 30px; font-weight: 700; color: var(--matcha); margin: 0; font-variant-numeric: tabular-nums; }
+.dm-spin { width: 44px; height: 44px; border-radius: 50%; border: 4px solid #DDE5C8; border-top-color: var(--matcha); animation: spin .8s linear infinite; align-self: center; margin: 30px 0 8px; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg) } }
+.dm-ok { align-self: center; width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; background: var(--leaf); color: var(--deeper); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700; margin-top: 10px; }
+.dm-msg { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); animation: msgIn .35s ease-out; }
+.dm-msg .hd { background: var(--matcha); color: #fff; padding: 8px 12px; font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.dm-msg .hd.red { background: var(--seal); }
+.dm-msg .bd { padding: 8px 12px; font-size: 13px; line-height: 1.5; }
+.dm-msg .bd small { color: var(--muted); }
+.dm-chat { background: #8CABD8; border-radius: 18px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.dm-chat .who { font-size: 11px; color: #fff; font-weight: 600; margin: 0 2px -4px; }
+@keyframes msgIn { from { transform: translateY(10px); opacity: 0 } to { transform: none; opacity: 1 } }
+.dm-hint { margin: 0; text-align: center; font-size: 12px; color: var(--seal); font-weight: 700; }
+.dm-board { background: var(--foam); color: var(--ink); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 30px 60px rgba(0,0,0,.3); }
+.dm-board .kan { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.dm-board .kan > div { background: rgba(255,255,255,.5); border-radius: 12px; padding: 8px; min-height: 150px; min-width: 0; }
+.tk.mine { border: 2px solid var(--matcha); box-shadow: 0 6px 16px rgba(75,107,47,.2); animation: msgIn .35s ease-out; }
+.tk.alarm { border-color: var(--seal); background: #FFF0EC; animation: alarm 1s ease-in-out infinite; }
+@keyframes alarm { 0%,100% { box-shadow: 0 0 0 0 rgba(194,59,34,.45) } 50% { box-shadow: 0 0 0 8px rgba(194,59,34,0) } }
+.tk .you { display: inline-block; background: var(--seal); color: #fff; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; margin-bottom: 4px; }
+.tk .opt { color: var(--muted); font-size: 12px; }
+.tk button.go { width: 100%; border: 0; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 36px; }
+.tk button.go.red { background: var(--seal); }
+.tk .go.off { background: #C9CFBF; }
+.dm-alert { display: flex; align-items: center; gap: 10px; background: var(--seal); color: #fff; border-radius: 12px; padding: 10px 14px; font-weight: 700; font-size: 15px; }
+.dm-alert svg { flex-shrink: 0; animation: ring 1.8s ease-in-out infinite; transform-origin: 50% 10%; }
+.dm-idle { margin: 0; font-size: 14px; color: var(--muted); }
+.dm-pts { align-self: center; background: #FFF4D6; color: #7a5a12; border: 1px dashed #E0B84C; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 14px; }
+
 /* ลูกเล่นการ์ตูน: วาดครบตั้งแต่แรก แล้วค่อยขยับวน */
 .fx { transform-box: fill-box; }
 .bob { animation: bob 3.2s ease-in-out infinite; }
@@ -260,7 +331,7 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24
   <div class="wrap">
     <a class="brand" href="#top"><span class="seal" style="width:40px;height:40px;font-size:15px">暗<br>号</span><b>CODE-MATCHA</b></a>
     <nav class="nav-links" aria-label="ส่วนต่าง ๆ ของหน้า">
-      <a href="#how">ขั้นตอน</a><a href="#features">ฟีเจอร์</a><a href="#backoffice">หลังร้าน</a><a href="#pricing">แพ็กเกจ</a><a href="#faq">คำถาม</a>
+      <a href="#demo">ลองเล่น</a><a href="#how">ขั้นตอน</a><a href="#features">ฟีเจอร์</a><a href="#backoffice">หลังร้าน</a><a href="#pricing">แพ็กเกจ</a><a href="#faq">คำถาม</a>
     </nav>
     <a class="btn btn-red" href="#contact">นัดดูเดโม</a>
   </div>
@@ -277,7 +348,7 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24
       <p class="hero-sub">ลูกค้าไม่ต้องโหลดแอป เปิดแชทร้านแล้วเลือกเมนู จ่าย PromptPay ระบบตรวจสลิปให้ แล้วแจ้งเตือนจนได้แก้ว ส่วนร้านเห็นคิว ยอดขาย และกำไรในหน้าเดียว</p>
       <div class="cta-row">
         <a class="btn btn-red" href="#contact">ทักแชทนัดดูเดโม</a>
-        <a class="btn btn-ghost" href="#how">ดูว่าทำงานยังไง</a>
+        <a class="btn btn-ghost" href="#demo">ลองเล่นเดโม</a>
       </div>
       <ul class="ticks"><li>ไม่ต้องทำแอปเอง</li><li>ใช้ LINE OA ของร้าน</li><li>ตั้งเมนูและราคาเองได้</li></ul>
     </div>
@@ -423,6 +494,28 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24
   </ol>
 </section>
 
+<section class="demo" id="demo">
+  <div class="wrap sec">
+    <div class="split">
+      <div style="display:flex;flex-direction:column;gap:10px"><p class="eyebrow" style="color:var(--leaf-soft)">ลองเล่นได้เลย</p><h2 class="h2" style="color:#fff">เป็นลูกค้าและเป็นร้าน ในหน้าจอเดียว</h2></div>
+      <p class="lead" style="color:var(--on-dark)">สั่งจากมือถือฝั่งซ้าย แล้วดูออเดอร์เด้งขึ้นหลังร้านฝั่งขวา เดโมนี้จำลองในเครื่องคุณ ไม่มีการจ่ายเงินและไม่มีออเดอร์ส่งไปร้านไหนจริง</p>
+    </div>
+    <ol class="dm-guide" id="dmGuide" aria-label="ขั้นตอนเดโม">
+      <li data-g="1">เลือกเมนู</li><li data-g="2">จ่ายเงิน</li><li data-g="3">ร้านรับออเดอร์</li><li data-g="4">ทำเสร็จ แจ้งลูกค้า</li>
+    </ol>
+    <div class="dm-stage">
+      <div class="dm-col">
+        <p class="dm-label">มือถือลูกค้า (ใน LINE)</p>
+        <div class="phone dm-phone"><div class="screen dm-screen" id="dmPhone" aria-live="polite"></div></div>
+      </div>
+      <div class="dm-col dm-col-wide">
+        <div class="dm-label-row"><p class="dm-label">หลังร้าน (แท็บเล็ตที่เคาน์เตอร์)</p><button class="dm-reset" type="button" id="dmReset">เริ่มใหม่</button></div>
+        <div class="dm-board" id="dmBoard" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="feat" id="features">
   <div class="wrap sec">
     <div class="split"><h2 class="h2">ลูกค้ากลับมาซ้ำ เพราะสั่งง่ายและมีแต้ม</h2><p class="lead">ทุกอย่างอยู่ในแชท LINE ที่ลูกค้าเปิดอยู่แล้ว</p></div>
@@ -560,5 +653,6 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24
   });
 })();
 </script>
+<script src="/system-demo.js" defer></script>
 </body>
 </html>
