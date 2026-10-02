@@ -209,6 +209,15 @@ h1, h2, h3 { text-wrap: balance; }
 .plan.hot .save { color: var(--leaf-soft); }
 @media (max-width: 420px) { .eb-cups { grid-template-columns: repeat(5, 34px); } .eb-cups li { width: 34px; height: 42px; } }
 
+/* ตารางค่าบริการภายนอก */
+.fee-wrap { overflow-x: auto; margin: 0 0 12px; -webkit-overflow-scrolling: touch; }
+.fee { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14px; }
+.fee th, .fee td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.fee thead th { background: var(--foam); color: var(--deep); font-size: 13px; }
+.fee tbody th { color: var(--deep); white-space: nowrap; }
+.fee td { color: var(--muted); }
+.fee-note { font-size: 14px !important; }
+
 /* คำถาม */
 .faq { max-width: 880px; }
 details { background: #fff; border-radius: 16px; padding: 4px 22px; }
@@ -622,7 +631,7 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24
       <div class="plan hot lift"><span class="best">คุ้มที่สุด</span><h3>ร้านเต็มระบบ</h3><p class="for">ร้านที่อยากให้ลูกค้ากลับมาซ้ำ</p><div class="pr"><span class="was">฿5,990</span><span class="off">−68%</span></div><p class="now">฿1,900</p><p class="save">จ่ายครั้งเดียวจบ · ประหยัด ฿4,090</p><ul><li>ทุกอย่างในแพ็กเริ่มต้น</li><li>ตรวจสลิปอัตโนมัติ</li><li>แต้ม สมาชิก โค้ดส่วนลด ชวนเพื่อน</li><li>ต้นทุนและกำไรต่อเมนู</li><li>POS หน้าร้านและใบเสร็จ</li></ul><a class="btn" href="#contact">จองสิทธิ์ ฿1,900</a></div>
       <div class="plan lift"><h3>ส่วนเสริม</h3><p class="for">เพิ่มได้ทีละอย่าง</p><p class="price">สอบถามราคา</p><ul><li>มาม่าบาร์บริการตัวเอง</li><li>QR คำอวยพรและข้อความบนแก้ว</li><li>ปรับดีไซน์ตามแบรนด์</li></ul><a class="btn" href="#contact">สอบถามแพ็กเกจนี้</a></div>
     </div>
-    <p class="lead" style="font-size:15px">ค่าบริการภายนอกที่ร้านสมัครเอง: LINE Official Account, บริการตรวจสลิป SlipOK (ถ้าใช้ตรวจอัตโนมัติ) และโฮสติ้งแบบใช้งานเชิงพาณิชย์</p>
+    <p class="lead" style="font-size:15px">ค่าบริการภายนอก (LINE OA, ฐานข้อมูล, โฮสติ้ง, SlipOK) ร้านสมัครและจ่ายเอง ส่วนใหญ่เริ่มฟรีได้ <a href="#faq" style="color:var(--matcha);font-weight:600">ดูรายละเอียด</a></p>
   </div>
 </section>
 
@@ -633,7 +642,21 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24
     <details><summary>ร้านต้องมีอะไรบ้าง</summary><p>LINE Official Account ของร้าน บัญชีพร้อมเพย์ และมือถือหรือแท็บเล็ตสำหรับเปิดหลังร้าน</p></details>
     <details><summary>ตรวจสลิปอัตโนมัติทำงานยังไง</summary><p>ระบบส่งสลิปไปตรวจกับบริการ SlipOK ที่ร้านสมัครไว้ ถ้ายอดและบัญชีถูกต้องจะเข้าคิวทันที ถ้าไม่ผ่านจะรอให้ร้านกดยืนยันเอง</p></details>
     <details><summary>ใช้กับร้านกาแฟหรือร้านชาได้ไหม</summary><p>ได้ ตั้งเมนู ตัวเลือก และราคาเองทั้งหมด ระบบเริ่มจากร้านมัทฉะ จึงรองรับตัวเลือกละเอียดอย่างเกรดผงและนมทางเลือก</p></details>
-    <details><summary>มีค่ารายเดือนไหม</summary><p>ไม่มีค่ารายเดือนจากเรา จ่ายครั้งเดียวจบ ส่วนค่าบริการภายนอก (LINE Official Account, SlipOK ถ้าใช้ตรวจสลิปอัตโนมัติ และโฮสติ้ง) ร้านจ่ายตรงกับผู้ให้บริการตามแพ็กเกจที่เลือกเอง</p></details>
+    <details open><summary>มีค่ารายเดือนไหม</summary>
+      <p>ค่าระบบจ่ายครั้งเดียวจบ ไม่มีค่ารายเดือนจากเรา ส่วนบริการภายนอกด้านล่าง ร้านสมัครในชื่อร้านเองและจ่ายตรงกับผู้ให้บริการ ส่วนใหญ่เริ่มใช้ฟรีได้</p>
+      <div class="fee-wrap"><table class="fee">
+        <thead><tr><th scope="col">บริการ</th><th scope="col">ใช้ทำอะไร</th><th scope="col">แบบฟรี</th><th scope="col">เมื่อร้านโตขึ้น (โดยประมาณ)</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">LINE Official Account</th><td>แชทร้าน และการ์ดแจ้งสถานะออเดอร์</td><td>300 ข้อความ/เดือน (ราว 75–100 ออเดอร์)</td><td>แพ็ก Basic ~฿1,280/เดือน</td></tr>
+          <tr><th scope="row">ฐานข้อมูล Supabase</th><td>เก็บเมนู ออเดอร์ สมาชิก สลิป</td><td>ฟรี เพียงพอสำหรับร้านทั่วไป</td><td>Pro ~฿850/เดือน เมื่อข้อมูลเยอะ</td></tr>
+          <tr><th scope="row">โฮสติ้งเว็บ</th><td>หน้าสั่งเมนูและหลังร้าน</td><td>มีแบบฟรีที่ใช้เชิงพาณิชย์ได้</td><td>~฿700/เดือน ถ้าเลือกแผนเสียเงิน</td></tr>
+          <tr><th scope="row">SlipOK</th><td>ตรวจสลิปอัตโนมัติ (ไม่บังคับ)</td><td>ไม่ใช้ก็ได้ ร้านกดยืนยันสลิปเอง</td><td>ตามแพ็กจำนวนสลิปของ SlipOK</td></tr>
+          <tr><th scope="row">PromptPay / LINE LIFF</th><td>รับเงิน และเปิดหน้าสั่งในแชท</td><td>ฟรี</td><td>ฟรี</td></tr>
+          <tr><th scope="row">โดเมนของร้าน</th><td>เช่น shopname.com (ไม่บังคับ)</td><td>ไม่ต้องมีก็ใช้ได้</td><td>~฿300–500/ปี</td></tr>
+        </tbody>
+      </table></div>
+      <p class="fee-note">สรุป: ร้านเล็กเริ่มได้เกือบ ฿0 ต่อเดือน ร้านที่ขายดีและใช้ครบทุกอย่างประมาณ ฿2,000–3,000 ต่อเดือน ราคาของผู้ให้บริการอาจเปลี่ยนได้ เราช่วยแนะนำแผนที่เหมาะกับร้านตอนติดตั้ง</p>
+    </details>
     <details><summary>ราคาเปิดตัวหมดแล้วจะเป็นเท่าไร</summary><p>เมื่อครบ 10 ร้านแรก ราคาจะกลับเป็นปกติ แพ็กเริ่มต้น ฿3,990 และแพ็กร้านเต็มระบบ ฿5,990 (จ่ายครั้งเดียวเหมือนกัน)</p></details>
     <details><summary>ข้อมูลลูกค้าและยอดขายเป็นของใคร</summary><p>ติดตั้งแยกให้แต่ละร้าน ฐานข้อมูลเป็นของร้านเอง ไม่ปนกับร้านอื่น</p></details>
   </div>
