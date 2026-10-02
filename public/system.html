@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CODE-MATCHA ระบบสั่งออเดอร์ผ่าน LINE สำหรับร้านเครื่องดื่ม</title>
+<meta name="description" content="ร้านเครื่องดื่มรับออเดอร์ใน LINE ได้เลย ลูกค้าไม่ต้องโหลดแอป จ่าย PromptPay ตรวจสลิปอัตโนมัติ แจ้งเตือนทุกขั้นตอน พร้อมหลังร้านดูยอดขาย ต้นทุน และกำไร">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ร้านเครื่องดื่มของคุณ รับออเดอร์ใน LINE ได้เลย">
+<meta property="og:description" content="ไม่ต้องทำแอป ลูกค้าสั่ง จ่าย PromptPay ตรวจสลิปอัตโนมัติ และรับแจ้งเตือน จบในแชทเดียว ใช้งานจริงที่ร้าน CODE-MATCHA">
+<meta property="og:image" content="https://code-matcha.vercel.app/system-og.png">
+<meta property="og:url" content="https://code-matcha.vercel.app/system">
+<meta name="theme-color" content="#18290F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Shippori+Mincho:wght@700;800&display=swap">
+<style>
+/* หน้าขายระบบ CODE-MATCHA · สีและฟอนต์ชุดเดียวกับร้าน */
+:root {
+  --foam: #EEF1E2; --paper: #F6F3EA; --ink: #1C2419; --muted: #5C6355;
+  --matcha: #4B6B2F; --deep: #233A1D; --deeper: #18290F; --leaf: #9DB54A; --leaf-soft: #B9CF6A;
+  --seal: #C23B22; --line: rgba(107,113,99,.25); --on-dark: #D9E4C3;
+  --sans: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mincho: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--foam); color: var(--ink); font-family: var(--sans); line-height: 1.6; -webkit-text-size-adjust: 100%; }
+img, svg { max-width: 100%; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--leaf); outline-offset: 3px; }
+h1, h2, h3 { text-wrap: balance; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-inline: 24px; }
+.seal { display: inline-flex; align-items: center; justify-content: center; background: var(--seal); color: #fff; border-radius: 6px; font-family: var(--mincho); font-weight: 800; line-height: 1; text-align: center; flex-shrink: 0; }
+.btn { min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 28px; border-radius: 999px; font-weight: 700; font-size: 18px; text-decoration: none; border: 0; cursor: pointer; font-family: inherit; }
+.btn-red { background: var(--seal); color: #fff; }
+.btn-red:hover { background: #a93019; }
+.btn-ghost { border: 2px solid rgba(255,255,255,.35); color: #fff; font-weight: 600; }
+.btn-ghost:hover { border-color: #fff; }
+.btn-dark { background: var(--deep); color: #fff; }
+.btn-dark:hover { background: var(--deeper); }
+.btn-line { background: #06C755; color: #fff; }
+.btn-line:hover { background: #05a647; }
+.h2 { margin: 0; font-size: clamp(28px, 3.6vw, 44px); line-height: 1.25; color: var(--deep); }
+.lead { margin: 0; font-size: 18px; color: var(--muted); max-width: 40em; }
+.eyebrow { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .08em; color: var(--seal); }
+.sec { padding-block: 88px; display: flex; flex-direction: column; gap: 40px; }
+.grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.card { background: #fff; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card h3 { margin: 0; font-size: 22px; line-height: 1.35; color: var(--deep); }
+.card p { margin: 0; font-size: 16px; color: var(--muted); }
+.lift { transition: transform .25s, box-shadow .25s; }
+.lift:hover { transform: translateY(-6px); box-shadow: 0 18px 36px rgba(35,58,29,.14); }
+.lift:hover .wig { animation: wig .5s ease-in-out; }
+
+/* แถบเมนู */
+.nav { background: var(--deeper); color: #fff; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; }
+.nav .wrap { display: flex; align-items: center; gap: 24px; padding-block: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+.brand b { font-size: 18px; letter-spacing: .06em; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; flex-wrap: wrap; }
+.nav-links a { color: var(--on-dark); text-decoration: none; }
+.nav-links a:hover { color: #fff; }
+.nav .btn { min-height: 44px; font-size: 15px; padding: 0 20px; }
+@media (max-width: 760px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+
+/* hero */
+.hero { background: var(--deep); color: #fff; position: relative; overflow: hidden; }
+.hero-kanji { position: absolute; right: -40px; top: -40px; font-family: var(--mincho); font-weight: 800; font-size: 420px; line-height: 1; color: #fff; opacity: .05; writing-mode: vertical-rl; pointer-events: none; }
+.specks { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.specks span { position: absolute; bottom: -20px; border-radius: 50%; background: var(--leaf); }
+.hero .wrap { padding-block: 72px 96px; display: flex; flex-wrap: wrap; align-items: center; gap: 56px; position: relative; }
+.hero-copy { flex: 1 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.pill { align-self: flex-start; padding: 6px 16px; border-radius: 999px; background: rgba(157,181,74,.18); color: #CFE09A; font-size: 15px; font-weight: 600; margin: 0; }
+.hero h1 { margin: 0; font-size: clamp(38px, 5.4vw, 68px); line-height: 1.18; }
+.hero h1 span { color: var(--leaf-soft); }
+.hero-sub { margin: 0; font-size: 20px; color: var(--on-dark); max-width: 34em; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 14px; }
+.ticks { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px 28px; color: var(--on-dark); font-size: 16px; }
+.ticks li::before { content: "✓ "; color: var(--leaf-soft); font-weight: 700; }
+.hero-art { flex: 0 1 360px; display: flex; justify-content: center; margin: 0 auto; position: relative; padding-left: 40px; }
+.buddy { position: absolute; left: -90px; bottom: -36px; width: 180px; z-index: 2; }
+.buddy p { margin: -6px 0 0 18px; display: inline-block; background: #fff; color: var(--deep); border-radius: 14px; padding: 6px 12px; font-size: 14px; font-weight: 700; box-shadow: 0 8px 18px rgba(0,0,0,.25); }
+.phone { width: 320px; max-width: 100%; border-radius: 46px; background: #0F140D; padding: 11px; box-shadow: 0 40px 80px rgba(0,0,0,.4); }
+.screen { border-radius: 36px; background: var(--foam); color: var(--ink); overflow: hidden; padding: 22px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.app-head { display: flex; align-items: center; gap: 10px; padding: 0 4px 4px; line-height: 1.25; }
+.app-head b { font-size: 16px; letter-spacing: .03em; }
+.app-head small { font-size: 11px; color: var(--muted); }
+.seg { display: flex; gap: 4px; background: #E1E7CF; padding: 4px; border-radius: 12px; font-size: 12px; font-weight: 600; text-align: center; }
+.seg span { flex: 1; padding: 7px 0; color: var(--muted); }
+.seg span.on { border-radius: 9px; background: #fff; color: var(--matcha); }
+.mi { display: flex; align-items: center; gap: 12px; padding: 10px; background: #fff; border-radius: 16px; border: 1px solid var(--line); }
+.mi i { width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0; }
+.mi div { min-width: 0; line-height: 1.3; }
+.mi b { font-size: 14px; }
+.mi small { font-size: 11px; color: var(--muted); }
+.mi em { margin-left: auto; font-style: normal; font-weight: 700; color: var(--matcha); font-size: 14px; }
+.cartbar { margin-top: 4px; display: flex; align-items: center; justify-content: space-between; background: var(--deep); color: #fff; border-radius: 16px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
+.cartbar span { background: var(--leaf); color: var(--deeper); border-radius: 10px; padding: 7px 12px; }
+@media (max-width: 520px) { .hero-art { padding-left: 0; } .buddy { left: -10px; bottom: -60px; width: 130px; } .buddy p { display: none; } }
+
+/* ticker */
+.ticker { background: var(--leaf); color: var(--deeper); overflow: hidden; border-bottom: 3px solid var(--deeper); }
+.ticker-track { display: flex; width: max-content; padding: 14px 0; font-weight: 600; font-size: 17px; white-space: nowrap; animation: marquee 38s linear infinite; }
+.ticker-track span { display: inline-flex; align-items: center; gap: 14px; padding: 0 22px; }
+.ticker-track span::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--seal); }
+
+/* ปัญหา */
+.strike { margin: 0; font-size: 15px; color: #8A3A26; font-weight: 600; text-decoration: line-through; text-decoration-color: rgba(194,59,34,.5); }
+
+/* ฉากชงชา */
+.brew { background: var(--paper); }
+.scene svg { width: 100%; height: auto; background: var(--foam); border-radius: 20px; display: block; }
+.scene .k { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: var(--seal); }
+
+/* ขั้นตอน */
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.steps li { border-top: 3px solid var(--deep); padding: 20px 6px 8px; display: flex; flex-direction: column; gap: 10px; border-radius: 0 0 18px 18px; }
+.steps .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.steps .num { width: 44px; height: 44px; font-size: 22px; border-radius: 8px; }
+.steps .ic { width: 72px; height: 72px; border-radius: 20px; background: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.steps h3 { margin: 0; font-size: 22px; line-height: 1.35; }
+.steps p { margin: 0; font-size: 16px; color: var(--muted); }
+
+/* ฟีเจอร์ */
+.feat { background: var(--paper); }
+.feat .card { border-radius: 20px; padding: 24px 26px; }
+.feat .card h3 { font-size: 20px; }
+.split { display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: flex-end; justify-content: space-between; }
+.split > * { flex: 1 1 340px; min-width: 0; }
+
+/* คลื่น */
+.wave { background: var(--paper); overflow: hidden; height: 64px; position: relative; }
+.wave svg { position: absolute; left: 0; bottom: 0; width: 200%; height: 64px; display: block; max-width: none; animation: sway 6s ease-in-out infinite alternate; }
+
+/* หลังร้าน */
+.back { background: var(--deeper); color: #fff; }
+.back .h2 { color: #fff; }
+.back .h2 span { color: var(--leaf-soft); }
+.back .lead { color: var(--on-dark); }
+.back .eyebrow { color: var(--leaf-soft); }
+.monitor { background: #0F140D; border-radius: 22px; padding: 12px; box-shadow: 0 30px 60px rgba(0,0,0,.35); }
+.mon { background: var(--foam); color: var(--ink); border-radius: 12px; display: flex; flex-wrap: wrap; overflow: hidden; }
+.side { flex: 0 0 180px; background: var(--deep); color: var(--on-dark); padding: 18px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.side b { color: #fff; font-size: 15px; margin-bottom: 10px; letter-spacing: .04em; }
+.side span { padding: 8px 10px; border-radius: 9px; }
+.side span.on { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
+.mon-main { flex: 1 1 480px; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.stat { background: #fff; border-radius: 12px; padding: 10px 14px; line-height: 1.3; }
+.stat small { color: var(--muted); font-size: 12px; display: block; }
+.stat b { font-size: 24px; color: var(--matcha); font-variant-numeric: tabular-nums; }
+.kan { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kan h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tk { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45; margin-bottom: 8px; }
+.tk.pay { background: #FFF8E3; border-color: #E0B84C; }
+.tk .r { display: flex; justify-content: space-between; gap: 8px; }
+.tk .r b { font-size: 15px; }
+.tk .r span { color: var(--matcha); font-weight: 600; }
+.tk .go { margin-top: 4px; background: var(--matcha); color: #fff; text-align: center; border-radius: 8px; padding: 5px; font-weight: 600; font-size: 12px; }
+.admin-list { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.admin-list div { border-top: 1px solid rgba(255,255,255,.22); padding-top: 18px; }
+.admin-list h3 { margin: 0 0 6px; font-size: 19px; }
+.admin-list p { margin: 0; font-size: 15px; color: #C9D6B1; }
+.fine { margin: 0; font-size: 13px; color: #9FAE8A; }
+@media (max-width: 640px) { .side { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; } .side b { width: 100%; margin: 0; } }
+
+/* ส่วนเสริม */
+.tag { align-self: flex-start; background: var(--seal); color: #fff; border-radius: 8px; padding: 3px 12px; font-size: 14px; font-weight: 700; }
+.card ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; color: #3A4235; }
+
+/* แพ็กเกจ */
+.plans { background: var(--paper); }
+.plan { border-radius: 24px; padding: 30px; display: flex; flex-direction: column; gap: 12px; background: #fff; border: 1px solid var(--line); min-width: 0; }
+.plan.hot { background: var(--deep); color: #fff; border-color: var(--deep); }
+.plan h3 { margin: 0; font-size: 22px; }
+.plan .for { margin: 0; font-size: 15px; opacity: .75; }
+.plan .price { margin: 6px 0 0; font-size: 28px; font-weight: 700; line-height: 1.2; }
+.plan ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; }
+.plan .btn { margin-top: auto; min-height: 48px; font-size: 16px; border: 2px solid var(--deep); color: var(--deep); background: transparent; }
+.plan.hot .btn { background: var(--seal); border-color: var(--seal); color: #fff; }
+
+/* คำถาม */
+.faq { max-width: 880px; }
+details { background: #fff; border-radius: 16px; padding: 4px 22px; }
+summary { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 600; color: var(--deep); cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-size: 26px; color: var(--seal); line-height: 1; transition: transform .2s; flex-shrink: 0; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { margin: 0 0 18px; font-size: 16px; color: var(--muted); }
+
+/* ติดต่อ */
+.contact { background: var(--seal); color: #fff; }
+.contact .wrap { padding-block: 88px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center; justify-content: space-between; }
+.contact-copy { flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.contact h2 { margin: 0; font-size: clamp(30px, 4vw, 52px); line-height: 1.2; }
+.contact-copy p { margin: 0; font-size: 19px; color: #FBE3DD; }
+.contact-card { flex: 0 1 400px; min-width: 0; background: #fff; color: var(--ink); border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 6px; }
+.contact-card small { font-size: 15px; color: var(--muted); }
+.contact-card .v { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.contact-card .v strong { font-size: 24px; font-variant-numeric: tabular-nums; user-select: all; }
+.copy { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--matcha); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.copy:hover { border-color: var(--matcha); }
+.contact-card .btn { width: 100%; }
+footer { background: var(--deeper); color: #9FAE8A; }
+footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; font-size: 14px; }
+
+/* ลูกเล่นการ์ตูน: วาดครบตั้งแต่แรก แล้วค่อยขยับวน */
+.fx { transform-box: fill-box; }
+.bob { animation: bob 3.2s ease-in-out infinite; }
+.wave-hand { transform-origin: 10% 90%; animation: wave 1.6s ease-in-out infinite; }
+.blink { transform-origin: center; animation: blink 4.5s infinite; }
+.steam { animation: steam 2.8s ease-in infinite; }
+.d2 { animation-delay: .9s; } .d3 { animation-delay: 1.8s; }
+.whisk { transform-origin: 50% 0%; animation: whisk .5s ease-in-out infinite alternate; }
+.pop { transform-origin: center; animation: pop 1.4s ease-out infinite; }
+.pop.p2 { animation-delay: .35s; } .pop.p3 { animation-delay: .7s; } .pop.p4 { animation-delay: 1.05s; }
+.spoon { transform-origin: 100% 50%; animation: spoon 3s ease-in-out infinite; }
+.dust { animation: dust 3s ease-in infinite; }
+.dust.p2 { animation-delay: .15s; } .dust.p3 { animation-delay: .3s; } .dust.p4 { animation-delay: .45s; }
+.stream { stroke-dasharray: 14 10; animation: stream .5s linear infinite; }
+.pour { transform-origin: 80% 20%; animation: pour 4s ease-in-out infinite; }
+.rise { transform-origin: 50% 100%; animation: rise 4s ease-in-out infinite; }
+.ice { animation: ice 2.6s ease-in-out infinite; }
+.drift { animation: drift 9s linear infinite; }
+.tap { transform-origin: center; animation: tap 1.6s ease-out infinite; }
+.scan { animation: scan 2s ease-in-out infinite alternate; }
+.tick { stroke-dasharray: 40; animation: tick 2.4s ease-out infinite; }
+.ring { transform-origin: 50% 10%; animation: ring 1.8s ease-in-out infinite; }
+@keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+@keyframes wave { 0%,100% { transform: rotate(0) } 50% { transform: rotate(-28deg) } }
+@keyframes blink { 0%,90%,100% { transform: scaleY(1) } 94% { transform: scaleY(.1) } }
+@keyframes steam { 0% { transform: translateY(8px); opacity: 0 } 35% { opacity: .75 } 100% { transform: translateY(-26px); opacity: 0 } }
+@keyframes whisk { from { transform: translateX(-14px) rotate(-9deg) } to { transform: translateX(14px) rotate(9deg) } }
+@keyframes pop { 0% { transform: scale(.2); opacity: 0 } 30% { opacity: 1 } 100% { transform: scale(1.3) translateY(-8px); opacity: 0 } }
+@keyframes spoon { 0%,15%,85%,100% { transform: rotate(0) } 40%,60% { transform: rotate(-24deg) } }
+@keyframes dust { 0%,35% { transform: translateY(0); opacity: 0 } 45% { opacity: 1 } 80%,100% { transform: translateY(46px); opacity: 0 } }
+@keyframes stream { to { stroke-dashoffset: -24 } }
+@keyframes pour { 0%,100% { transform: rotate(0) } 20%,75% { transform: rotate(-18deg) } }
+@keyframes rise { 0%,10% { transform: scaleY(.15) } 70%,100% { transform: scaleY(1) } }
+@keyframes ice { 0%,100% { transform: translateY(0) rotate(0) } 50% { transform: translateY(-4px) rotate(6deg) } }
+@keyframes drift { 0% { transform: translate(0,0); opacity: 0 } 10% { opacity: .8 } 100% { transform: translate(40px,-260px); opacity: 0 } }
+@keyframes tap { 0% { transform: scale(.4); opacity: .9 } 100% { transform: scale(1.8); opacity: 0 } }
+@keyframes scan { from { transform: translateY(0) } to { transform: translateY(30px) } }
+@keyframes tick { 0% { stroke-dashoffset: 40 } 40%,100% { stroke-dashoffset: 0 } }
+@keyframes ring { 0%,60%,100% { transform: rotate(0) } 10%,30% { transform: rotate(14deg) } 20%,40% { transform: rotate(-14deg) } }
+@keyframes marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+@keyframes sway { from { transform: translateX(0) } to { transform: translateX(-60px) } }
+@keyframes wig { 0%,100% { transform: rotate(0) } 30% { transform: rotate(-8deg) } 70% { transform: rotate(8deg) } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .pop, .dust, .drift, .tap { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="seal" style="width:40px;height:40px;font-size:15px">暗<br>号</span><b>CODE-MATCHA</b></a>
+    <nav class="nav-links" aria-label="ส่วนต่าง ๆ ของหน้า">
+      <a href="#how">ขั้นตอน</a><a href="#features">ฟีเจอร์</a><a href="#backoffice">หลังร้าน</a><a href="#pricing">แพ็กเกจ</a><a href="#faq">คำถาม</a>
+    </nav>
+    <a class="btn btn-red" href="#contact">นัดดูเดโม</a>
+  </div>
+</header>
+
+<main>
+<section class="hero" id="top">
+  <div class="hero-kanji" aria-hidden="true">抹茶</div>
+  <div class="specks" aria-hidden="true" id="specks"></div>
+  <div class="wrap">
+    <div class="hero-copy">
+      <p class="pill">ใช้งานจริงทุกวันที่ร้าน CODE-MATCHA</p>
+      <h1>ร้านเครื่องดื่มของคุณ <span>รับออเดอร์ใน LINE</span> ได้เลย</h1>
+      <p class="hero-sub">ลูกค้าไม่ต้องโหลดแอป เปิดแชทร้านแล้วเลือกเมนู จ่าย PromptPay ระบบตรวจสลิปให้ แล้วแจ้งเตือนจนได้แก้ว ส่วนร้านเห็นคิว ยอดขาย และกำไรในหน้าเดียว</p>
+      <div class="cta-row">
+        <a class="btn btn-red" href="#contact">ทักแชทนัดดูเดโม</a>
+        <a class="btn btn-ghost" href="#how">ดูว่าทำงานยังไง</a>
+      </div>
+      <ul class="ticks"><li>ไม่ต้องทำแอปเอง</li><li>ใช้ LINE OA ของร้าน</li><li>ตั้งเมนูและราคาเองได้</li></ul>
+    </div>
+
+    <div class="hero-art">
+      <div class="buddy bob" aria-hidden="true">
+        <svg viewBox="0 0 180 250" style="display:block;overflow:visible;width:100%;height:auto">
+          <g fill="none" stroke="#F3EFE4" stroke-width="5" stroke-linecap="round">
+            <path class="fx steam" d="M70 30 q-8 -10 0 -20 q8 -10 0 -20"/>
+            <path class="fx steam d2" d="M92 26 q-8 -10 0 -20 q8 -10 0 -20"/>
+            <path class="fx steam d3" d="M114 30 q-8 -10 0 -20 q8 -10 0 -20"/>
+          </g>
+          <rect x="104" y="18" width="10" height="66" rx="5" fill="#C23B22" stroke="#2B2420" stroke-width="3" transform="rotate(14 109 50)"/>
+          <path d="M34 78 Q90 30 146 78 Z" fill="#E8EEF2" stroke="#2B2420" stroke-width="4" stroke-linejoin="round"/>
+          <rect x="28" y="74" width="124" height="14" rx="7" fill="#fff" stroke="#2B2420" stroke-width="4"/>
+          <path d="M38 88 L142 88 L130 214 Q90 224 50 214 Z" fill="#F6F0DC"/>
+          <path d="M45 150 L135 150 L130 214 Q90 224 50 214 Z" fill="#8FAE45"/>
+          <path d="M38 88 L142 88 L130 214 Q90 224 50 214 Z" fill="none" stroke="#2B2420" stroke-width="4" stroke-linejoin="round"/>
+          <g class="fx blink"><ellipse cx="72" cy="118" rx="6" ry="8" fill="#2B2420"/><ellipse cx="108" cy="118" rx="6" ry="8" fill="#2B2420"/></g>
+          <ellipse cx="60" cy="134" rx="9" ry="5" fill="#F4A7B0"/><ellipse cx="120" cy="134" rx="9" ry="5" fill="#F4A7B0"/>
+          <path d="M80 134 q10 10 20 0" fill="none" stroke="#2B2420" stroke-width="4" stroke-linecap="round"/>
+          <rect x="74" y="160" width="32" height="40" rx="5" fill="#C23B22" stroke="#2B2420" stroke-width="3"/>
+          <text x="90" y="178" text-anchor="middle" font-family="Shippori Mincho, serif" font-weight="800" font-size="15" fill="#fff">暗</text>
+          <text x="90" y="195" text-anchor="middle" font-family="Shippori Mincho, serif" font-weight="800" font-size="15" fill="#fff">号</text>
+          <path d="M40 130 q-18 10 -22 30" fill="none" stroke="#2B2420" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="18" cy="162" r="8" fill="#fff" stroke="#2B2420" stroke-width="3.5"/>
+          <g class="fx wave-hand"><path d="M140 128 q20 -8 26 -30" fill="none" stroke="#2B2420" stroke-width="4" stroke-linecap="round"/><circle cx="166" cy="96" r="8" fill="#fff" stroke="#2B2420" stroke-width="3.5"/></g>
+          <path d="M72 218 v18 h-14" fill="none" stroke="#2B2420" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M108 218 v18 h14" fill="none" stroke="#2B2420" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>ออเดอร์ #12 พร้อมแล้ว!</p>
+      </div>
+      <div class="phone" role="img" aria-label="ตัวอย่างหน้าสั่งเมนูในแชท LINE">
+        <div class="screen">
+          <div class="app-head"><span class="seal" style="width:34px;height:34px;font-size:13px;border-radius:5px">暗<br>号</span><div><b>CODE-MATCHA</b><br><small>เปิดอยู่ · ถึง 18:00 น.</small></div></div>
+          <div class="seg"><span class="on">ทานที่ร้าน</span><span>กลับบ้าน</span><span>สั่งล่วงหน้า</span></div>
+          <div class="mi"><i style="background:linear-gradient(#F5F0DD 0 40%,#9DB54A 40% 100%)"></i><div><b>มัทฉะลาเต้</b><br><small>นมสด · หวานปกติ</small></div><em>฿75</em></div>
+          <div class="mi"><i style="background:linear-gradient(#F3E6C8 0 40%,#7A9A3A 40% 100%)"></i><div><b>มัทฉะเย็น</b><br><small>ผงเกรดพิธีชงชา +฿15</small></div><em>฿70</em></div>
+          <div class="mi"><i style="background:linear-gradient(#E7D8B5 0 40%,#7B5A2F 40% 100%)"></i><div><b>โฮจิฉะลาเต้</b><br><small>นมโอ๊ต +฿15</small></div><em>฿80</em></div>
+          <div class="mi"><i style="background:linear-gradient(#F7E7B4 0 40%,#5B7A2F 40% 100%)"></i><div><b>มัทฉะส้มยูซุ</b><br><small>ซิกเนเจอร์ของร้าน</small></div><em>฿90</em></div>
+          <div class="cartbar">2 รายการ · ฿145<span>ไปชำระเงิน</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+
+<section class="wrap sec">
+  <h2 class="h2">ร้านเล็กเสียเวลาไปกับ 3 เรื่องนี้ทุกวัน</h2>
+  <p class="lead" style="margin-top:-28px">ระบบนี้สร้างจากหน้าร้านจริง แก้ทีละเรื่องที่เจอตอนขาย</p>
+  <div class="grid">
+    <div class="card lift"><p class="strike">จดออเดอร์ผิด ลูกค้ารอนาน</p><h3>ลูกค้าเลือกเมนูและตัวเลือกเองในแชท</h3><p>ผง นม ความหวาน แยกน้ำแข็ง ครบในการ์ดออเดอร์ บาริสต้าอ่านแล้วทำได้เลย</p></div>
+    <div class="card lift"><p class="strike">นั่งเปิดแอปธนาคารเช็คสลิปทีละใบ</p><h3>ระบบตรวจสลิปให้อัตโนมัติ</h3><p>สลิปผ่านแล้วออเดอร์เข้าคิวทันที ถ้าตรวจไม่ผ่านจะส่งให้ร้านดูเอง</p></div>
+    <div class="card lift"><p class="strike">ขายดี แต่ไม่รู้ว่าเหลือกำไรเท่าไร</p><h3>เห็นต้นทุนและกำไรของทุกแก้ว</h3><p>ใส่สูตรและราคาวัตถุดิบครั้งเดียว ระบบคิดกำไรต่อเมนูให้</p></div>
+  </div>
+</section>
+
+<section class="brew">
+  <div class="wrap sec">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p class="eyebrow">ระหว่างลูกค้ารอ</p>
+      <h2 class="h2">ระบบดูแลคิว บาริสต้าตั้งใจชงทุกแก้ว</h2>
+      <p class="lead">ไม่ต้องรับโทรศัพท์ ไม่ต้องจดออเดอร์ ไม่ต้องเช็คสลิป มือว่างไว้ชงอย่างเดียว</p>
+    </div>
+    <div class="grid">
+      <div class="card scene lift">
+        <svg viewBox="0 0 220 200" role="img" aria-label="การ์ตูนตักผงมัทฉะใส่ถ้วย">
+          <rect x="150" y="40" width="44" height="66" rx="8" fill="#4B6B2F" stroke="#2B2420" stroke-width="4"/>
+          <rect x="146" y="32" width="52" height="14" rx="5" fill="#2B2420"/>
+          <text x="172" y="82" text-anchor="middle" font-family="Shippori Mincho, serif" font-weight="800" font-size="18" fill="#F3EFE4">抹茶</text>
+          <g class="fx spoon"><path d="M150 62 L84 82" stroke="#D9B77A" stroke-width="7" stroke-linecap="round"/><ellipse cx="80" cy="83" rx="13" ry="7" fill="#D9B77A" stroke="#2B2420" stroke-width="3"/><ellipse cx="80" cy="80" rx="9" ry="4" fill="#7FA23A"/></g>
+          <circle class="fx dust" cx="76" cy="96" r="3.5" fill="#7FA23A"/><circle class="fx dust p2" cx="84" cy="98" r="3" fill="#9DB54A"/><circle class="fx dust p3" cx="72" cy="100" r="2.5" fill="#7FA23A"/><circle class="fx dust p4" cx="80" cy="102" r="3" fill="#9DB54A"/>
+          <path d="M28 140 Q28 190 100 192 Q172 190 172 140 Z" fill="#2F4A2A" stroke="#2B2420" stroke-width="4" stroke-linejoin="round"/>
+          <ellipse cx="100" cy="140" rx="72" ry="14" fill="#F3EFE4" stroke="#2B2420" stroke-width="4"/>
+          <ellipse cx="100" cy="142" rx="30" ry="6" fill="#9DB54A"/>
+          <g class="fx blink"><circle cx="82" cy="164" r="4.5" fill="#F3EFE4"/><circle cx="118" cy="164" r="4.5" fill="#F3EFE4"/></g>
+          <path d="M92 174 q8 7 16 0" fill="none" stroke="#F3EFE4" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <p class="k">ตักผงตามเกรดที่ลูกค้าเลือก</p>
+        <p>การ์ดออเดอร์บอกเกรดผงและจำนวนกรัมของแก้วนั้นไว้ให้แล้ว</p>
+      </div>
+      <div class="card scene lift">
+        <svg viewBox="0 0 220 200" role="img" aria-label="การ์ตูนตีฟองชาด้วยแปรงไม้ไผ่">
+          <g class="fx whisk">
+            <rect x="101" y="14" width="18" height="46" rx="6" fill="#D9B77A" stroke="#2B2420" stroke-width="3.5"/>
+            <g stroke="#C9A060" stroke-width="3" stroke-linecap="round"><path d="M103 60 L92 124"/><path d="M107 60 L102 126"/><path d="M110 60 L110 127"/><path d="M113 60 L118 126"/><path d="M117 60 L128 124"/></g>
+            <path d="M98 60 h24" stroke="#2B2420" stroke-width="3.5" stroke-linecap="round"/>
+          </g>
+          <path d="M38 132 Q38 188 110 190 Q182 188 182 132 Z" fill="#2F4A2A" stroke="#2B2420" stroke-width="4" stroke-linejoin="round"/>
+          <ellipse cx="110" cy="132" rx="72" ry="14" fill="#9DB54A" stroke="#2B2420" stroke-width="4"/>
+          <circle class="fx pop" cx="84" cy="128" r="5" fill="#E6F0C2"/><circle class="fx pop p2" cx="132" cy="130" r="6" fill="#E6F0C2"/><circle class="fx pop p3" cx="110" cy="126" r="4" fill="#E6F0C2"/><circle class="fx pop p4" cx="148" cy="127" r="4" fill="#E6F0C2"/>
+          <g class="fx blink"><path d="M86 158 q6 -6 12 0" fill="none" stroke="#F3EFE4" stroke-width="3.5" stroke-linecap="round"/><path d="M122 158 q6 -6 12 0" fill="none" stroke="#F3EFE4" stroke-width="3.5" stroke-linecap="round"/></g>
+          <ellipse cx="80" cy="168" rx="7" ry="4" fill="#F4A7B0"/><ellipse cx="140" cy="168" rx="7" ry="4" fill="#F4A7B0"/>
+          <path d="M102 168 q8 8 16 0" fill="none" stroke="#F3EFE4" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <p class="k">ตีฟองให้เนียน</p>
+        <p>ออเดอร์ใหม่เด้งพร้อมเสียงเตือน ไม่มีแก้วไหนหลุดคิว</p>
+      </div>
+      <div class="card scene lift">
+        <svg viewBox="0 0 220 200" role="img" aria-label="การ์ตูนเทมัทฉะลงแก้วนม">
+          <defs><clipPath id="glassClip"><path d="M60 70 L160 70 L150 186 Q110 194 70 186 Z"/></clipPath></defs>
+          <g class="fx pour"><path d="M150 18 h44 v34 q0 14 -14 14 h-20 q-14 0 -14 -14 Z" fill="#2F4A2A" stroke="#2B2420" stroke-width="3.5" stroke-linejoin="round"/><path d="M146 26 l-14 -6" stroke="#2B2420" stroke-width="5" stroke-linecap="round"/></g>
+          <path class="stream" d="M134 26 Q118 60 112 150" fill="none" stroke="#7FA23A" stroke-width="7" stroke-linecap="round"/>
+          <g clip-path="url(#glassClip)">
+            <rect x="50" y="110" width="120" height="90" fill="#FBF7EA"/>
+            <g class="fx rise"><rect x="50" y="128" width="120" height="70" fill="#8FAE45"/></g>
+            <rect class="ice" x="78" y="96" width="24" height="22" rx="5" fill="#fff" stroke="#BFD3DC" stroke-width="2.5" opacity=".9"/>
+            <rect class="ice" x="118" y="100" width="22" height="20" rx="5" fill="#fff" stroke="#BFD3DC" stroke-width="2.5" opacity=".9" style="animation-delay:.8s"/>
+          </g>
+          <path d="M60 70 L160 70 L150 186 Q110 194 70 186 Z" fill="none" stroke="#2B2420" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M70 82 L66 150" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+          <g class="fx blink"><circle cx="94" cy="150" r="4.5" fill="#2B2420"/><circle cx="128" cy="150" r="4.5" fill="#2B2420"/></g>
+          <path d="M104 160 q7 7 14 0" fill="none" stroke="#2B2420" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <p class="k">เทลงนม เสิร์ฟ</p>
+        <p>กดทำเสร็จครั้งเดียว ลูกค้าได้ข้อความใน LINE ว่ามารับได้แล้ว</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec" id="how">
+  <h2 class="h2">ลูกค้าสั่งถึงได้แก้ว ใน 4 ขั้น</h2>
+  <ol class="steps">
+    <li class="lift">
+      <div class="top"><span class="seal num">1</span><span class="ic wig" aria-hidden="true"><svg viewBox="0 0 64 64" width="56" height="56"><rect x="18" y="6" width="28" height="52" rx="6" fill="#EEF1E2" stroke="#233A1D" stroke-width="3.5"/><rect x="23" y="16" width="18" height="8" rx="2" fill="#9DB54A"/><rect x="23" y="28" width="18" height="8" rx="2" fill="#9DB54A"/><circle class="fx tap" cx="38" cy="44" r="6" fill="none" stroke="#C23B22" stroke-width="3"/><circle cx="38" cy="44" r="3" fill="#C23B22"/></svg></span></div>
+      <h3>เลือกเมนูในแชท LINE</h3><p>ทานที่ร้าน กลับบ้าน หรือจองเวลารับ เลือกผงมัทฉะ นม ความหวานได้เอง ราคาคำนวณให้ทันที</p>
+    </li>
+    <li class="lift">
+      <div class="top"><span class="seal num">2</span><span class="ic wig" aria-hidden="true"><svg viewBox="0 0 64 64" width="56" height="56"><rect x="10" y="10" width="44" height="44" rx="6" fill="#fff" stroke="#233A1D" stroke-width="3.5"/><rect x="16" y="16" width="12" height="12" fill="#233A1D"/><rect x="36" y="16" width="12" height="12" fill="#233A1D"/><rect x="16" y="36" width="12" height="12" fill="#233A1D"/><rect x="36" y="38" width="5" height="5" fill="#233A1D"/><rect x="43" y="43" width="5" height="5" fill="#233A1D"/><rect class="fx scan" x="6" y="14" width="52" height="4" rx="2" fill="#C23B22" opacity=".85"/></svg></span></div>
+      <h3>สแกนจ่าย PromptPay</h3><p>QR มียอดเงินถูกต้องทุกบาท ใช้แต้มสะสมหรือโค้ดส่วนลดในหน้าเดียวกัน</p>
+    </li>
+    <li class="lift">
+      <div class="top"><span class="seal num">3</span><span class="ic wig" aria-hidden="true"><svg viewBox="0 0 64 64" width="56" height="56"><path d="M14 6 h28 l10 10 v42 h-38 Z" fill="#fff" stroke="#233A1D" stroke-width="3.5" stroke-linejoin="round"/><path d="M20 20 h16 M20 28 h22" stroke="#9DB54A" stroke-width="3" stroke-linecap="round"/><circle cx="40" cy="44" r="11" fill="#9DB54A"/><path class="tick" d="M34 44 l4 4 l8 -9" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <h3>แนบสลิป ระบบตรวจให้</h3><p>เชื่อมบริการ SlipOK ผ่านแล้วออเดอร์เข้าคิวและร้านได้ยินเสียงเตือน</p>
+    </li>
+    <li class="lift">
+      <div class="top"><span class="seal num">4</span><span class="ic wig" aria-hidden="true"><svg viewBox="0 0 64 64" width="56" height="56"><g class="fx ring"><path d="M32 8 q-14 0 -14 18 v12 l-6 8 h40 l-6 -8 v-12 q0 -18 -14 -18 Z" fill="#9DB54A" stroke="#233A1D" stroke-width="3.5" stroke-linejoin="round"/><circle cx="32" cy="52" r="5" fill="#233A1D"/></g><circle cx="48" cy="14" r="7" fill="#C23B22" stroke="#fff" stroke-width="2.5"/></svg></span></div>
+      <h3>LINE แจ้งจนได้แก้ว</h3><p>ลูกค้าได้ข้อความทุกสถานะ รับออเดอร์ กำลังทำ พร้อมรับ ไม่ต้องยืนรอหน้าเคาน์เตอร์</p>
+    </li>
+  </ol>
+</section>
+
+<section class="feat" id="features">
+  <div class="wrap sec">
+    <div class="split"><h2 class="h2">ลูกค้ากลับมาซ้ำ เพราะสั่งง่ายและมีแต้ม</h2><p class="lead">ทุกอย่างอยู่ในแชท LINE ที่ลูกค้าเปิดอยู่แล้ว</p></div>
+    <div class="grid" style="gap:20px">
+      <div class="card lift"><h3>สั่งได้ 3 แบบ</h3><p>ทานที่ร้านพร้อมเลขโต๊ะ รับกลับบ้าน หรือจองรอบเวลารับล่วงหน้า ร้านกำหนดจำนวนแก้วต่อรอบได้</p></div>
+      <div class="card lift"><h3>ตัวเลือกละเอียดต่อแก้ว</h3><p>เกรดผงคิดเงินเพิ่มตามกรัมที่เมนูใช้ นมทางเลือก ความหวาน ท็อปปิ้ง ตั้งต่อเมนูได้</p></div>
+      <div class="card lift"><h3>แต้มสะสมและระดับสมาชิก</h3><p>ได้แต้มทุกออเดอร์ ใช้แทนเงินสด มีบัตรสมาชิกหลายระดับและของรางวัลให้แลก</p></div>
+      <div class="card lift"><h3>โค้ดส่วนลดและชวนเพื่อน</h3><p>สร้างโค้ดโปรโมชันเอง ลูกค้าชวนเพื่อนแล้วได้แต้มทั้งสองฝ่ายเมื่อเพื่อนสั่งครั้งแรก</p></div>
+      <div class="card lift"><h3>เปิด-ปิดร้านได้ทันที</h3><p>ตั้งเวลาเปิดปิด กดเมนูหมดหรือซ่อนเมนูจากหลังร้าน ลูกค้าเห็นผลทันที</p></div>
+      <div class="card lift"><h3>ข้อความแจ้งเตือนในแชท</h3><p>การ์ดสถานะออเดอร์ส่งเข้า LINE อัตโนมัติ และส่งข่าวโปรโมชันหาลูกค้าได้</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="wave" aria-hidden="true">
+  <svg viewBox="0 0 2880 64" preserveAspectRatio="none"><path d="M0 40 Q180 0 360 40 T720 40 T1080 40 T1440 40 T1800 40 T2160 40 T2520 40 T2880 40 V64 H0 Z" fill="#18290F"/><circle cx="300" cy="30" r="6" fill="#9DB54A"/><circle cx="980" cy="26" r="4" fill="#9DB54A"/><circle cx="1700" cy="32" r="5" fill="#9DB54A"/><circle cx="2400" cy="28" r="4" fill="#9DB54A"/></svg>
+</div>
+
+<section class="back" id="backoffice">
+  <div class="wrap sec" style="padding-top:72px">
+    <div style="display:flex;flex-direction:column;gap:14px;max-width:760px">
+      <p class="eyebrow">หลังร้าน</p>
+      <h2 class="h2" style="font-size:clamp(30px,4vw,52px);line-height:1.2">รู้ยอด รู้ต้นทุน <span>รู้กำไร</span> ในหน้าเดียว</h2>
+      <p class="lead">เปิดบนแท็บเล็ตหรือคอมที่เคาน์เตอร์ ออเดอร์ใหม่มีเสียงเตือนดังจนกว่าบาริสต้าจะกดรับทราบ</p>
+    </div>
+    <div class="monitor" role="img" aria-label="ตัวอย่างหน้าจอหลังร้าน กระดานออเดอร์และยอดขายวันนี้">
+      <div class="mon">
+        <div class="side"><b>CODE-MATCHA</b><span class="on">ออเดอร์</span><span>เมนู</span><span>มาม่าบาร์</span><span>รายงานยอดขาย</span><span>ต้นทุน &amp; กำไร</span><span>ตั้งค่า</span></div>
+        <div class="mon-main">
+          <div class="stats"><div class="stat"><small>ยอดวันนี้</small><b>฿4,820</b></div><div class="stat"><small>ออเดอร์</small><b>38</b></div><div class="stat"><small>แก้วที่ขาย</small><b>61</b></div></div>
+          <div class="kan">
+            <div><h4>รอตรวจสลิป</h4><div class="tk pay"><div class="r"><b>#14</b><span>มารับ 15:00</span></div>คุณมิว · 2× มัทฉะลาเต้</div></div>
+            <div><h4>กำลังทำ</h4><div class="tk"><div class="r"><b>#12</b><span>ทานที่ร้าน</span></div>1× มัทฉะเย็น<div class="go">ทำเสร็จแล้ว</div></div><div class="tk"><div class="r"><b>#13</b><span>กลับบ้าน</span></div>1× โฮจิฉะลาเต้<div class="go">ทำเสร็จแล้ว</div></div></div>
+            <div><h4>พร้อมรับ</h4><div class="tk"><div class="r"><b>#11</b><span>โต๊ะ 3</span></div>2× มัทฉะส้มยูซุ<div class="go">ลูกค้ารับแล้ว</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="admin-list">
+      <div><h3>กระดานออเดอร์</h3><p>แยกรอตรวจสลิป กำลังทำ พร้อมรับ กดเลื่อนสถานะแล้วลูกค้าได้ข้อความทันที</p></div>
+      <div><h3>รายงานยอดขาย</h3><p>รายวัน รายสัปดาห์ รายเดือน แยกช่องทาง LINE กับหน้าร้าน และดูจำนวนคนเข้าชม</p></div>
+      <div><h3>ต้นทุนและกำไร</h3><p>คลังวัตถุดิบตามราคาแพ็ก สูตรต่อเมนู กำไรต่อเกรดผง และราคาขายบนแอปเดลิเวอรี</p></div>
+      <div><h3>เมนูและสมาชิก</h3><p>แก้เมนู ราคา รูป ตั้งโปรโมชัน ของรางวัล และดูแต้มของลูกค้าแต่ละคน</p></div>
+    </div>
+    <p class="fine">ตัวเลขในภาพเป็นข้อมูลตัวอย่าง</p>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">ส่วนเสริมที่ทำให้ร้านมีเรื่องให้พูดถึง</h2>
+  <div class="grid">
+    <div class="card lift"><span class="tag">มาม่าบาร์</span><h3>ลูกค้าบริการตัวเอง ถ่ายรูปถาดเดียวจบ</h3><ul><li>ทุกชิ้นติด QR สแกนพร้อมกันจากรูปเดียว</li><li>จ่ายแล้วต้มกินได้เลย ระบบตัดสต๊อกให้</li><li>เก็บรูปถาดเป็นหลักฐาน ตั้งเวลาเปิดแยกได้</li></ul></div>
+    <div class="card lift"><span class="tag">POS หน้าร้าน</span><h3>ลูกค้าไม่สั่งผ่านแชท ก็คิดเงินได้</h3><ul><li>พนักงานกดสั่งแทน โชว์ QR ให้สแกนจ่าย หรือรับเงินสด</li><li>จ่ายเลยหรือเช็คบิลตอนออกก็ได้</li><li>ใบเสร็จมีโลโก้ ลูกค้าสแกนรับแต้มใน LINE</li></ul></div>
+    <div class="card lift"><span class="tag">QR บนแก้ว</span><h3>สแกนแล้วน้องมัทฉะมีข้อความมาฝาก</h3><ul><li>สุ่มคำอวยพรที่ร้านเขียนเอง</li><li>ลูกค้าเขียนถึงคนพิเศษได้ 120 ตัวอักษร เข้ารหัส ร้านมองไม่เห็น</li><li>พิมพ์สติ๊กเกอร์ม้วนติดแก้วจากหลังร้าน</li></ul></div>
+  </div>
+</section>
+
+<section class="plans" id="pricing">
+  <div class="wrap sec">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h2 class="h2">แพ็กเกจ</h2>
+      <p class="lead">ติดตั้งให้ในชื่อร้านของคุณ ด้วยเมนู สี และโลโก้ของร้าน ราคาขึ้นกับขนาดร้านและฟีเจอร์ที่เลือก</p>
+    </div>
+    <div class="grid">
+      <div class="plan lift"><h3>เริ่มต้น</h3><p class="for">ร้านที่อยากรับออเดอร์ผ่าน LINE</p><p class="price">สอบถามราคา</p><ul><li>หน้าสั่งเมนูในชื่อร้านคุณ</li><li>PromptPay และแนบสลิป</li><li>กระดานออเดอร์และเสียงเตือน</li><li>รายงานยอดขาย</li></ul><a class="btn" href="#contact">สอบถามแพ็กเกจนี้</a></div>
+      <div class="plan hot lift"><h3>ร้านเต็มระบบ</h3><p class="for">ร้านที่อยากให้ลูกค้ากลับมาซ้ำ</p><p class="price">สอบถามราคา</p><ul><li>ทุกอย่างในแพ็กเริ่มต้น</li><li>ตรวจสลิปอัตโนมัติ</li><li>แต้ม สมาชิก โค้ดส่วนลด ชวนเพื่อน</li><li>ต้นทุนและกำไรต่อเมนู</li><li>POS หน้าร้านและใบเสร็จ</li></ul><a class="btn" href="#contact">สอบถามแพ็กเกจนี้</a></div>
+      <div class="plan lift"><h3>ส่วนเสริม</h3><p class="for">เพิ่มได้ทีละอย่าง</p><p class="price">สอบถามราคา</p><ul><li>มาม่าบาร์บริการตัวเอง</li><li>QR คำอวยพรและข้อความบนแก้ว</li><li>ปรับดีไซน์ตามแบรนด์</li></ul><a class="btn" href="#contact">สอบถามแพ็กเกจนี้</a></div>
+    </div>
+    <p class="lead" style="font-size:15px">ค่าบริการภายนอกที่ร้านสมัครเอง: LINE Official Account, บริการตรวจสลิป SlipOK (ถ้าใช้ตรวจอัตโนมัติ) และโฮสติ้งแบบใช้งานเชิงพาณิชย์</p>
+  </div>
+</section>
+
+<section class="wrap sec faq" id="faq">
+  <h2 class="h2">คำถามที่เจ้าของร้านถามบ่อย</h2>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <details><summary>ลูกค้าต้องโหลดแอปไหม</summary><p>ไม่ต้อง ลูกค้าเปิดจากแชท LINE ของร้าน เพิ่มเพื่อนแล้วกดเมนูสั่งได้เลย</p></details>
+    <details><summary>ร้านต้องมีอะไรบ้าง</summary><p>LINE Official Account ของร้าน บัญชีพร้อมเพย์ และมือถือหรือแท็บเล็ตสำหรับเปิดหลังร้าน</p></details>
+    <details><summary>ตรวจสลิปอัตโนมัติทำงานยังไง</summary><p>ระบบส่งสลิปไปตรวจกับบริการ SlipOK ที่ร้านสมัครไว้ ถ้ายอดและบัญชีถูกต้องจะเข้าคิวทันที ถ้าไม่ผ่านจะรอให้ร้านกดยืนยันเอง</p></details>
+    <details><summary>ใช้กับร้านกาแฟหรือร้านชาได้ไหม</summary><p>ได้ ตั้งเมนู ตัวเลือก และราคาเองทั้งหมด ระบบเริ่มจากร้านมัทฉะ จึงรองรับตัวเลือกละเอียดอย่างเกรดผงและนมทางเลือก</p></details>
+    <details><summary>ข้อมูลลูกค้าและยอดขายเป็นของใคร</summary><p>ติดตั้งแยกให้แต่ละร้าน ฐานข้อมูลเป็นของร้านเอง ไม่ปนกับร้านอื่น</p></details>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="wrap">
+    <div class="contact-copy">
+      <svg class="bob" viewBox="0 0 220 200" aria-hidden="true" style="width:150px;height:auto;overflow:visible">
+        <g fill="none" stroke="#FBE3DD" stroke-width="5" stroke-linecap="round"><path class="fx steam" d="M86 60 q-8 -10 0 -20 q8 -10 0 -20"/><path class="fx steam d2" d="M110 56 q-8 -10 0 -20 q8 -10 0 -20"/><path class="fx steam d3" d="M134 60 q-8 -10 0 -20 q8 -10 0 -20"/></g>
+        <path d="M38 100 Q38 170 110 172 Q182 170 182 100 Z" fill="#2F4A2A" stroke="#2B2420" stroke-width="4" stroke-linejoin="round"/>
+        <ellipse cx="110" cy="100" rx="72" ry="14" fill="#9DB54A" stroke="#2B2420" stroke-width="4"/>
+        <g class="fx blink"><circle cx="92" cy="132" r="5" fill="#F3EFE4"/><circle cx="128" cy="132" r="5" fill="#F3EFE4"/></g>
+        <ellipse cx="80" cy="144" rx="8" ry="4.5" fill="#F4A7B0"/><ellipse cx="140" cy="144" rx="8" ry="4.5" fill="#F4A7B0"/>
+        <path d="M100 144 q10 10 20 0" fill="none" stroke="#F3EFE4" stroke-width="4" stroke-linecap="round"/>
+        <rect x="80" y="172" width="60" height="10" rx="4" fill="#2B2420"/>
+      </svg>
+      <h2>อยากเห็นระบบทำงานจริง?</h2>
+      <p>นัดดูเดโมได้ ลองสั่งจากมือถือคุณเอง แล้วดูออเดอร์เด้งขึ้นหลังร้านไปพร้อมกัน</p>
+    </div>
+    <div class="contact-card">
+      <small>LINE ID</small>
+      <div class="v"><strong>Dew.Titsanan</strong><button class="copy" type="button" data-copy="Dew.Titsanan">คัดลอก</button></div>
+      <small>โทร</small>
+      <div class="v"><strong>092-828-7651</strong><button class="copy" type="button" data-copy="0928287651">คัดลอก</button></div>
+      <a class="btn btn-line" href="https://line.me/ti/p/~Dew.Titsanan" target="_blank" rel="noopener">แอดไลน์ คุยเรื่องระบบ</a>
+      <a class="btn btn-dark" href="tel:0928287651" style="margin-top:6px">โทร 092-828-7651</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap"><span>CODE-MATCHA · ระบบสั่งออเดอร์ผ่าน LINE สำหรับร้านเครื่องดื่ม</span><span>หน้าจอในหน้านี้เป็นตัวอย่างเพื่อการนำเสนอ</span></div></footer>
+
+<script>
+// ผงมัทฉะลอยในส่วนบน
+(function () {
+  var box = document.getElementById("specks");
+  [8, 16, 27, 35, 44, 52, 61, 70, 78, 86, 93, 22].forEach(function (left, i) {
+    var s = document.createElement("span");
+    var size = 6 + (i % 4) * 3;
+    s.className = "drift";
+    s.style.cssText = "left:" + left + "%;width:" + size + "px;height:" + size + "px;background:" + (i % 2 ? "#9DB54A" : "#CFE09A") +
+      ";border-radius:" + (i % 3 === 0 ? "2px 50% 2px 50%" : "50%") + ";animation-delay:" + i * 0.75 + "s;animation-duration:" + (8 + (i % 5)) + "s";
+    box.appendChild(s);
+  });
+  // แถบตัวอย่างการแจ้งเตือน (ซ้ำ 2 รอบให้วิ่งต่อกันไม่สะดุด)
+  var items = ["ออเดอร์ #12 มัทฉะลาเต้ พร้อมรับแล้ว", "ตรวจสลิปผ่าน ฿145", "คุณมิว ได้รับ 5 แต้ม", "โต๊ะ 3 สั่งมัทฉะส้มยูซุ ×2", "โค้ด MATCHA10 ลด ฿10", "จองรับ 15:00 อีก 2 ที่", "มาม่าบาร์ สแกนถาด 3 ชิ้น ฿65", "ข้อความบนแก้วถึงพี่เอ"];
+  var t = document.getElementById("ticker");
+  items.concat(items).forEach(function (x) { var s = document.createElement("span"); s.textContent = x; t.appendChild(s); });
+  // ปุ่มคัดลอก LINE ID / เบอร์
+  document.querySelectorAll("[data-copy]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var done = function () { b.textContent = "คัดลอกแล้ว"; setTimeout(function () { b.textContent = "คัดลอก"; }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.copy).then(done, function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>
