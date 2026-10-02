@@ -3,6 +3,7 @@
 import { forwardRef, type CSSProperties, type ReactNode } from "react";
 import type { MenuItem } from "@/lib/menu";
 import type { PromoRule } from "@/lib/promo";
+import { SHOP } from "@/lib/config";
 import MenuArt from "../MenuArt";
 import Seal from "../Seal";
 
@@ -277,7 +278,7 @@ function Portrait({ title, subtitle, item, item2, code, t, badge, layout, story 
           <Coupon code={code} t={t} scale={story ? 1.5 : 1.15} />
         </div>
       )}
-      <p style={{ margin: story ? "40px 0 0" : "18px 0 0", fontSize: story ? 38 : 26, fontWeight: 700, color: t.soft }}>สั่งผ่าน LINE @745plqxi</p>
+      <p style={{ margin: story ? "40px 0 0" : "18px 0 0", fontSize: story ? 38 : 26, fontWeight: 700, color: t.soft }}>สั่งผ่าน LINE {SHOP.lineOaId}</p>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import "server-only";
 import QRCode from "qrcode";
+import { SHOP } from "./config";
 
 // ลิงก์เปิดหน้าสั่งใน LINE (สแกนด้วยกล้องมือถือแล้วเด้งเข้า LINE)
 export const orderUrl = () => {
   const id = process.env.NEXT_PUBLIC_LIFF_ID;
-  return id ? `https://liff.line.me/${id}` : "https://code-matcha.vercel.app/";
+  return id ? `https://liff.line.me/${id}` : `${SHOP.siteUrl}/`;
 };
 
 export const orderQrSvg = () =>

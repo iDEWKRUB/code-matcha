@@ -3,8 +3,9 @@ export const SHOP = {
   name: "CODE-MATCHA",
   timeZone: "Asia/Bangkok",
   // เวลาเปิด-ปิด ระยะห่างรอบ และแก้วต่อรอบ ตั้งได้ในหน้าบาริสต้า > ตั้งค่าร้าน (ตาราง shop_settings)
-  siteUrl: "https://code-matcha.vercel.app", // ใช้ในปุ่มของการ์ด LINE
-  lineOaId: "@745plqxi", // LINE OA ของร้าน (ลูกค้าต้องเป็นเพื่อนถึงจะได้รับแจ้งเตือน)
+  // โดเมนของเว็บ (ไม่มี / ท้าย) ใช้ในปุ่มการ์ด LINE และ QR สติ๊กเกอร์ · ย้ายโฮสต์ให้ตั้ง NEXT_PUBLIC_SITE_URL
+  siteUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://code-matcha.vercel.app").replace(/\/+$/, ""),
+  lineOaId: process.env.NEXT_PUBLIC_LINE_OA_ID || "@745plqxi", // LINE OA ของร้าน (ลูกค้าต้องเป็นเพื่อนถึงจะได้รับแจ้งเตือน)
   requireFriend: true, // ต้องแอดเพื่อน OA ก่อนถึงจะสั่งได้ (false = สั่งได้เลย แต่ไม่ได้รับแจ้งเตือน)
   leadMinutes: 10, // ต้องสั่งล่วงหน้าอย่างน้อยกี่นาที
   holdMinutes: 10, // จองเวลารับไว้ให้ระหว่างรอชำระเงินกี่นาที
