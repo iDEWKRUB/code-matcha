@@ -19,7 +19,11 @@ export type BarItem = {
   group: string; // กลุ่มสินค้า เช่น มาม่าเกาหลี (Buldak)
   detail: string; // รายละเอียด / รสชาติ
   unit: string; // หน่วย เช่น ซอง แพ็ก ขวด
+  code: number | null; // รหัสสินค้า 1–999 แสดงเป็น 3 หลัก (คีย์เร็ว + พิมพ์บนสติ๊กเกอร์)
 };
+
+export const BAR_MAX_CODE = 999;
+export const barCode = (code: number | null | undefined) => (code ? String(code).padStart(3, "0") : "");
 
 // หมวดหมู่ที่แนะนำ (เรียงตามนี้ หมวดที่ร้านพิมพ์เองต่อท้าย)
 export const BAR_CATEGORIES = ["บะหมี่กึ่งสำเร็จรูป", "ท็อปปิ้ง", "เครื่องเคียง/วัตถุดิบ", "เครื่องดื่ม", "อื่น ๆ"];
@@ -34,12 +38,14 @@ export function barCategories(items: Pick<BarItem, "category">[]) {
 
 // ค้นหา: ทุกคำต้องเจอในชื่อ / รายละเอียด / กลุ่ม / หมวด (ไม่สนตัวพิมพ์เล็กใหญ่และช่องว่าง)
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
-export function barMatch(item: Pick<BarItem, "name" | "detail" | "group" | "category">, cat: string, q: string) {
+// พิมพ์ตัวเลขล้วน = หารหัสสินค้า (12 เจอ 012 และ 120–129 · พิมพ์ 3 หลักเจอตัวเดียว)
+export function barMatch(item: Pick<BarItem, "name" | "detail" | "group" | "category" | "code">, cat: string, q: string) {
   if (cat && (item.category || "อื่น ๆ") !== cat) return false;
-  const words = q.toLowerCase().split(/\s+/).filter(Boolean).map(norm);
+  const words = q.toLowerCase().replace(/#/g, " ").split(/\s+/).filter(Boolean).map(norm);
   if (!words.length) return true;
   const hay = norm([item.name, item.detail, item.group, item.category].join(" "));
-  return words.every((w) => hay.includes(w));
+  const code = barCode(item.code);
+  return words.every((w) => (/^\d+$/.test(w) ? !!item.code && (Number(w) === item.code || code.startsWith(w)) : hay.includes(w)));
 }
 
 export type BarLine = { id: string; qty: number };

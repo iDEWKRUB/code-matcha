@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { barCategories, barMatch, type BarItem } from "@/lib/bar";
 
-type Filterable = Pick<BarItem, "name" | "detail" | "group" | "category">;
+type Filterable = Pick<BarItem, "name" | "detail" | "group" | "category" | "code">;
 
 // สถานะตัวกรอง (หมวด + คำค้น) ใช้ร่วมกันทุกหน้าที่มีรายการของมาม่าบาร์
 export function useBarFilter<T extends Filterable>(items: T[]) {
@@ -22,7 +22,7 @@ type Props = {
 };
 
 // ช่องค้นหา + ปุ่มหมวดหมู่ · tone shop = หน้าลูกค้า, admin = หลังร้าน
-export default function BarFilter({ f, id, tone = "admin", placeholder = "ค้นหา เช่น บูลดัก ชีส ไข่" }: Props) {
+export default function BarFilter({ f, id, tone = "admin", placeholder = "ค้นหาชื่อ หรือรหัส เช่น 012 บูลดัก ชีส" }: Props) {
   return (
     <div className={`bf bf-${tone}`}>
       <div className="bf-search">
@@ -33,7 +33,7 @@ export default function BarFilter({ f, id, tone = "admin", placeholder = "ค้
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-3.5-3.5" />
         </svg>
-        <input id={id} type="search" value={f.q} placeholder={placeholder} onChange={(e) => f.setQ(e.target.value)} autoComplete="off" enterKeyHint="search" />
+        <input id={id} type="search" inputMode="search" value={f.q} placeholder={placeholder} onChange={(e) => f.setQ(e.target.value)} autoComplete="off" enterKeyHint="search" />
         {f.q && (
           <button type="button" className="bf-clear" aria-label="ล้างคำค้น" onClick={() => f.setQ("")}>
             ×

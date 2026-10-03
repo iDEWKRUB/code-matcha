@@ -11,7 +11,7 @@ const fail = (error: string, status = 400) => NextResponse.json({ error }, { sta
 const dayStart = (date: string) => new Date(`${date}T00:00:00+07:00`).toISOString();
 
 async function items() {
-  const { data, error } = await db().from("bar_items").select("id,name,price,kind,stock,available,category,item_group,detail").order("sort").order("name");
+  const { data, error } = await db().from("bar_items").select("id,name,price,kind,stock,available,category,item_group,detail,code").order("sort").order("name");
   if (error) throw error;
   return data.map(({ item_group, ...r }) => ({ ...r, group: item_group ?? "" }));
 }

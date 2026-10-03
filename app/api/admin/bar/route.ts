@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { BAR_KINDS, BAR_MAX_CATEGORY, type BarItem } from "@/lib/bar";
+import { BAR_KINDS, BAR_MAX_CATEGORY, BAR_MAX_CODE, barCode, type BarItem } from "@/lib/bar";
 import { getBarItems } from "@/lib/barServer";
 import { db } from "@/lib/supabase";
 
@@ -37,9 +37,18 @@ export async function POST(req: Request) {
     detail: text(b.detail, 120),
     unit: text(b.unit, 20),
   };
+  // รหัสสินค้า: ว่าง = ให้ระบบออกเลขถัดไป
+  let code: number | null = b.code === null || b.code === undefined || (b.code as unknown) === "" ? null : Number(b.code);
+  if (code !== null && (!Number.isInteger(code) || code < 1 || code > BAR_MAX_CODE)) return fail(`รหัสสินค้าต้องเป็นเลข 1–${BAR_MAX_CODE}`);
+  if (code === null) {
+    const { data: top } = await db().from("bar_items").select("code").not("code", "is", null).order("code", { ascending: false }).limit(1);
+    code = Math.min(BAR_MAX_CODE, (top?.[0]?.code ?? 0) + 1);
+  }
+  const { data: same } = await db().from("bar_items").select("id,name").eq("code", code).limit(1);
+  if (same?.[0] && same[0].id !== b.id) return fail(`รหัส ${barCode(code)} ใช้กับ "${same[0].name}" แล้ว`);
   const { error } = b.id
-    ? await db().from("bar_items").update(row).eq("id", String(b.id))
-    : await db().from("bar_items").insert({ ...row, id: `b-${crypto.randomBytes(4).toString("hex")}` });
+    ? await db().from("bar_items").update({ ...row, code }).eq("id", String(b.id))
+    : await db().from("bar_items").insert({ ...row, code, id: `b-${crypto.randomBytes(4).toString("hex")}` });
   if (error) throw error;
   return NextResponse.json({ items: await getBarItems(false) });
 }

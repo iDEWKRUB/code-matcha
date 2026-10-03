@@ -4,6 +4,7 @@ import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BAR_MAX_QTY,
+  barCode,
   EXTRA_LABEL,
   TERMS,
   TERMS_VERSION,
@@ -1024,7 +1025,7 @@ export default function BarPage() {
                     <div>
                       <b>{it.name}</b>
                       <small>
-                        ฿{it.price}
+                        {it.code ? <span className="bf-code">#{barCode(it.code)}</span> : null}฿{it.price}
                         {it.unit && ` / ${it.unit}`}
                         {it.detail && ` · ${it.detail}`}
                       </small>

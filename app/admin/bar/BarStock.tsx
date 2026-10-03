@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { LOW_STOCK, type CountLine } from "@/lib/bar";
+import { LOW_STOCK, barCode, type CountLine } from "@/lib/bar";
 import BarFilter, { useBarFilter } from "../../bar/BarFilter";
 
-type Item = { id: string; name: string; price: number; kind: string; stock: number; available: boolean; category: string; group: string; detail: string };
+type Item = { id: string; name: string; price: number; kind: string; stock: number; available: boolean; category: string; group: string; detail: string; code: number | null };
 type Move = { id: number; itemId: string; delta: number; kind: "in" | "sale" | "count"; orderNo: number | null; note: string; at: string };
 type Count = { id: number; date: string; at: string; lines: CountLine[]; missing: number; missingValue: number };
 type TraceBill = { id: number; no: number; at: string; name: string; status: string; photo: string | null; detected: number; paid: number; extra: number; pieces: number; warn: boolean };
@@ -176,7 +176,7 @@ export default function BarStock() {
           return (
             <div key={i.id} className={`st-tr${i.stock <= LOW_STOCK ? " low" : ""}`} role="row">
               <span role="cell">
-                {i.name}
+                {i.code ? <b className="bf-code">{barCode(i.code)}</b> : null} {i.name}
                 {!i.available && <small> · ปิดขาย</small>}
               </span>
               <span role="cell" className="in">{inToday.get(i.id) ? `+${inToday.get(i.id)}` : "–"}</span>
@@ -347,7 +347,9 @@ export default function BarStock() {
                 const p = countPreview.find((x) => x.id === i.id);
                 return (
                   <div key={i.id} className={`st-row${p?.diff !== null && p?.diff !== undefined && p.diff < 0 ? " miss" : ""}`}>
-                    <span>{short(i.name)}</span>
+                    <span>
+                      {i.code ? <b className="bf-code">{barCode(i.code)}</b> : null} {short(i.name)}
+                    </span>
                     <span className="c nba-muted">{i.stock}</span>
                     <input
                       type="number"

@@ -2,7 +2,7 @@
 
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { BAR_CATEGORIES, BAR_KINDS, BAR_MAX_CATEGORY, barQrText, type BarItem, type BarKind } from "@/lib/bar";
+import { BAR_CATEGORIES, BAR_KINDS, BAR_MAX_CATEGORY, BAR_MAX_CODE, barCode, barQrText, type BarItem, type BarKind } from "@/lib/bar";
 import BarFilter, { useBarFilter } from "../../bar/BarFilter";
 import BarArt from "../../bar/BarArt";
 import Icon, { type IconName } from "../../Icon";
@@ -14,6 +14,17 @@ import WishLabel from "./WishLabel";
 import { SHOP } from "@/lib/config";
 import BarStock from "./BarStock";
 import { uploadImage } from "../upload";
+
+// บรรทัดล่างของสติ๊กเกอร์ QR: รหัส 3 หลัก + ราคาขาย (ยังไม่ตั้งราคา = แสดงแค่รหัส)
+function StickerMeta({ item }: { item: BarItem }) {
+  return (
+    <small className="nbs-meta">
+      {item.code ? <span className="nbs-code">#{barCode(item.code)}</span> : null}
+      {item.price > 0 ? <span className="nbs-price">฿{item.price}</span> : null}
+      {!item.code && !(item.price > 0) ? "CODE-MATCHA · มาม่าบาร์" : null}
+    </small>
+  );
+}
 
 type Draft = {
   id?: string;
@@ -27,6 +38,7 @@ type Draft = {
   group: string;
   detail: string;
   unit: string;
+  code: string;
 };
 const blank: Draft = {
   name: "",
@@ -39,6 +51,7 @@ const blank: Draft = {
   group: "",
   detail: "",
   unit: "",
+  code: "",
 };
 const toDraft = (i: BarItem): Draft => ({
   id: i.id,
@@ -52,6 +65,7 @@ const toDraft = (i: BarItem): Draft => ({
   group: i.group,
   detail: i.detail,
   unit: i.unit,
+  code: i.code ? String(i.code) : "",
 });
 
 type Section = "sell" | "bills" | "stock" | "items" | "qr";
@@ -222,6 +236,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
       ...draft,
       price: Number(draft.price),
       sort: Number(draft.sort) || 0,
+      code: draft.code.trim() === "" ? null : Number(draft.code),
     });
     if (ok) setDraft(null);
   }
@@ -327,6 +342,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
             <thead>
               <tr>
                 <th />
+                <th>รหัส</th>
                 <th>ชื่อ</th>
                 <th>หมวดหมู่</th>
                 <th>ราคา</th>
@@ -345,6 +361,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                       <BarArt kind={i.kind} size={36} />
                     )}
                   </td>
+                  <td className="bf-code">{barCode(i.code)}</td>
                   <td>
                     {i.name}
                     {(i.detail || i.unit) && <small className="bf-sub">{[i.detail, i.unit && `ต่อ${i.unit}`].filter(Boolean).join(" · ")}</small>}
@@ -415,7 +432,9 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
             <div className="nba-copies">
               {qrFilter.shown.map((i) => (
                 <label key={i.id}>
-                  <span>{i.name}</span>
+                  <span>
+                    <b className="bf-code">{barCode(i.code)}</b> {i.name}
+                  </span>
                   <input
                     type="number"
                     min={0}
@@ -548,7 +567,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
                         <b>{i.name.replace(/^ท็อปปิ้ง\s*/, "")}</b>
-                        <small>CODE-MATCHA · มาม่าบาร์</small>
+                        <StickerMeta item={i} />
                       </div>
                     ) : (
                       <div className="nbs-lb empty" key={c} />
@@ -575,7 +594,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {qrs[i.id] && <img src={qrs[i.id]} alt={`QR ${i.name}`} />}
                   <b>{i.name.replace(/^ท็อปปิ้ง\s*/, "")}</b>
-                  <small>CODE-MATCHA · มาม่าบาร์</small>
+                  <StickerMeta item={i} />
                 </div>
                 ),
               )}
@@ -590,6 +609,13 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
         <div className="nba-modal nba-noprint" role="dialog" aria-modal="true" aria-label={draft.id ? "แก้ไขรายการ" : "เพิ่มรายการ"}>
           <div className="nba-form">
             <h2>{draft.id ? "แก้ไขรายการ" : "เพิ่มรายการ"}</h2>
+            <div className="nba-2 bf-codeform">
+              <label>
+                รหัส (3 หลัก)
+                <input inputMode="numeric" maxLength={3} placeholder="อัตโนมัติ" value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value.replace(/\D/g, "").slice(0, 3) })} />
+              </label>
+              <p className="nba-muted">ว่างไว้ = ระบบออกเลขถัดไปให้ · ใช้ได้ 001–{BAR_MAX_CODE} ห้ามซ้ำ</p>
+            </div>
             <label>
               ชื่อ
               <input value={draft.name} maxLength={60} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="เช่น มาม่ารสต้มยำกุ้ง" />

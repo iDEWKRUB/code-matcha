@@ -2009,3 +2009,13 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 .bf-noprice { font-size: 12px; font-weight: 600; color: #A12C15; }
 .nb-pick-img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
 .nb-pick .bf { position: sticky; top: -18px; background: var(--cream); padding-top: 6px; z-index: 1; }
+/* รหัสสินค้า 3 หลัก (มาม่าบาร์) */
+.bf-code { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--matcha); }
+small .bf-code { margin-right: 6px; }
+.bf-codeform { align-items: end; }
+.bf-codeform input { font-family: ui-monospace, Consolas, monospace; letter-spacing: .1em; }
+.nbs-meta { display: inline-flex; align-items: center; gap: 1.2mm; }
+.nbs-code { font-family: ui-monospace, Consolas, monospace; font-weight: 800; color: #000; }
+.nbs-price { font-weight: 800; color: #000; }
+.nbs-lb .nbs-meta { font-size: 6pt; }
+.nbs .nbs-meta { font-size: 8pt; }
