@@ -2025,3 +2025,28 @@ small .bf-code { margin-right: 6px; }
 .ps-bar-hint { margin: -4px 0 0; font-size: 14px; font-weight: 600; color: var(--deep); }
 .ps-bar-img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
 .ps-bar-item small .bf-code { margin-right: 8px; }
+/* รายงาน: ยอดขาย เทียบ กำไร (สีผ่านตัวตรวจตาบอดสี: เขียว #557a2a / ทอง #c98a1b มีป้ายกำกับ + ตารางช่วย) */
+.report { --sales: #557a2a; --sales-on: #3f5e1c; --profit: #c98a1b; --profit-on: #a8710f; }
+.pchart-pair { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 2px; width: 100%; max-width: 30px; height: 100%; }
+.pchart .chart-bar { max-width: 14px; flex: 1; }
+.pchart .chart-bar.sales { background: var(--sales); }
+.pchart .chart-bar.profit { background: var(--profit); }
+.pchart .chart-col.on .chart-bar.sales { background: var(--sales-on); }
+.pchart .chart-col.on .chart-bar.profit { background: var(--profit-on); }
+.pchart .chart-bar.sales .chart-val { left: auto; right: 0; transform: none; bottom: calc(100% + 16px); }
+.pchart .chart-bar.profit .chart-val { left: 0; transform: none; color: #8a5a07; }
+.pchart-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 2px; }
+.pchart-key.sales { background: var(--sales); }
+.pchart-key.profit { background: var(--profit); }
+.pl-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0 6px; }
+.pl-sum > div { background: #F6F7EF; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-sum span { font-size: 12px; color: var(--stone); }
+.pl-sum b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.pl-sum small { font-size: 12px; color: var(--stone); }
+.pl-legend { display: flex; gap: 16px; font-size: 13px; color: var(--stone); margin-top: 8px; }
+.pl-missing { margin-top: 14px; border: 1px dashed #E0B84C; background: #FFF8E3; border-radius: 12px; padding: 12px 14px; font-size: 14px; color: #5f4710; }
+.pl-missing p { margin: 4px 0 8px; font-size: 13px; }
+.pl-missing ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.pl-missing li { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.pl-missing li small { margin-left: auto; white-space: nowrap; color: #8a6d24; }
+.pl-src { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 5px; background: #fff; border: 1px solid #E0B84C; white-space: nowrap; }

@@ -20,6 +20,7 @@ export type BarItem = {
   detail: string; // รายละเอียด / รสชาติ
   unit: string; // หน่วย เช่น ซอง แพ็ก ขวด
   code: number | null; // รหัสสินค้า 1–999 แสดงเป็น 3 หลัก (คีย์เร็ว + พิมพ์บนสติ๊กเกอร์)
+  cost?: number | null; // ต้นทุนต่อชิ้น (เฉพาะหลังร้าน ไม่ส่งให้ลูกค้า) · null = ยังไม่ใส่
 };
 
 export const BAR_MAX_CODE = 999;

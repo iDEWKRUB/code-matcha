@@ -11,7 +11,7 @@ const fail = (error: string, status = 400) => NextResponse.json({ error }, { sta
 
 export async function GET() {
   if (!(await isAdmin())) return fail("unauthorized", 401);
-  return NextResponse.json({ items: await getBarItems(false) });
+  return NextResponse.json({ items: await getBarItems(false, true) });
 }
 
 // เพิ่ม (ไม่มี id) หรือแก้ของในมาม่าบาร์
@@ -36,7 +36,9 @@ export async function POST(req: Request) {
     item_group: text(b.group, 60),
     detail: text(b.detail, 120),
     unit: text(b.unit, 20),
+    cost: b.cost === null || b.cost === undefined || (b.cost as unknown) === "" ? null : Math.round(Number(b.cost) * 100) / 100,
   };
+  if (row.cost !== null && (!Number.isFinite(row.cost) || row.cost < 0 || row.cost > 10000)) return fail("ต้นทุนไม่ถูกต้อง");
   // รหัสสินค้า: ว่าง = ให้ระบบออกเลขถัดไป
   let code: number | null = b.code === null || b.code === undefined || (b.code as unknown) === "" ? null : Number(b.code);
   if (code !== null && (!Number.isInteger(code) || code < 1 || code > BAR_MAX_CODE)) return fail(`รหัสสินค้าต้องเป็นเลข 1–${BAR_MAX_CODE}`);
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
     ? await db().from("bar_items").update({ ...row, code }).eq("id", String(b.id))
     : await db().from("bar_items").insert({ ...row, code, id: `b-${crypto.randomBytes(4).toString("hex")}` });
   if (error) throw error;
-  return NextResponse.json({ items: await getBarItems(false) });
+  return NextResponse.json({ items: await getBarItems(false, true) });
 }
 
 // เปิด/ปิดขายทีละหลายรายการ (ปุ่ม "เปิดขายที่แสดงอยู่" หลังกรองหมวด/ค้นหา)
@@ -61,7 +63,7 @@ export async function PATCH(req: Request) {
   if (!ids.length || typeof b?.available !== "boolean") return fail("ข้อมูลไม่ถูกต้อง");
   const { error } = await db().from("bar_items").update({ available: b.available }).in("id", ids);
   if (error) throw error;
-  return NextResponse.json({ items: await getBarItems(false) });
+  return NextResponse.json({ items: await getBarItems(false, true) });
 }
 
 export async function DELETE(req: Request) {
@@ -70,5 +72,5 @@ export async function DELETE(req: Request) {
   if (!id) return fail("ไม่พบรายการ");
   const { error } = await db().from("bar_items").delete().eq("id", id);
   if (error) throw error;
-  return NextResponse.json({ items: await getBarItems(false) });
+  return NextResponse.json({ items: await getBarItems(false, true) });
 }

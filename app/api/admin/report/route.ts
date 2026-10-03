@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { costResolver } from "@/lib/profitServer";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -46,7 +47,8 @@ type Row = {
   service: string;
   channel: string | null;
   pos_bills: { pay_method: string | null } | null;
-  items: { name: string; qty: number; price: number }[];
+  source: string | null;
+  items: { name: string; qty: number; price: number; detail?: string }[];
 };
 
 // ดึงทุกแถว (Supabase คืนครั้งละไม่เกิน 1000)
@@ -55,7 +57,7 @@ async function fetchPaid(from: string, to: string) {
   for (let off = 0; ; off += 1000) {
     const { data, error } = await db()
       .from("orders")
-      .select("pickup_date,total,discount,promo_discount,cups,service,channel,items,pos_bills(pay_method)")
+      .select("pickup_date,total,discount,promo_discount,cups,service,channel,source,items,pos_bills(pay_method)")
       .gte("pickup_date", from)
       .lte("pickup_date", to)
       .in("status", PAID)
@@ -90,13 +92,16 @@ export async function GET(req: Request) {
   const p = new URL(req.url).searchParams.get("period");
   const period: Period = p === "week" || p === "month" ? p : "day";
   const bs = buckets(period, nowInShop().date);
-  const [rows, events, since] = await Promise.all([
+  const [rows, events, since, unitCost] = await Promise.all([
     fetchPaid(bs[0].start, bs[bs.length - 1].end),
     fetchEvents(bs[0].start, bs[bs.length - 1].end),
     db().from("site_events").select("first_at").order("first_at").limit(1),
+    costResolver(),
   ]);
 
-  const series = bs.map((b) => ({ ...b, revenue: 0, orders: 0, cups: 0, discount: 0, visitors: 0 }));
+  // cost = ต้นทุนของรายการที่รู้ต้นทุน · noCost = ยอดขาย (ตามราคารายการ) ของรายการที่ยังไม่ได้ใส่ต้นทุน
+  const series = bs.map((b) => ({ ...b, revenue: 0, orders: 0, cups: 0, discount: 0, visitors: 0, cost: 0, noCost: 0 }));
+  const missing = new Map<string, { name: string; source: string; qty: number; revenue: number }>();
   const top = new Map<string, { name: string; qty: number; revenue: number }>();
   const services: Record<string, { orders: number; revenue: number }> = {
     dine_in: { orders: 0, revenue: 0 },
@@ -124,6 +129,15 @@ export async function GET(req: Request) {
     ch.orders += 1;
     ch.revenue += r.total;
     for (const i of r.items ?? []) {
+      const src = r.source === "bar" ? "bar" : "menu";
+      const uc = unitCost(src, i.name, i.detail ?? "");
+      if (uc === null) {
+        b.noCost += i.price;
+        const m = missing.get(src + i.name) ?? { name: i.name, source: src, qty: 0, revenue: 0 };
+        m.qty += i.qty;
+        m.revenue += i.price;
+        missing.set(src + i.name, m);
+      } else b.cost += uc * i.qty;
       const t = top.get(i.name) ?? { name: i.name, qty: 0, revenue: 0 };
       t.qty += i.qty;
       t.revenue += i.price;
@@ -152,7 +166,13 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     period,
-    series: series.map(({ key, label, short, revenue, orders, cups, discount, visitors }) => ({ key, label, short, revenue, orders, cups, discount, visitors })),
+    series: series.map(({ key, label, short, revenue, orders, cups, discount, visitors, cost, noCost }) => ({
+      key, label, short, revenue, orders, cups, discount, visitors,
+      cost: Math.round(cost * 100) / 100,
+      profit: Math.round((revenue - cost) * 100) / 100, // ยอดหลังหักส่วนลด − ต้นทุนที่รู้
+      noCost,
+    })),
+    missingCost: [...missing.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 12),
     funnel,
     memberVisitors,
     trackingSince: since.data?.[0]?.first_at ?? null,

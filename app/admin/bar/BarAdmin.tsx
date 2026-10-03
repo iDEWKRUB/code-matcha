@@ -39,6 +39,7 @@ type Draft = {
   detail: string;
   unit: string;
   code: string;
+  cost: string;
 };
 const blank: Draft = {
   name: "",
@@ -52,6 +53,7 @@ const blank: Draft = {
   detail: "",
   unit: "",
   code: "",
+  cost: "",
 };
 const toDraft = (i: BarItem): Draft => ({
   id: i.id,
@@ -66,6 +68,7 @@ const toDraft = (i: BarItem): Draft => ({
   detail: i.detail,
   unit: i.unit,
   code: i.code ? String(i.code) : "",
+  cost: i.cost === null || i.cost === undefined ? "" : String(i.cost),
 });
 
 type Section = "sell" | "bills" | "stock" | "items" | "qr";
@@ -237,6 +240,7 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
       price: Number(draft.price),
       sort: Number(draft.sort) || 0,
       code: draft.code.trim() === "" ? null : Number(draft.code),
+      cost: draft.cost.trim() === "" ? null : Number(draft.cost),
     });
     if (ok) setDraft(null);
   }
@@ -370,7 +374,10 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                     {i.category}
                     {i.group && <small className="bf-sub">{i.group}</small>}
                   </td>
-                  <td>{i.price ? `฿${i.price}` : <span className="bf-noprice">ยังไม่ตั้ง</span>}</td>
+                  <td>
+                    {i.price ? `฿${i.price}` : <span className="bf-noprice">ยังไม่ตั้ง</span>}
+                    <small className="bf-sub">{i.cost === null || i.cost === undefined ? "ทุน –" : `ทุน ฿${i.cost}`}</small>
+                  </td>
                   <td>
                     <button
                       className={`nba-switch${i.available ? " on" : ""}`}
@@ -660,6 +667,12 @@ export default function BarAdmin({ embedded = false }: { embedded?: boolean }) {
                 ราคา (บาท)
                 <input type="number" inputMode="numeric" min={0} value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
               </label>
+              <label>
+                ต้นทุน/ชิ้น (บาท)
+                <input type="number" inputMode="decimal" min={0} step="0.01" placeholder="ใช้คิดกำไรในรายงาน" value={draft.cost} onChange={(e) => setDraft({ ...draft, cost: e.target.value })} />
+              </label>
+            </div>
+            <div className="nba-2">
               <label>
                 ลำดับ
                 <input type="number" inputMode="numeric" value={draft.sort} onChange={(e) => setDraft({ ...draft, sort: e.target.value })} />

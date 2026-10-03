@@ -86,8 +86,9 @@ export async function purgeOldTrays() {
   await db().from("orders").update({ tray_path: null }).in("id", data.map((o) => o.id));
 }
 
-export async function getBarItems(availableOnly = true): Promise<BarItem[]> {
-  let q = db().from("bar_items").select("id,name,kind,price,available,sort,image_url,category,item_group,detail,unit,code").order("sort").order("name");
+// withCost = แนบต้นทุน (เฉพาะ API หลังร้าน)
+export async function getBarItems(availableOnly = true, withCost = false): Promise<BarItem[]> {
+  let q = db().from("bar_items").select("id,name,kind,price,available,sort,image_url,category,item_group,detail,unit,code,cost").order("sort").order("name");
   if (availableOnly) q = q.eq("available", true);
   const { data, error } = await q;
   if (error) throw error;
@@ -104,6 +105,7 @@ export async function getBarItems(availableOnly = true): Promise<BarItem[]> {
     detail: r.detail ?? "",
     unit: r.unit ?? "",
     code: r.code ?? null,
+    ...(withCost && { cost: r.cost === null ? null : Number(r.cost) }),
   }));
 }
 
