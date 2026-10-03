@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BAR_MAX_QTY, barIdFromQr, type BarItem } from "@/lib/bar";
+import { BAR_MAX_QTY, barCode, barIdFromQr, type BarItem } from "@/lib/bar";
+import BarFilter, { useBarFilter } from "../../bar/BarFilter";
 import {
   MAX_QTY,
   MILKS,
@@ -77,6 +78,12 @@ export default function Pos() {
 
   const menuById = useMemo(() => new Map((data?.menu ?? []).map((m) => [m.id, m])), [data]);
   const barById = useMemo(() => new Map((data?.barItems ?? []).map((i) => [i.id, i])), [data]);
+  const barF = useBarFilter(data?.barItems ?? []);
+  const [barHint, setBarHint] = useState("");
+  // เริ่มพิมพ์ใหม่ = ล้างข้อความแจ้งผลครั้งก่อน
+  useEffect(() => {
+    if (barF.q) setBarHint("");
+  }, [barF.q]);
   const bill = data?.bills.find((b) => b.id === billId) ?? null;
   const powders = data?.powders ?? [];
 
@@ -332,13 +339,38 @@ export default function Pos() {
                 <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => (onPhoto(e.target.files?.[0]), (e.target.value = ""))} />
               </label>
             </div>
+            <BarFilter
+              f={barF}
+              id="ps-bar-q"
+              placeholder="คีย์รหัส 3 หลักแล้วกด Enter = เพิ่ม 1 ชิ้น · หรือพิมพ์ชื่อ"
+              onEnter={() => {
+                // เหลือรายการเดียว = เพิ่มเลย แล้วล้างช่องไว้คีย์ชิ้นต่อไป
+                if (barF.shown.length === 1) {
+                  const it = barF.shown[0];
+                  addBar(it.id, 1);
+                  setBarHint(`เพิ่ม ${barCode(it.code)} ${it.name} แล้ว`);
+                  barF.setQ("");
+                } else setBarHint(barF.shown.length ? `เจอ ${barF.shown.length} รายการ กดเลือกด้านล่าง หรือพิมพ์รหัสให้ครบ 3 หลัก` : "ไม่พบรหัสนี้");
+              }}
+            />
+            {barHint && (
+              <p className="ps-bar-hint" role="status">
+                {barHint}
+              </p>
+            )}
             <div className="ps-bar-grid">
-              {data.barItems.map((i) => (
+              {barF.shown.map((i) => (
                 <div key={i.id} className="ps-bar-item">
-                  <BarArt kind={i.kind} size={40} />
+                  {i.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="ps-bar-img" src={i.imageUrl} alt="" width={40} height={40} />
+                  ) : (
+                    <BarArt kind={i.kind} size={40} />
+                  )}
                   <span>
                     <b>{i.name}</b>
                     <small>
+                      {i.code ? <span className="bf-code">{barCode(i.code)}</span> : null}
                       {baht(i.price)}
                       {detected[i.id] ? ` · จากรูป ${detected[i.id]}` : ""}
                     </small>

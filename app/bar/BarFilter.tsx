@@ -19,10 +19,11 @@ type Props = {
   id: string; // ไม่ซ้ำในหน้า (ผูก label กับช่องค้นหา)
   tone?: "admin" | "shop";
   placeholder?: string;
+  onEnter?: () => void; // กด Enter ในช่องค้นหา
 };
 
 // ช่องค้นหา + ปุ่มหมวดหมู่ · tone shop = หน้าลูกค้า, admin = หลังร้าน
-export default function BarFilter({ f, id, tone = "admin", placeholder = "ค้นหาชื่อ หรือรหัส เช่น 012 บูลดัก ชีส" }: Props) {
+export default function BarFilter({ f, id, tone = "admin", placeholder = "ค้นหาชื่อ หรือรหัส เช่น 012 บูลดัก ชีส", onEnter }: Props) {
   return (
     <div className={`bf bf-${tone}`}>
       <div className="bf-search">
@@ -33,14 +34,14 @@ export default function BarFilter({ f, id, tone = "admin", placeholder = "ค้
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-3.5-3.5" />
         </svg>
-        <input id={id} type="search" inputMode="search" value={f.q} placeholder={placeholder} onChange={(e) => f.setQ(e.target.value)} autoComplete="off" enterKeyHint="search" />
+        <input id={id} type="search" inputMode="search" value={f.q} placeholder={placeholder} onChange={(e) => f.setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && onEnter) { e.preventDefault(); onEnter(); } }} autoComplete="off" enterKeyHint="search" />
         {f.q && (
           <button type="button" className="bf-clear" aria-label="ล้างคำค้น" onClick={() => f.setQ("")}>
             ×
           </button>
         )}
       </div>
-      {f.cats.length > 1 && (
+      {f.cats.length > 0 && (
         <div className="bf-cats" role="group" aria-label="หมวดหมู่">
           <button type="button" aria-pressed={!f.cat} onClick={() => f.setCat("")}>
             ทั้งหมด

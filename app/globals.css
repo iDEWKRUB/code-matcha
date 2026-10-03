@@ -2019,3 +2019,9 @@ small .bf-code { margin-right: 6px; }
 .nbs-price { font-weight: 800; color: #000; }
 .nbs-lb .nbs-meta { font-size: 6pt; }
 .nbs .nbs-meta { font-size: 8pt; }
+/* POS มาม่าบาร์: ค้นหา/หมวด/คีย์รหัส */
+.ps-bar .bf { margin: 0; }
+.ps-bar .bf-search input { min-height: 48px; font-size: 17px; }
+.ps-bar-hint { margin: -4px 0 0; font-size: 14px; font-weight: 600; color: var(--deep); }
+.ps-bar-img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.ps-bar-item small .bf-code { margin-right: 8px; }
