@@ -32,7 +32,8 @@ export function buildItems(
       line = {
         itemId: item.id,
         temp: raw.temp as CartLine["temp"],
-        sweet: Number(raw.sweet),
+        // เมนูที่ไม่มีความหวานให้เลือก = ไม่หวานเสมอ
+        sweet: item.sweetChoice === false ? 0 : Number(raw.sweet),
         milk: item.milk ? String(raw.milk) : null,
         powder: hasPowder(item) && powders.length ? String(raw.powder ?? powders[0].id) : null,
         extraShot: raw.extraShot === true,

@@ -31,6 +31,7 @@ export type MenuItem = {
   sort: number;
   grams: number | null; // กรัมผงมัทฉะที่ใช้ (null = ไม่ให้เลือกผง)
   addons: boolean; // มีท็อปปิ้งให้เลือก (ช็อตมัทฉะ / ซอฟต์ครีม)
+  sweetChoice?: boolean; // มีความหวานให้เลือก (false = ทำไม่หวานเสมอ เช่น เพียวมัทฉะ)
   hidden: boolean; // ซ่อนจากหน้าลูกค้า (ยังอยู่ในหลังร้าน)
 };
 
@@ -195,7 +196,7 @@ export function lineDetail(item: MenuItem, l: CartLine, powders: Powder[]) {
   return [
     TEMP_LABEL[l.temp],
     l.temp === "iced" && l.iceSep && "แยกน้ำแข็ง",
-    l.sweet === 0 ? "ไม่หวาน" : `หวาน ${l.sweet}%`,
+    item.sweetChoice !== false && (l.sweet === 0 ? "ไม่หวาน" : `หวาน ${l.sweet}%`),
     l.milk && MILKS.find((m) => m.id === l.milk)?.label,
     l.powder && hasPowder(item) && powders.find((p) => p.id === l.powder)?.name,
     item.addons && l.extraShot && "+ช็อตมัทฉะ",

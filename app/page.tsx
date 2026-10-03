@@ -313,7 +313,7 @@ export default function OrderPage() {
     const food = it.kind === "food";
     setOpts({
       temp: it.temps[0],
-      sweet: food ? 0 : 50,
+      sweet: food || it.sweetChoice === false ? 0 : 50,
       milk: !food && it.milk ? "fresh" : null,
       powder: !food && hasPowder(it) && powders.length ? powders[0].id : null,
       extraShot: false,
@@ -765,6 +765,8 @@ export default function OrderPage() {
               </>
             )}
 
+            {edit.sweetChoice !== false && (
+            <>
             <div className="lg">
               ความหวาน<span>{opts.sweet === 0 ? "ไม่หวาน" : `${opts.sweet}%`}</span>
             </div>
@@ -779,6 +781,8 @@ export default function OrderPage() {
                 </button>
               ))}
             </div>
+            </>
+            )}
 
             {edit.milk && (
               <>

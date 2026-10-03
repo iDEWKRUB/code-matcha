@@ -49,6 +49,11 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
     else return { error: "กรัมผงมัทฉะไม่ถูกต้อง (0.1–50)" };
   }
 
+  if ("sweetChoice" in b) {
+    if (typeof b.sweetChoice !== "boolean") return { error: "ข้อมูลไม่ถูกต้อง" };
+    row.sweet_choice = b.sweetChoice;
+  }
+
   for (const k of ["milk", "available", "recommended", "addons", "hidden"] as const)
     if (k in b) {
       if (typeof b[k] !== "boolean") return { error: "ข้อมูลไม่ถูกต้อง" };

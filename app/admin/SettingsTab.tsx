@@ -32,6 +32,7 @@ type Draft = {
   milk: boolean;
   grams: string; // กรัมผงมัทฉะ (ว่าง = ไม่ให้เลือกผง)
   addons: boolean; // มีท็อปปิ้งให้เลือก
+  sweetChoice: boolean; // มีความหวานให้เลือก
   recommended: boolean;
   look: string;
   toppings: DraftTopping[];
@@ -49,6 +50,7 @@ const EMPTY: Draft = {
   milk: true,
   grams: "",
   addons: true,
+  sweetChoice: true,
   recommended: false,
   look: "matcha-latte",
   toppings: [],
@@ -66,6 +68,7 @@ const toDraft = (m: MenuItem): Draft => ({
   milk: m.milk,
   grams: m.grams ? String(m.grams) : "",
   addons: m.addons !== false,
+  sweetChoice: m.sweetChoice !== false,
   recommended: m.recommended,
   look: m.look ?? "",
   toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price), group: t.group ?? "" })),
@@ -84,6 +87,7 @@ const draftItem = (d: Draft): MenuItem => ({
   milk: d.milk,
   grams: d.kind === "food" ? null : Number(d.grams) || null,
   addons: d.kind !== "food" && d.addons,
+  sweetChoice: d.kind !== "food" && d.sweetChoice,
   hidden: false,
   available: true,
   promoPrice: null,
@@ -196,6 +200,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       milk: food ? false : draft.milk,
       matchaGrams: food ? null : draft.grams === "" ? null : Number(draft.grams),
       addons: food ? false : draft.addons,
+      sweetChoice: food ? true : draft.sweetChoice,
       recommended: draft.recommended,
       look: draft.look === "" ? null : draft.look,
       toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0), group: t.group ?? "" })) : [],
@@ -536,6 +541,10 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                   <label className="check">
                     <input type="checkbox" checked={draft.addons} onChange={(e) => set("addons", e.target.checked)} />
                     มีท็อปปิ้งให้เลือก (เพิ่มช็อตมัทฉะ / ซอฟต์ครีม)
+                  </label>
+                  <label className="check">
+                    <input type="checkbox" checked={draft.sweetChoice} onChange={(e) => set("sweetChoice", e.target.checked)} />
+                    ลูกค้าเลือกความหวานได้ (ปิด = ทำแบบไม่หวานเสมอ เช่น เพียวมัทฉะ)
                   </label>
                   <label className="grams-field">
                     ผงมัทฉะที่ใช้ต่อแก้ว (กรัม)

@@ -101,7 +101,7 @@ export default function Pos() {
       line: {
         itemId: item.id,
         temp: item.temps[0] ?? "iced",
-        sweet: food ? 0 : 50,
+        sweet: food || item.sweetChoice === false ? 0 : 50,
         milk: !food && item.milk ? "fresh" : null,
         powder: !food && hasPowder(item) && powders.length ? powders[0].id : null,
         extraShot: false,
@@ -720,13 +720,15 @@ function OptionSheet({
                 ))}
               </Group>
             )}
-            <Group label="ความหวาน">
-              {SWEET.map((s) => (
-                <button key={s} aria-pressed={line.sweet === s} onClick={() => set({ sweet: s })}>
-                  {s === 0 ? "ไม่หวาน" : `${s}%`}
-                </button>
-              ))}
-            </Group>
+            {item.sweetChoice !== false && (
+              <Group label="ความหวาน">
+                {SWEET.map((s) => (
+                  <button key={s} aria-pressed={line.sweet === s} onClick={() => set({ sweet: s })}>
+                    {s === 0 ? "ไม่หวาน" : `${s}%`}
+                  </button>
+                ))}
+              </Group>
+            )}
             {item.milk && (
               <Group label="นม">
                 {MILKS.map((m) => (
