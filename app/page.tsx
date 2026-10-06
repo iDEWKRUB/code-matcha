@@ -4,6 +4,8 @@ import type { Liff } from "@line/liff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   MAX_QTY,
+  MENU_GROUPS,
+  menuGroup,
   MILKS,
   powderExtra,
   SHOT_PRICE,
@@ -596,14 +598,14 @@ export default function OrderPage() {
         </p>
       )}
 
-      {(["drink", "food"] as const).map((kind) => {
-        const list = menu.filter((m) => (m.kind ?? "drink") === kind);
+      {MENU_GROUPS.map(({ id: kind, label }) => {
+        const list = menu.filter((m) => menuGroup(m) === kind);
         if (!list.length) return null;
         return (
           <section key={kind} className="menu-section">
             <h2 className="section-title">
-              <Icon name={kind === "drink" ? "cup" : "bowl"} size={20} />
-              {kind === "drink" ? "เครื่องดื่ม" : "อาหาร"}
+              <Icon name={kind === "food" ? "bowl" : "cup"} size={20} />
+              {label}
             </h2>
       <ul className="grid">
         {list.map((m) => {

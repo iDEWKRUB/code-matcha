@@ -20,6 +20,8 @@ import {
   type CartLine,
   type MenuItem,
   type Powder,
+  menuGroup,
+  type MenuGroup,
 } from "@/lib/menu";
 import type { PosBill } from "@/lib/pos";
 import BarArt from "../../bar/BarArt";
@@ -29,7 +31,7 @@ import Seal from "../../Seal";
 
 type Data = { menu: MenuItem[]; powders: Powder[]; barItems: BarItem[]; bills: PosBill[]; recent: PosBill[] };
 type Mode = "menu" | "bar";
-type Cat = "all" | "drink" | "food";
+type Cat = "all" | MenuGroup;
 type Pay = { billId: number; subtotal: number; method: "qr" | "cash"; cash: string; code: string; discount: number; promoErr: string; qr: string; big: boolean };
 
 const baht = (n: number) => `฿${n.toLocaleString()}`;
@@ -266,7 +268,7 @@ export default function Pos() {
   if (!data) return <main className="ps ps-loading">กำลังโหลด…</main>;
 
   const words = q.trim().toLowerCase();
-  const menu = data.menu.filter((m) => (cat === "all" || m.kind === cat) && (!words || `${m.name} ${m.jp}`.toLowerCase().includes(words)));
+  const menu = data.menu.filter((m) => (cat === "all" || menuGroup(m) === cat) && (!words || `${m.name} ${m.jp}`.toLowerCase().includes(words)));
 
   return (
     <main className="ps">
@@ -297,6 +299,7 @@ export default function Pos() {
                 [
                   ["all", "ทั้งหมด"],
                   ["drink", "เครื่องดื่ม"],
+                  ["soda", "เครื่องดื่มโซดา"],
                   ["food", "อาหาร & ขนม"],
                 ] as [Cat, string][]
               ).map(([id, t]) => (

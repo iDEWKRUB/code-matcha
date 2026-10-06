@@ -71,6 +71,16 @@ export const FOOD_LOOKS = [
 export const LOOK_IDS = [...LOOKS, ...FOOD_LOOKS].map((l) => l.id);
 export const lookOf = (item: Pick<MenuItem, "id" | "look">) => item.look ?? item.id;
 
+// หมวดในหน้าสั่ง: เมนูที่ใช้แก้วโซดาผลไม้ (look ลงท้าย -soda) อยู่หมวด "เครื่องดื่มโซดา" ให้อัตโนมัติ
+export type MenuGroup = "drink" | "soda" | "food";
+export const MENU_GROUPS: { id: MenuGroup; label: string }[] = [
+  { id: "drink", label: "เครื่องดื่ม" },
+  { id: "soda", label: "เครื่องดื่มโซดา" },
+  { id: "food", label: "อาหาร" },
+];
+export const menuGroup = (item: Pick<MenuItem, "id" | "look" | "kind">): MenuGroup =>
+  item.kind === "food" ? "food" : lookOf(item).endsWith("-soda") ? "soda" : "drink";
+
 export const basePrice = (item: MenuItem) => item.promoPrice ?? item.price;
 
 export type CartLine = {
