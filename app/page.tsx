@@ -116,6 +116,9 @@ export default function OrderPage() {
   const [service, setService] = useState<Service | null>(null);
   const [tableNo, setTableNo] = useState("");
   const [note, setNote] = useState("");
+  // การ์ดเมนูที่พลิกไปดูรูปจริงอยู่
+  const [flipped, setFlipped] = useState<Set<string>>(new Set());
+  const flip = (id: string) => setFlipped((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // ข้อความบนแก้ว: ร้านติดสติ๊กเกอร์ QR เฉพาะออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความขึ้น
   const [cup, setCup] = useState({ msg: "", to: "", from: "", forCup: "" });
   const [sending, setSending] = useState(false);
@@ -611,10 +614,22 @@ export default function OrderPage() {
         {list.map((m) => {
           const n = cart.filter((l) => l.itemId === m.id).reduce((a, l) => a + l.qty, 0);
           return (
-            <li key={m.id}>
+            <li key={m.id} className={m.photoUrl && m.kind !== "food" ? "has-photo" : undefined}>
               <button className="card" style={tint(artTint(m))} onClick={() => open(m)} disabled={!m.available}>
-                <div className="card-art">
-                  <MenuArt item={m} size={104} />
+                <div className={`card-art${flipped.has(m.id) ? " flipped" : ""}`}>
+                  {m.photoUrl && m.kind !== "food" ? (
+                    <span className="art-flip">
+                      <span className="art-face">
+                        <MenuArt item={m} size={104} />
+                      </span>
+                      <span className="art-face art-back">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={m.photoUrl} alt={`รูปจริง ${m.name}`} loading="lazy" />
+                      </span>
+                    </span>
+                  ) : (
+                    <MenuArt item={m} size={104} />
+                  )}
                   {n > 0 && <span className="badge">{n}</span>}
                   {!m.available && <span className="soldout">หมดวันนี้</span>}
                   <div className="flags">
@@ -636,6 +651,23 @@ export default function OrderPage() {
                   {m.available && !closed && <span className="plus" aria-hidden="true">+</span>}
                 </div>
               </button>
+              {m.photoUrl && m.kind !== "food" && (
+                <button
+                  type="button"
+                  className="flip-btn"
+                  aria-pressed={flipped.has(m.id)}
+                  aria-label={flipped.has(m.id) ? `ดูการ์ตูน ${m.name}` : `ดูรูปจริง ${m.name}`}
+                  onClick={() => flip(m.id)}
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                  {flipped.has(m.id) ? "การ์ตูน" : "รูปจริง"}
+                </button>
+              )}
             </li>
           );
         })}

@@ -28,6 +28,7 @@ export type MenuItem = {
   promoPrice: number | null; // ราคาโปร (null = ไม่มีโปร)
   recommended: boolean;
   look: string | null; // หน้าตาแก้วการ์ตูน (id ของสูตรใน Cup) null = ใช้ id เมนู
+  photoUrl?: string | null; // รูปเครื่องดื่มจริง (การ์ดพลิกจากการ์ตูนเป็นรูปนี้) null = ไม่มีปุ่มพลิก
   sort: number;
   grams: number | null; // กรัมผงมัทฉะที่ใช้ (null = ไม่ให้เลือกผง)
   addons: boolean; // มีท็อปปิ้งให้เลือก (ช็อตมัทฉะ / ซอฟต์ครีม)

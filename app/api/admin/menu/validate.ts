@@ -60,6 +60,12 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
       row[k] = b[k];
     }
 
+  if ("photoUrl" in b) {
+    const u = b.photoUrl;
+    if (u !== null && (typeof u !== "string" || !/^https:\/\/\S+$/.test(u) || u.length > 500)) return { error: "ลิงก์รูปไม่ถูกต้อง" };
+    row.photo_url = u;
+  }
+
   if ("look" in b) {
     if (b.look !== null && !LOOK_IDS.includes(String(b.look))) return { error: "หน้าตาแก้วไม่ถูกต้อง" };
     row.look = b.look;

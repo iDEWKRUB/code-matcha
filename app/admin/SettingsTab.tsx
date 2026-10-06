@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { POINTS, SHOP } from "@/lib/config";
 import { FOOD_LOOKS, LOOKS, type Kind, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
 import Icon, { type IconName } from "../Icon";
+import { uploadImage } from "./upload";
 import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
 import MemberPanel from "./MemberPanel";
@@ -35,6 +36,7 @@ type Draft = {
   sweetChoice: boolean; // มีความหวานให้เลือก
   recommended: boolean;
   look: string;
+  photoUrl: string | null; // รูปเครื่องดื่มจริง
   toppings: DraftTopping[];
 };
 
@@ -53,6 +55,7 @@ const EMPTY: Draft = {
   sweetChoice: true,
   recommended: false,
   look: "matcha-latte",
+  photoUrl: null,
   toppings: [],
 };
 
@@ -71,6 +74,7 @@ const toDraft = (m: MenuItem): Draft => ({
   sweetChoice: m.sweetChoice !== false,
   recommended: m.recommended,
   look: m.look ?? "",
+  photoUrl: m.photoUrl ?? null,
   toppings: (m.toppings ?? []).map((t) => ({ id: t.id, label: t.label, price: String(t.price), group: t.group ?? "" })),
 });
 
@@ -149,6 +153,8 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
   const [draft, setDraft] = useState<Draft | null>(null);
   const [formErr, setFormErr] = useState("");
   const [saving, setSaving] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoErr, setPhotoErr] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -203,6 +209,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       sweetChoice: food ? true : draft.sweetChoice,
       recommended: draft.recommended,
       look: draft.look === "" ? null : draft.look,
+      photoUrl: food ? null : draft.photoUrl,
       toppings: food ? draft.toppings.map((t) => ({ id: t.id, label: t.label, price: Number(t.price || 0), group: t.group ?? "" })) : [],
     };
     if (body.promoPrice !== null && body.promoPrice >= body.price) {
@@ -603,6 +610,52 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
                 <input type="checkbox" checked={draft.recommended} onChange={(e) => set("recommended", e.target.checked)} />
                 เมนูแนะนำ
               </label>
+              {draft.kind === "drink" && (
+                <div className="mp-field">
+                  <span className="mp-label">รูปเครื่องดื่มจริง (ไม่บังคับ)</span>
+                  <div className="mp-row">
+                    <span className="mp-thumb">
+                      {draft.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={draft.photoUrl} alt="รูปเครื่องดื่มจริง" />
+                      ) : (
+                        <MenuArt item={draftItem(draft)} size={44} />
+                      )}
+                    </span>
+                    <div className="mp-acts">
+                      <label className="btn ghost-sm">
+                        {photoBusy ? "กำลังอัปโหลด…" : draft.photoUrl ? "เปลี่ยนรูป" : "ใส่รูปจริง"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          disabled={photoBusy}
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!f) return;
+                            setPhotoBusy(true);
+                            setPhotoErr("");
+                            try {
+                              set("photoUrl", await uploadImage(f, 900));
+                            } catch (err) {
+                              setPhotoErr(err instanceof Error ? err.message : "อัปโหลดไม่สำเร็จ");
+                            } finally {
+                              setPhotoBusy(false);
+                            }
+                          }}
+                        />
+                      </label>
+                      {draft.photoUrl && (
+                        <button type="button" className="btn ghost-sm" onClick={() => set("photoUrl", null)}>
+                          ลบรูป
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <small className="mp-hint">{photoErr || "มีรูป = ลูกค้ากดปุ่มพลิกบนการ์ดเพื่อดูรูปจริงได้ · ไม่มีรูป = แสดงการ์ตูนอย่างเดียว"}</small>
+                </div>
+              )}
               <label>
                 ภาพการ์ตูน
                 <select className="text" value={draft.look} onChange={(e) => set("look", e.target.value)}>
