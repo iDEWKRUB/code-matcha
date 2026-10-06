@@ -19,7 +19,29 @@ type Recipe = {
   bottom?: { color: string; label: string }; // ชั้นล่างสุด เช่น ซอสสตรอว์เบอร์รี่
   foamCap?: boolean; // ฟองมัทฉะตีเย็นด้านบน
   premixed?: string; // เทแบบคนมาแล้วทั้งแก้ว (ไม่เห็นสีนม) + ชื่อที่ใช้ในคำบรรยาย
+  soda?: string; // สีโซดา (แทนสีโซดายูซุเดิม)
+  baseLabel?: string; // ชื่อฐานในคำบรรยายตอนชง
+  noTop?: boolean; // ไม่มีชั้นบน (โซดาผลไม้: ไซรัปอยู่ล่าง โซดาใสด้านบน)
+  garnish?: Garnish; // ผลไม้แต่งขอบแก้ว
+  seeds?: boolean; // เมล็ดในชั้นไซรัป (เสาวรส)
 };
+type Garnish = "yuzu" | "strawberry" | "lychee" | "mango" | "passion" | "kiwi";
+
+// โซดาผลไม้: ไซรัปผลไม้ชั้นล่าง + โซดาใส + ฟองซ่า + ผลไม้บนขอบแก้ว
+const fruitSoda = (syrup: string, label: string, soda: string, tint: string, garnish: Garnish, extra: Partial<Recipe> = {}): Recipe => ({
+  base: "soda",
+  soda,
+  baseLabel: "โซดา",
+  top: syrup,
+  topLabel: `${label === "ไซรัปยูซุ" ? "ยูซุ" : label.replace("ไซรัป", "")}แต่งแก้ว`,
+  mixed: syrup,
+  layered: true,
+  noTop: true,
+  tint,
+  bottom: { color: syrup, label },
+  garnish,
+  ...extra,
+});
 
 const RECIPES: Record<string, Recipe> = {
   usucha: { base: "water", top: "#6f9a35", topLabel: "มัทฉะ", mixed: "#7fa640", layered: false, tint: "#e3eecd" },
@@ -47,6 +69,13 @@ const RECIPES: Record<string, Recipe> = {
     tint: "#fbe2e6",
     bottom: { color: "#e0566b", label: "ซอสสตรอว์เบอร์รี่" },
   },
+  "yuzu-soda": fruitSoda("#f2c531", "ไซรัปยูซุ", "#fbf5d4", "#fbf0c4", "yuzu"),
+  "strawberry-soda": fruitSoda("#e0566b", "ไซรัปสตรอว์เบอร์รี่", "#fde6ea", "#fbe2e6", "strawberry"),
+  "lychee-soda": fruitSoda("#f2a7b6", "ไซรัปลิ้นจี่", "#fdf0f2", "#fceef1", "lychee"),
+  "mango-soda": fruitSoda("#f6a524", "ไซรัปมะม่วง", "#fef0d2", "#fdebc8", "mango"),
+  "passion-soda": fruitSoda("#eaa11e", "ไซรัปเสาวรส", "#fdf1d0", "#f3e6ef", "passion", { seeds: true }),
+  "kiwi-soda": fruitSoda("#8cc63f", "ไซรัปกีวี", "#eef7dc", "#e6f2d2", "kiwi", { seeds: true }),
+  cocoa: { base: "milk", top: "#6b4027", topLabel: "โกโก้", mixed: "#9a6a4a", layered: true, tint: "#f0e2d6" },
 };
 const FALLBACK = RECIPES["matcha-latte"];
 
@@ -78,6 +107,81 @@ function Pour({ color, delay, bottom }: { color: string; delay: number; bottom: 
   );
 }
 
+// ผลไม้บนขอบแก้วด้านซ้าย (จุดกลางราว x 58, y 62)
+function GarnishArt({ kind }: { kind: Garnish }) {
+  const ring = Array.from({ length: 8 }, (_, i) => (i / 8) * Math.PI * 2);
+  switch (kind) {
+    case "yuzu":
+      return (
+        <g>
+          <circle cx="56" cy="60" r="21" fill="#f2c531" stroke={INK} strokeWidth="3.5" />
+          <circle cx="56" cy="60" r="15" fill="#fbe58c" />
+          {ring.map((a, i) => (
+            <path key={i} d={`M56 60 L${56 + Math.cos(a) * 14} ${60 + Math.sin(a) * 14}`} stroke="#f2c531" strokeWidth="2.5" />
+          ))}
+          <circle cx="56" cy="60" r="2.5" fill="#f2c531" />
+        </g>
+      );
+    case "kiwi":
+      return (
+        <g>
+          <circle cx="56" cy="60" r="21" fill="#7a5a33" stroke={INK} strokeWidth="3.5" />
+          <circle cx="56" cy="60" r="17" fill="#8cc63f" />
+          <circle cx="56" cy="60" r="11" fill="#c4e07a" />
+          <ellipse cx="56" cy="60" rx="5" ry="4" fill="#f6f3d8" />
+          {ring.map((a, i) => (
+            <ellipse key={i} cx={56 + Math.cos(a) * 8} cy={60 + Math.sin(a) * 8} rx="1.6" ry="2.4" transform={`rotate(${(a * 180) / Math.PI + 90} ${56 + Math.cos(a) * 8} ${60 + Math.sin(a) * 8})`} fill={INK} />
+          ))}
+        </g>
+      );
+    case "strawberry":
+      return (
+        <g>
+          <path d="M40 50 Q56 40 72 50 Q74 70 56 84 Q38 70 40 50 Z" fill="#e0566b" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+          <path d="M44 48 L50 40 L56 47 L62 40 L68 48 Q56 54 44 48 Z" fill="#6fae3b" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+          {[[50, 60], [62, 60], [56, 68], [48, 70], [64, 70], [56, 77]].map(([x, y], i) => (
+            <ellipse key={i} cx={x} cy={y} rx="1.4" ry="2" fill="#fde7a8" />
+          ))}
+        </g>
+      );
+    case "lychee":
+      return (
+        <g>
+          <circle cx="50" cy="62" r="17" fill="#d9475f" stroke={INK} strokeWidth="3.5" />
+          {[[44, 56], [54, 54], [46, 66], [56, 66], [51, 74], [40, 62]].map(([x, y], i) => (
+            <path key={i} d={`M${x - 3} ${y} l3 -3 l3 3`} fill="none" stroke="#a52d43" strokeWidth="2" strokeLinecap="round" />
+          ))}
+          <circle cx="68" cy="68" r="12" fill="#fbf7ee" stroke={INK} strokeWidth="3" />
+          <ellipse cx="65" cy="65" rx="4" ry="3" fill="#fff" />
+          <path d="M44 46 q2 -6 8 -6" fill="none" stroke="#6fae3b" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    case "mango":
+      return (
+        <g strokeLinejoin="round">
+          <path d="M38 56 L54 50 L66 58 L50 64 Z" fill="#ffd27a" stroke={INK} strokeWidth="3" />
+          <path d="M38 56 L50 64 L50 80 L38 72 Z" fill="#f6a524" stroke={INK} strokeWidth="3" />
+          <path d="M50 64 L66 58 L66 74 L50 80 Z" fill="#e38c12" stroke={INK} strokeWidth="3" />
+          <path d="M60 46 L70 42 L78 48 L68 52 Z" fill="#ffd27a" stroke={INK} strokeWidth="2.5" />
+          <path d="M60 46 L68 52 L68 62 L60 56 Z" fill="#f6a524" stroke={INK} strokeWidth="2.5" />
+          <path d="M68 52 L78 48 L78 58 L68 62 Z" fill="#e38c12" stroke={INK} strokeWidth="2.5" />
+        </g>
+      );
+    case "passion":
+      return (
+        <g>
+          <circle cx="56" cy="60" r="21" fill="#6d3a6b" stroke={INK} strokeWidth="3.5" />
+          <circle cx="56" cy="60" r="15" fill="#f2c94c" />
+          {Array.from({ length: 11 }, (_, i) => {
+            const a = (i / 11) * Math.PI * 2;
+            const d = i % 2 ? 9 : 5;
+            return <ellipse key={i} cx={56 + Math.cos(a) * d} cy={60 + Math.sin(a) * d} rx="2.2" ry="1.8" fill={INK} />;
+          })}
+        </g>
+      );
+  }
+}
+
 type Props = {
   itemId: string;
   temp: Temp;
@@ -103,7 +207,7 @@ export default function Cup(props: Props) {
   const depth = (powder === "rich" ? 0.88 : 1) * (extraShot ? 0.8 : 1);
   const top = shade(r.top, depth);
   const mixed = shade(r.mixed, 0.4 + depth * 0.6);
-  const base = r.premixed ? mixed : r.base === "milk" ? MILK_COLOR[milk ?? "fresh"] ?? MILK_COLOR.fresh : BASE_COLOR[r.base];
+  const base = r.premixed ? mixed : r.base === "milk" ? MILK_COLOR[milk ?? "fresh"] ?? MILK_COLOR.fresh : r.soda ?? BASE_COLOR[r.base];
   const layered = r.layered && !hot;
   const latteArt = hot && r.base === "milk";
   const wave = `M0 ${g.layer} ${"q12.5 9 25 0 ".repeat(8)}V${g.top} H0 Z`;
@@ -113,7 +217,7 @@ export default function Cup(props: Props) {
 
   const baseLabel = r.premixed
     ? r.premixed
-    : r.base === "milk" ? MILKS.find((m) => m.id === milk)?.label ?? "นม" : r.base === "water" ? (hot ? "น้ำอุ่น" : "น้ำ") : BASE_LABEL[r.base];
+    : r.baseLabel ?? (r.base === "milk" ? MILKS.find((m) => m.id === milk)?.label ?? "นม" : r.base === "water" ? (hot ? "น้ำอุ่น" : "น้ำ") : BASE_LABEL[r.base]);
   const steps: [string, number][] = [
     [r.bottom ? `ใส่${r.bottom.label}และ${baseLabel}…` : `เท${baseLabel}…`, 0.05],
     [`ใส่${r.topLabel}…`, 1.1],
@@ -151,7 +255,14 @@ export default function Cup(props: Props) {
                 <path d={bottomWave} fill={r.bottom.color} />
               </g>
             )}
-            {layered ? (
+            {r.seeds && layered && (
+              <g className="rise" style={{ animationDelay: ".3s" }} fill={INK} opacity=".75">
+                {[64, 82, 100, 118, 136, 74, 92, 110, 128].map((x, i) => (
+                  <ellipse key={i} cx={x} cy={bottomY + 22 + (i % 3) * 8} rx="2.4" ry="1.6" />
+                ))}
+              </g>
+            )}
+            {layered && r.noTop ? null : layered ? (
               <g className="settle" style={{ animationDelay: "1.45s" }}>
                 <path d={wave} fill={top} />
                 {r.foamCap && <rect x="0" y={g.top} width="200" height="16" fill={shade(r.top, depth * 1.35)} />}
@@ -194,6 +305,11 @@ export default function Cup(props: Props) {
             </>
           )}
           <path d={hot ? "M60 112 L64 200" : "M58 78 L66 204"} stroke="#fff" strokeWidth="6" strokeLinecap="round" opacity=".75" />
+          {r.garnish && !hot && (
+            <g className="pop" style={{ animationDelay: "2.3s" }}>
+              <GarnishArt kind={r.garnish} />
+            </g>
+          )}
           {cream && (
             <g className="pop">
               <ellipse cx="100" cy="60" rx="48" ry="13" fill="#fffaf0" stroke={INK} strokeWidth="3" />

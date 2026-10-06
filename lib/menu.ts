@@ -56,6 +56,13 @@ export const LOOKS = [
   { id: "strawberry-matcha", label: "สตรอว์เบอร์รี่ 3 ชั้น" },
   { id: "coconut-matcha", label: "น้ำมะพร้าว + มัทฉะ" },
   { id: "yuzu-sparkling", label: "โซดายูซุ + มัทฉะ" },
+  { id: "yuzu-soda", label: "ยูซุโซดา (ไม่มีมัทฉะ)" },
+  { id: "strawberry-soda", label: "สตรอว์เบอร์รี่โซดา" },
+  { id: "lychee-soda", label: "ลิ้นจี่โซดา" },
+  { id: "mango-soda", label: "มะม่วงโซดา" },
+  { id: "passion-soda", label: "เสาวรสโซดา" },
+  { id: "kiwi-soda", label: "กีวีโซดา" },
+  { id: "cocoa", label: "โกโก้ (ชั้นนม + โกโก้)" },
 ];
 export const FOOD_LOOKS = [
   { id: "omelette-rice", label: "ข้าวไข่เจียวบนจาน" },
