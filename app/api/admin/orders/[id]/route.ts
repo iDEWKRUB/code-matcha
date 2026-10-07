@@ -76,7 +76,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ["วิธีรับ", rowWhen(current)],
       ],
       items: itemLines(current.items),
-      note: "ขอบคุณที่อุดหนุน CODE-MATCHA · ได้แก้วแล้ว ช่วยให้คะแนนหน่อยนะ (ไม่ระบุชื่อ)",
+      note: "ขอบคุณที่อุดหนุน CODE-MATCHA · ทุกคะแนนรีวิว เราจะนำไปปรับปรุงให้ดีขึ้นเพื่อลูกค้า (ไม่ระบุชื่อ)",
       // รีวิวผ่านการ์ดเดิม ไม่ต้องส่งข้อความเพิ่ม (ไม่กินโควตา LINE)
       button: { label: "ให้คะแนนแก้วนี้", uri: `${orderUri()}/review?o=${current.id}` },
     });
