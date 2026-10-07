@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SERVICE_LABEL, type Service } from "@/lib/menu";
+import ReviewsPanel from "./ReviewsPanel";
 
 type Period = "day" | "week" | "month";
 type Point = {
@@ -554,6 +555,7 @@ export default function ReportTab() {
           </div>
 
           <Visitors data={data} meta={meta} />
+          <ReviewsPanel />
         </>
       )}
     </div>

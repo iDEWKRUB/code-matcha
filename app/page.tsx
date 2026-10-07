@@ -39,6 +39,7 @@ import Loader from "./Loader";
 import { setVisitor, track } from "./track";
 import PowderThumb, { powderTone } from "./PowderThumb";
 import Seal from "./Seal";
+import ReviewStrip from "./review/ReviewStrip";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
@@ -675,6 +676,7 @@ export default function OrderPage() {
           </section>
         );
       })}
+      <ReviewStrip />
       <p className="hint">ชำระผ่านพร้อมเพย์ก่อน ออเดอร์จึงเข้าคิว</p>
 
       {cups > 0 && !checkout && !edit && (
