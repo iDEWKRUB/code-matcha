@@ -2115,3 +2115,25 @@ small .bf-code { margin-right: 6px; }
 .rvp-none { color: var(--stone); font-style: italic; }
 .rvp-acts { display: flex; justify-content: flex-end; }
 .rvp-tag { font-size: 12px; color: var(--stone); }
+/* รีวิว: คะแนนรวมบนหัวหน้าเว็บ · สรุปดาว · คำตอบจากร้าน */
+.rv-badge { display: inline-flex; align-items: center; gap: 4px; margin: 6px 6px 0 0; padding: 3px 10px 3px 8px; border-radius: 999px; background: rgba(255,255,255,.18); color: #fff; font-size: 13px; text-decoration: none; vertical-align: middle; }
+.rv-badge b { font-size: 14px; }
+.rv-badge span { opacity: .9; }
+.rv-sum { display: flex; gap: 18px; align-items: center; padding: 0 16px 12px; }
+.rv-big { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 88px; }
+.rv-big b { font-size: 36px; line-height: 1; }
+.rv-big small { font-size: 12px; color: var(--stone); }
+.rv-dist { list-style: none; margin: 0; padding: 0; flex: 1; display: grid; gap: 3px; }
+.rv-dist li { display: grid; grid-template-columns: 12px 1fr 24px; align-items: center; gap: 8px; font-size: 12px; color: var(--stone); }
+.rv-dist i { display: block; height: 7px; border-radius: 4px; background: #E9E5D6; overflow: hidden; }
+.rv-dist em { display: block; height: 100%; background: #E9A93A; border-radius: 4px; }
+.rv-dist small { text-align: right; font-variant-numeric: tabular-nums; }
+.rv-reply { margin-top: 4px; padding: 8px 10px; border-radius: 10px; background: #F1F4E6; border-left: 3px solid var(--matcha); }
+.rv-reply b { display: block; font-size: 12px; color: var(--matcha); margin-bottom: 2px; }
+.rv-cards .rv-reply p, .rv-reply p { margin: 0; font-size: 13px; line-height: 1.5; white-space: pre-line; -webkit-line-clamp: unset; display: block; }
+.rv-strip .section-title { margin-bottom: 8px; }
+.rvp-replybox { display: grid; gap: 6px; }
+.rvp-replybox label { font-size: 13px; font-weight: 600; color: var(--stone); }
+.rvp-replybox textarea { font: inherit; font-size: 15px; padding: 10px; border-radius: 10px; border: 1px solid var(--edge); resize: vertical; }
+.rvp-acts { gap: 8px; align-items: center; flex-wrap: wrap; }
+.rvp-acts small { margin-right: auto; font-size: 12px; color: var(--stone); }
