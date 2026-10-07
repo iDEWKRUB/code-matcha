@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Loader from "../Loader";
 import Seal from "../Seal";
 
-type State = { kind: "loading" } | { kind: "ok"; earned: number; points: number } | { kind: "error"; text: string };
+type State = { kind: "loading" } | { kind: "ok"; earned: number; points: number; review: string | null } | { kind: "error"; text: string };
 
 // ลูกค้าหน้าร้านสแกน QR บนใบเสร็จ (เปิดผ่าน LIFF) → รับแต้มของบิลนั้นเข้าบัตรสมาชิก
 export default function ClaimPage() {
@@ -32,7 +32,7 @@ export default function ClaimPage() {
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error ?? "รับแต้มไม่สำเร็จ");
-        setS({ kind: "ok", earned: j.earned, points: j.points });
+        setS({ kind: "ok", earned: j.earned, points: j.points, review: j.reviewToken ?? null });
       } catch (e) {
         setS({ kind: "error", text: e instanceof Error ? e.message : "รับแต้มไม่สำเร็จ" });
       }
@@ -59,7 +59,12 @@ export default function ClaimPage() {
         </>
       )}
       <div className="claim-acts">
-        <a className="claim-btn" href="/member">
+        {s.kind === "ok" && s.review && (
+          <a className="claim-btn" href={`/review?b=${s.review}`}>
+            ให้คะแนนบิลนี้ (ไม่ระบุชื่อ)
+          </a>
+        )}
+        <a className={`claim-btn${s.kind === "ok" && s.review ? " ghost" : ""}`} href="/member">
           ดูบัตรสมาชิก
         </a>
         <a className="claim-btn ghost" href="/">

@@ -241,8 +241,20 @@ export async function payBill(
   return { bill: (await getBill(billId))! };
 }
 
+// รหัสรีวิวของบิล (สร้างครั้งแรกที่ต้องใช้: พิมพ์ใบเสร็จ / รับแต้ม) · QR รีวิวบนใบเสร็จใช้รหัสนี้
+export async function ensureReviewToken(billId: number): Promise<string | null> {
+  const { data, error } = await db().from("pos_bills").select("review_token").eq("id", billId).maybeSingle();
+  if (error || !data) return null;
+  if (data.review_token) return data.review_token;
+  const token = crypto.randomBytes(9).toString("base64url");
+  const { data: set } = await db().from("pos_bills").update({ review_token: token }).eq("id", billId).is("review_token", null).select("review_token");
+  if (set?.length) return token;
+  const { data: again } = await db().from("pos_bills").select("review_token").eq("id", billId).maybeSingle();
+  return again?.review_token ?? null;
+}
+
 // ลูกค้าสแกน QR บนใบเสร็จ → แต้มของบิลนี้เข้าบัตรสมาชิก (ครั้งเดียว ภายใน CLAIM_DAYS วัน)
-export async function claimBill(token: string, userId: string, name: string): Promise<{ earned: number } | { error: string }> {
+export async function claimBill(token: string, userId: string, name: string): Promise<{ earned: number; billId: number } | { error: string }> {
   const { data, error } = await db().from("pos_bills").select("id,status,paid_at,claimed_at,total").eq("claim_token", token).maybeSingle();
   if (error) throw error;
   if (!data || data.status !== "paid") return { error: "ไม่พบใบเสร็จนี้" };
@@ -266,5 +278,5 @@ export async function claimBill(token: string, userId: string, name: string): Pr
   if (e2) throw e2;
   let earned = 0;
   for (const o of orders ?? []) earned += await earnPoints(o);
-  return { earned };
+  return { earned, billId: data.id };
 }

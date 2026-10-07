@@ -6,7 +6,7 @@ export const REVIEW_DAYS = 14;
 
 export type PublicReview = { id: number; rating: number; comment: string; items: string; at: string };
 export type ReviewSummary = { count: number; avg: number; dist: number[]; latest: PublicReview[] };
-export type AdminReview = PublicReview & { orderNo: number; date: string; isPublic: boolean; hidden: boolean };
+export type AdminReview = PublicReview & { orderNo: number; date: string; isPublic: boolean; hidden: boolean; source: "line" | "pos" };
 
 export const RATING_LABEL = ["", "ต้องปรับปรุง", "พอใช้", "ดี", "ดีมาก", "ประทับใจมาก"];
 

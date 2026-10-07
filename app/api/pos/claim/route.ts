@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyIdToken } from "@/lib/line";
 import { pointsBalance } from "@/lib/orders";
-import { claimBill } from "@/lib/pos";
+import { claimBill, ensureReviewToken } from "@/lib/pos";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +14,6 @@ export async function POST(req: Request) {
   if (typeof t !== "string" || !/^[\w-]{8,40}$/.test(t)) return NextResponse.json({ error: "QR ไม่ถูกต้อง" }, { status: 400 });
   const r = await claimBill(t, user.userId, user.name);
   if ("error" in r) return NextResponse.json({ error: r.error }, { status: 409 });
-  return NextResponse.json({ earned: r.earned, points: await pointsBalance(user.userId) });
+  const [points, reviewToken] = await Promise.all([pointsBalance(user.userId), ensureReviewToken(r.billId)]);
+  return NextResponse.json({ earned: r.earned, points, reviewToken });
 }

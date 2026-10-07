@@ -24,6 +24,28 @@ export async function GET() {
   return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=60" } });
 }
 
+type Target = { key: "order_id" | "pos_bill_id"; id: number; ref: string; items: string };
+
+// บิลหน้าร้านจากรหัสรีวิวบนใบเสร็จ (ไม่ต้องล็อกอิน: รหัสสุ่มเดาไม่ได้ ใช้ได้ 1 รีวิวต่อบิล)
+async function billTarget(token: unknown): Promise<{ target: Target } | { error: NextResponse }> {
+  if (typeof token !== "string" || !/^[\w-]{8,40}$/.test(token)) return { error: fail("QR ไม่ถูกต้อง") };
+  const { data: b, error } = await db().from("pos_bills").select("id,status,paid_at,bill_date").eq("review_token", token).maybeSingle();
+  if (error) throw error;
+  if (!b || b.status !== "paid") return { error: fail("ไม่พบบิลนี้", 404) };
+  if (b.paid_at && Date.now() - new Date(b.paid_at).getTime() > REVIEW_DAYS * 86400000) return { error: fail(`รีวิวได้ภายใน ${REVIEW_DAYS} วันหลังซื้อ`, 409) };
+  const { data: os } = await db().from("orders").select("items,status").eq("pos_bill_id", b.id);
+  const items = itemNames((os ?? []).filter((o) => o.status !== "cancelled").flatMap((o) => o.items ?? []));
+  const day = new Date(`${b.bill_date}T12:00:00+07:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short", timeZone: "Asia/Bangkok" });
+  return { target: { key: "pos_bill_id", id: b.id, ref: `บิลหน้าร้าน ${day}`, items } };
+}
+
+async function target(req: Request, body: { orderId?: unknown; billToken?: unknown } | null): Promise<{ target: Target } | { error: NextResponse }> {
+  if (body?.billToken !== undefined) return billTarget(body.billToken);
+  const r = await ownOrder(req, Number(body?.orderId));
+  if (r.error) return { error: r.error };
+  return { target: { key: "order_id", id: r.order.id, ref: `ออเดอร์ #${r.order.daily_no}`, items: itemNames(r.order.items) } };
+}
+
 async function ownOrder(req: Request, orderId: number) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const user = token ? await verifyIdToken(token) : null;
@@ -38,27 +60,26 @@ async function ownOrder(req: Request, orderId: number) {
 
 // ลูกค้าเปิดหน้ารีวิว: ดูออเดอร์ของตัวเอง + รีวิวเดิม (ถ้าเคยรีวิว)
 export async function PUT(req: Request) {
-  const b = (await req.json().catch(() => null)) as { orderId?: unknown } | null;
-  const r = await ownOrder(req, Number(b?.orderId));
-  if (r.error) return r.error;
-  const { data: rv } = await db().from("reviews").select("rating,comment,is_public").eq("order_id", r.order.id).maybeSingle();
-  return NextResponse.json({ no: r.order.daily_no, items: itemNames(r.order.items), review: rv ? { rating: rv.rating, comment: rv.comment, isPublic: rv.is_public } : null });
+  const b = (await req.json().catch(() => null)) as { orderId?: unknown; billToken?: unknown } | null;
+  const r = await target(req, b);
+  if ("error" in r) return r.error;
+  const t = r.target;
+  const { data: rv } = await db().from("reviews").select("rating,comment,is_public").eq(t.key, t.id).maybeSingle();
+  return NextResponse.json({ ref: t.ref, items: t.items, review: rv ? { rating: rv.rating, comment: rv.comment, isPublic: rv.is_public } : null });
 }
 
 // ส่ง/แก้รีวิว
 export async function POST(req: Request) {
-  const b = (await req.json().catch(() => null)) as { orderId?: unknown; rating?: unknown; comment?: unknown; isPublic?: unknown } | null;
+  const b = (await req.json().catch(() => null)) as { orderId?: unknown; billToken?: unknown; rating?: unknown; comment?: unknown; isPublic?: unknown } | null;
   const rating = Number(b?.rating);
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail("กรุณาให้คะแนน 1–5 ดาว");
   const comment = typeof b?.comment === "string" ? b.comment.replace(/\s+/g, " ").trim().slice(0, MAX_REVIEW) : "";
-  const r = await ownOrder(req, Number(b?.orderId));
-  if (r.error) return r.error;
+  const r = await target(req, b);
+  if ("error" in r) return r.error;
+  const t = r.target;
   const { error } = await db()
     .from("reviews")
-    .upsert(
-      { order_id: r.order.id, rating, comment, items: itemNames(r.order.items), is_public: b?.isPublic !== false, updated_at: new Date().toISOString() },
-      { onConflict: "order_id" },
-    );
+    .upsert({ [t.key]: t.id, rating, comment, items: t.items, is_public: b?.isPublic !== false, updated_at: new Date().toISOString() }, { onConflict: t.key });
   if (error) throw error;
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { isAdmin } from "@/lib/auth";
 import { SHOP, pointsEarned } from "@/lib/config";
-import { CLAIM_DAYS, getBill } from "@/lib/pos";
+import { CLAIM_DAYS, ensureReviewToken, getBill } from "@/lib/pos";
 import Login from "../../../Login";
 import PrintButton from "./PrintButton";
 
@@ -23,6 +23,9 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
   const claimUrl = bill.claimToken ? (liffId ? `https://liff.line.me/${liffId}/claim?t=${bill.claimToken}` : `${SHOP.siteUrl}/claim?t=${bill.claimToken}`) : "";
   const qr = claimUrl && !bill.claimedAt ? await QRCode.toString(claimUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M" }) : "";
+  // QR รีวิวบิลนี้ (เปิดในเบราว์เซอร์ได้เลย ไม่ต้องล็อกอิน LINE)
+  const reviewToken = await ensureReviewToken(bill.id);
+  const reviewQr = reviewToken ? await QRCode.toString(`${SHOP.siteUrl}/review?b=${reviewToken}`, { type: "svg", margin: 0, errorCorrectionLevel: "M" }) : "";
   const no = `POS-${bill.date.slice(5).replace("-", "")}-${String(bill.id).padStart(4, "0")}`;
   const change = bill.payMethod === "cash" && bill.cashReceived != null ? bill.cashReceived - bill.total : 0;
 
@@ -102,6 +105,18 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
                 <small>
                   ใช้ได้ครั้งเดียว ภายใน {CLAIM_DAYS} วัน · ครั้งหน้าสั่งล่วงหน้าผ่าน LINE ได้เลย
                 </small>
+              </span>
+            </div>
+          </>
+        )}
+        {reviewQr && (
+          <>
+            <hr />
+            <div className="rc-claim">
+              <span className="rc-qr" dangerouslySetInnerHTML={{ __html: reviewQr }} />
+              <span>
+                <b>ให้คะแนนบิลนี้</b>
+                <small>ไม่ระบุชื่อ · ทุกคะแนนรีวิว เราจะนำไปปรับปรุงให้ดีขึ้นเพื่อลูกค้า</small>
               </span>
             </div>
           </>

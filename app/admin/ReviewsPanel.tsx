@@ -34,7 +34,7 @@ export default function ReviewsPanel() {
     <section className="panel rvp">
       <header>
         <h2>รีวิวจากลูกค้า (ไม่ระบุชื่อ)</h2>
-        <p>ลูกค้ากด "ให้คะแนนแก้วนี้" จากการ์ดออเดอร์พร้อมใน LINE · ร้านซ่อนรีวิวจากหน้าลูกค้าได้ แต่แก้ข้อความไม่ได้</p>
+        <p>จาก LINE (ปุ่มในการ์ดออเดอร์พร้อม) และหน้าร้าน (QR บนใบเสร็จ) · ร้านซ่อนรีวิวจากหน้าลูกค้าได้ แต่แก้ข้อความไม่ได้</p>
       </header>
       {err && <p className="report-empty">{err}</p>}
       {list && !all.length && <p className="report-empty">ยังไม่มีรีวิว · รีวิวแรกจะมาหลังลูกค้าได้แก้วและกดให้คะแนน</p>}
@@ -81,7 +81,7 @@ export default function ReviewsPanel() {
                     ))}
                   </span>
                   <small>
-                    #{v.orderNo} · {ago(v.at)} · {v.items}
+                    {v.source === "pos" ? "หน้าร้าน" : `#${v.orderNo}`} · {ago(v.at)} · {v.items}
                   </small>
                 </div>
                 <p>{v.comment || <span className="rvp-none">ให้คะแนนอย่างเดียว ไม่ได้เขียนข้อความ</span>}</p>

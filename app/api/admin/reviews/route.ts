@@ -12,11 +12,11 @@ export async function GET() {
   if (!(await isAdmin())) return fail("unauthorized", 401);
   const { data, error } = await db()
     .from("reviews")
-    .select("id,rating,comment,items,created_at,is_public,hidden,orders(daily_no,pickup_date)")
+    .select("id,rating,comment,items,created_at,is_public,hidden,pos_bill_id,orders(daily_no,pickup_date),pos_bills(bill_date)")
     .order("created_at", { ascending: false })
     .limit(300);
   if (error) return fail("ยังไม่ได้รัน migration-033 (ตารางรีวิว)", 503);
-  const rows = data as unknown as { id: number; rating: number; comment: string; items: string; created_at: string; is_public: boolean; hidden: boolean; orders: { daily_no: number; pickup_date: string } | null }[];
+  const rows = data as unknown as { id: number; rating: number; comment: string; items: string; created_at: string; is_public: boolean; hidden: boolean; pos_bill_id: number | null; orders: { daily_no: number; pickup_date: string } | null; pos_bills: { bill_date: string } | null }[];
   const reviews: AdminReview[] = rows.map((r) => ({
     id: r.id,
     rating: r.rating,
@@ -24,7 +24,8 @@ export async function GET() {
     items: r.items,
     at: r.created_at,
     orderNo: r.orders?.daily_no ?? 0,
-    date: r.orders?.pickup_date ?? "",
+    date: r.orders?.pickup_date ?? r.pos_bills?.bill_date ?? "",
+    source: r.pos_bill_id ? "pos" : "line",
     isPublic: r.is_public,
     hidden: r.hidden,
   }));

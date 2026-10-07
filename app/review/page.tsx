@@ -6,7 +6,7 @@ import Loader from "../Loader";
 import Seal from "../Seal";
 import Star from "./Star";
 
-type Form = { no: number; items: string; rating: number; comment: string; isPublic: boolean; edited: boolean };
+type Form = { ref: string; items: string; rating: number; comment: string; isPublic: boolean; edited: boolean };
 type State = { kind: "loading" } | { kind: "form"; f: Form } | { kind: "sent"; rating: number } | { kind: "error"; text: string };
 
 // ลูกค้ากด "ให้คะแนนแก้วนี้" จากการ์ด LINE → รีวิวแบบไม่ระบุชื่อ (ร้านไม่เห็นชื่อ)
@@ -14,17 +14,23 @@ export default function ReviewPage() {
   const [s, setS] = useState<State>({ kind: "loading" });
   const [token, setToken] = useState("dev");
   const [orderId, setOrderId] = useState(0);
+  const [bill, setBill] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     (async () => {
       try {
-        const o = Number(new URLSearchParams(location.search).get("o"));
+        const q = new URLSearchParams(location.search);
+        const o = Number(q.get("o"));
+        const b = q.get("b");
         setOrderId(o);
+        setBill(b);
         let t = "dev";
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
-        if (liffId) {
+        // บิลหน้าร้าน (?b=) ไม่ต้องล็อกอิน LINE
+        if (b) t = "";
+        else if (liffId) {
           const l = (await import("@line/liff")).default;
           await l.init({ liffId });
           if (!l.isLoggedIn()) {
@@ -34,10 +40,10 @@ export default function ReviewPage() {
           t = l.getIDToken() ?? "";
         } else if (process.env.NODE_ENV === "production") throw new Error("ยังไม่ได้ตั้งค่า LIFF");
         setToken(t);
-        const r = await fetch("/api/reviews", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ orderId: o }) });
+        const r = await fetch("/api/reviews", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify(b ? { billToken: b } : { orderId: o }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error ?? "เปิดหน้ารีวิวไม่สำเร็จ");
-        setS({ kind: "form", f: { no: j.no, items: j.items, rating: j.review?.rating ?? 0, comment: j.review?.comment ?? "", isPublic: j.review?.isPublic ?? true, edited: !!j.review } });
+        setS({ kind: "form", f: { ref: j.ref, items: j.items, rating: j.review?.rating ?? 0, comment: j.review?.comment ?? "", isPublic: j.review?.isPublic ?? true, edited: !!j.review } });
       } catch (e) {
         setS({ kind: "error", text: e instanceof Error ? e.message : "เปิดหน้ารีวิวไม่สำเร็จ" });
       }
@@ -51,7 +57,7 @@ export default function ReviewPage() {
       const r = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ orderId, rating: f.rating, comment: f.comment, isPublic: f.isPublic }),
+        body: JSON.stringify({ ...(bill ? { billToken: bill } : { orderId }), rating: f.rating, comment: f.comment, isPublic: f.isPublic }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error ?? "ส่งรีวิวไม่สำเร็จ");
@@ -88,7 +94,7 @@ export default function ReviewPage() {
         <div>
           <h1>ให้คะแนนแก้วนี้</h1>
           <p>
-            ออเดอร์ #{f.no} · {f.items}
+            {f.ref} · {f.items}
           </p>
         </div>
       </header>
