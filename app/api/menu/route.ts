@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getBarHours } from "@/lib/barServer";
+import { activeNotice } from "@/lib/menu";
 import { getMenu, getPowders, getSettings, getTodaySlots, openNow } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export async function GET() {
     powders,
     slots,
     banner: settings.bannerActive ? settings.banner : "",
+    notice: activeNotice(settings),
     hours: { accepting: settings.accepting, openTime: settings.openTime, closeTime: settings.closeTime, openNow: openNow(settings) },
     bar: bar?.enabled ? bar : null,
     payReady: !!process.env.PROMPTPAY_ID,

@@ -25,6 +25,7 @@ import BarLoader from "./BarLoader";
 import PayHowTo from "./PayHowTo";
 import BarArt from "./BarArt";
 import BarFilter, { useBarFilter } from "./BarFilter";
+import Notice from "../Notice";
 import Slurp from "./Slurp";
 import type { TrayScan } from "./scan";
 
@@ -117,6 +118,7 @@ export default function BarPage() {
   const [fatal, setFatal] = useState("");
   const [items, setItems] = useState<BarItem[]>([]);
   const [hours, setHours] = useState<Hours | null>(null);
+  const [notice, setNotice] = useState("");
   const [autoSlip, setAutoSlip] = useState(false);
   const [name, setName] = useState("");
   const [points, setPoints] = useState(0);
@@ -163,7 +165,7 @@ export default function BarPage() {
       try {
         const barP = fetch("/api/bar", { cache: "no-store" }).then((r) => {
           if (!r.ok) throw new Error("โหลดรายการไม่สำเร็จ");
-          return r.json() as Promise<{ items: BarItem[]; hours: Hours; autoSlip: boolean }>;
+          return r.json() as Promise<{ items: BarItem[]; hours: Hours; autoSlip: boolean; notice?: string }>;
         });
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
         if (liffId) {
@@ -183,6 +185,7 @@ export default function BarPage() {
         setItems(bar.items);
         setHours(bar.hours);
         setAutoSlip(bar.autoSlip);
+        setNotice(bar.notice ?? "");
         // มีบิลมาม่าบาร์ค้างอยู่ → กลับไปหน้าจ่าย/รอตรวจต่อ
         const r = await fetch("/api/bar/orders", { headers: { Authorization: `Bearer ${tok()}` }, cache: "no-store" });
         const j = r.ok ? ((await r.json()) as { pending: Pending | null; points: number }) : { pending: null, points: 0 };
@@ -584,6 +587,7 @@ export default function BarPage() {
           </p>
         )}
         {err && <p className="nb-err" role="alert">{err}</p>}
+        <Notice text={notice} />
         <section className="nb-hero">
           <div className="nb-hero-text">
             <p className="nb-kicker">SELF-SERVE NOODLE BAR</p>

@@ -40,6 +40,7 @@ import { setVisitor, track } from "./track";
 import PowderThumb, { powderTone } from "./PowderThumb";
 import Seal from "./Seal";
 import ReviewStrip, { RatingBadge } from "./review/ReviewStrip";
+import Notice from "./Notice";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
@@ -128,6 +129,7 @@ export default function OrderPage() {
   const [done, setDone] = useState<Done | null>(null);
   const [points, setPoints] = useState(0);
   const [banner, setBanner] = useState("");
+  const [notice, setNotice] = useState("");
   const [hours, setHours] = useState<Hours | null>(null);
   const [isFriend, setIsFriend] = useState<boolean | null>(null); // null = ยังไม่รู้ / เช็กไม่ได้
   const [invitedBy, setInvitedBy] = useState(""); // ชื่อเพื่อนที่ชวนมา (เปิดจากลิงก์ ?ref=)
@@ -186,12 +188,13 @@ export default function OrderPage() {
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
     if (!r.ok) throw new Error("โหลดเมนูไม่สำเร็จ");
-    const j = (await r.json()) as { menu: MenuItem[]; powders: Powder[]; slots: Slot[]; banner: string; hours: Hours; bar: BarHours | null };
+    const j = (await r.json()) as { menu: MenuItem[]; powders: Powder[]; slots: Slot[]; banner: string; notice?: string; hours: Hours; bar: BarHours | null };
     setBar(j.bar ?? null);
     setMenu(j.menu);
     setPowders(j.powders ?? []);
     setSlots(j.slots);
     setBanner(j.banner ?? "");
+    setNotice(j.notice ?? "");
     setHours(j.hours ?? null);
   }, []);
 
@@ -572,6 +575,7 @@ export default function OrderPage() {
           <path d="M0 22 Q50 2 100 22 T200 22 T300 22 T400 22 V40 H0 Z" />
         </svg>
       </header>
+      <Notice text={notice} />
       {bar && (
         <nav className="mode-sw" aria-label="เลือกหมวด">
           <span className="on" aria-current="page">

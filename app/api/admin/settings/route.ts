@@ -26,6 +26,19 @@ export async function PUT(req: Request) {
     if (typeof b.bannerActive !== "boolean") return bad("ข้อมูลไม่ถูกต้อง");
     row.banner_active = b.bannerActive;
   }
+  if ("notice" in b) {
+    if (typeof b.notice !== "string") return bad("ข้อความไม่ถูกต้อง");
+    row.notice = b.notice.replace(/[^\S\n]+/g, " ").replace(/\n{3,}/g, "\n\n").trim().slice(0, 300);
+  }
+  if ("noticeActive" in b) {
+    if (typeof b.noticeActive !== "boolean") return bad("ข้อมูลไม่ถูกต้อง");
+    row.notice_active = b.noticeActive;
+  }
+  if ("noticeUntil" in b) {
+    const u = b.noticeUntil;
+    if (u !== null && (typeof u !== "string" || Number.isNaN(Date.parse(u)))) return bad("เวลาสิ้นสุดประกาศไม่ถูกต้อง");
+    row.notice_until = u;
+  }
   if ("accepting" in b) {
     if (typeof b.accepting !== "boolean") return bad("ข้อมูลไม่ถูกต้อง");
     row.accepting = b.accepting;

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { POINTS, SHOP } from "@/lib/config";
-import { FOOD_LOOKS, LOOKS, type Kind, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
+import { FOOD_LOOKS, LOOKS, activeNotice, type Kind, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
 import Icon, { type IconName } from "../Icon";
 import { uploadImage } from "./upload";
+import Notice from "../Notice";
 import MenuArt, { artTint } from "../MenuArt";
 import { Price } from "./MenuTab";
 import MemberPanel from "./MemberPanel";
@@ -141,6 +142,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
   const [settings, setSettings] = useState<ShopSettings>({
     banner: "",
     bannerActive: false,
+    notice: "",
+    noticeActive: false,
+    noticeUntil: null,
     openTime: "10:30",
     closeTime: "17:00",
     slotMinutes: 15,
@@ -149,6 +153,9 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
     orderNoStart: 1,
   });
   const [bannerMsg, setBannerMsg] = useState("");
+  const [noticeMsg, setNoticeMsg] = useState("");
+  // ประกาศหายเองเมื่อไร: today = เที่ยงคืนวันนี้ · tomorrow = เที่ยงคืนพรุ่งนี้ · none = จนกว่าจะปิดเอง
+  const [noticeEnd, setNoticeEnd] = useState<"today" | "tomorrow" | "none">("today");
   const [hoursMsg, setHoursMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [formErr, setFormErr] = useState("");
@@ -162,6 +169,17 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       .then((r) => (r.ok ? r.json() : null))
       .then((s) => s && setSettings(s));
   }, []);
+
+  async function saveNotice(active: boolean) {
+    setNoticeMsg("");
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+    const day = (n: number) => new Date(new Date(`${today}T23:59:59+07:00`).getTime() + n * 864e5).toISOString();
+    const until = noticeEnd === "today" ? day(0) : noticeEnd === "tomorrow" ? day(1) : null;
+    const r = await fetch("/api/admin/settings", json("PUT", { notice: settings.notice, noticeActive: active, noticeUntil: active ? until : null }));
+    const j = await r.json().catch(() => null);
+    if (r.ok && j) setSettings(j);
+    setNoticeMsg(r.ok ? (active ? "ประกาศแล้ว ลูกค้าเห็นทันทีที่เปิดหน้าสั่ง" : "ปิดประกาศแล้ว") : "บันทึกไม่สำเร็จ");
+  }
 
   async function saveBanner() {
     setBannerMsg("");
@@ -349,6 +367,59 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       </section>
       )}
 
+      {sec === "promo" && (
+      <section className="panel">
+        <header>
+          <h2>
+            <Icon name="megaphone" size={20} /> ประกาศสำคัญ
+          </h2>
+          <p>กล่องสีส้มแดงเด่นใต้หัวหน้าเว็บ ทั้งหน้าสั่งมัทฉะและมาม่าบาร์ · ใช้แจ้งร้านหยุด ปิดเร็ว หรือเรื่องด่วน</p>
+        </header>
+        <div className="sn-admin-prev">
+          <Notice text={settings.notice || "ตัวอย่างข้อความประกาศ"} />
+        </div>
+        <div className="sn-tpl" aria-label="ข้อความสำเร็จรูป">
+          {[
+            "วันนี้ร้านหยุด 1 วัน เนื่องจากมีการทาสีอาคาร มีกลิ่นสีแรง ขออภัยในความไม่สะดวก แล้วพบกันใหม่พรุ่งนี้นะ",
+            "วันนี้ร้านปิดเร็ว ขออภัยในความไม่สะดวก",
+            "วันนี้ร้านเปิดช้ากว่าปกติ",
+          ].map((t) => (
+            <button key={t} type="button" onClick={() => setSettings({ ...settings, notice: t })}>
+              {t.length > 26 ? t.slice(0, 26) + "…" : t}
+            </button>
+          ))}
+        </div>
+        <textarea rows={3} maxLength={300} placeholder="พิมพ์ประกาศ (ไม่เกิน 300 ตัวอักษร)" value={settings.notice} onChange={(e) => setSettings({ ...settings, notice: e.target.value })} />
+        <div className="sn-until seg" role="group" aria-label="ประกาศหายเองเมื่อไร">
+          <button aria-pressed={noticeEnd === "today"} onClick={() => setNoticeEnd("today")}>
+            ถึงเที่ยงคืนวันนี้
+          </button>
+          <button aria-pressed={noticeEnd === "tomorrow"} onClick={() => setNoticeEnd("tomorrow")}>
+            ถึงเที่ยงคืนพรุ่งนี้
+          </button>
+          <button aria-pressed={noticeEnd === "none"} onClick={() => setNoticeEnd("none")}>
+            จนกว่าจะปิดเอง
+          </button>
+        </div>
+        <div className="panel-row">
+          {activeNotice(settings) ? (
+            <>
+              <span className="hint-ok">
+                แสดงอยู่{settings.noticeUntil ? ` · หายเอง ${new Date(settings.noticeUntil).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} น.` : " · จนกว่าจะปิดเอง"}
+              </span>
+              <button className="btn ghost-sm" onClick={() => saveNotice(false)}>
+                ปิดประกาศ
+              </button>
+            </>
+          ) : null}
+          <button className="btn primary-sm" disabled={!settings.notice.trim()} onClick={() => saveNotice(true)}>
+            {activeNotice(settings) ? "อัปเดตประกาศ" : "ประกาศเลย"}
+          </button>
+        </div>
+        {settings.accepting && <p className="report-empty">ถ้าร้านหยุดทั้งวัน อย่าลืมปิดรับออเดอร์ที่ ตั้งค่า › ร้าน ด้วย ลูกค้าจะได้สั่งไม่ได้</p>}
+        {noticeMsg && <p className="hint-ok">{noticeMsg}</p>}
+      </section>
+      )}
       {sec === "promo" && (
       <section className="panel">
         <header>

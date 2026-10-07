@@ -2137,3 +2137,14 @@ small .bf-code { margin-right: 6px; }
 .rvp-replybox textarea { font: inherit; font-size: 15px; padding: 10px; border-radius: 10px; border: 1px solid var(--edge); resize: vertical; }
 .rvp-acts { gap: 8px; align-items: center; flex-wrap: wrap; }
 .rvp-acts small { margin-right: auto; font-size: 12px; color: var(--stone); }
+/* ประกาศสำคัญจากร้าน (sn-) */
+.sn-notice { position: relative; z-index: 1; margin: -26px 16px 12px; display: flex; gap: 12px; align-items: flex-start; background: #FFF1EC; border: 2px solid #E0573D; border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 22px -14px rgba(160,40,20,.6); }
+.sn-ico { width: 36px; height: 36px; border-radius: 50%; background: #C23B22; color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.sn-notice b { display: block; color: #A12C15; font-size: 14px; }
+.sn-notice p { margin: 2px 0 0; font-size: 15px; line-height: 1.5; color: #3d1d14; white-space: pre-line; overflow-wrap: anywhere; }
+.nb .sn-notice { margin: 12px 20px 0; }
+.sn-admin-prev { margin: 0; }
+.sn-admin-prev .sn-notice { margin: 0; }
+.sn-until { display: flex; gap: 6px; flex-wrap: wrap; }
+.sn-tpl { display: flex; gap: 6px; flex-wrap: wrap; }
+.sn-tpl button { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px dashed var(--edge); background: #fff; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }

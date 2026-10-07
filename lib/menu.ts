@@ -39,6 +39,9 @@ export type MenuItem = {
 export type ShopSettings = {
   banner: string;
   bannerActive: boolean;
+  notice: string; // ประกาศสำคัญ (เช่น วันนี้ร้านหยุด)
+  noticeActive: boolean;
+  noticeUntil: string | null; // หายเองหลังเวลานี้ · null = จนกว่าจะปิดเอง
   openTime: string; // รอบรับแรก HH:MM
   closeTime: string; // รอบสุดท้ายต้องก่อนเวลานี้
   slotMinutes: number;
@@ -223,3 +226,7 @@ export function lineDetail(item: MenuItem, l: CartLine, powders: Powder[]) {
     .filter(Boolean)
     .join(", ");
 }
+
+// ประกาศสำคัญที่ยังมีผลตอนนี้ (เปิดอยู่ ยังไม่เลยเวลาที่ตั้ง และมีข้อความ) · ไม่มี = ""
+export const activeNotice = (s: Pick<ShopSettings, "notice" | "noticeActive" | "noticeUntil">, now = Date.now()) =>
+  s.noticeActive && s.notice.trim() && (!s.noticeUntil || new Date(s.noticeUntil).getTime() > now) ? s.notice.trim() : "";
