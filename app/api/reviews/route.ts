@@ -10,7 +10,7 @@ const itemNames = (items: { name: string; qty: number }[] | null) => (items ?? [
 
 // สรุปรีวิวสาธารณะ (หน้าสั่ง): คะแนนเฉลี่ย + รีวิวล่าสุดที่ลูกค้ายอมให้แสดงและร้านไม่ได้ซ่อน · ไม่มีชื่อผู้รีวิว
 export async function GET() {
-  const { data, error } = await db().from("reviews").select("id,rating,comment,items,created_at,is_public,hidden").order("created_at", { ascending: false }).limit(500);
+  const { data, error } = await db().from("reviews").select("id,rating,comment,items,created_at,is_public,hidden,reply,replied_at").order("created_at", { ascending: false }).limit(500);
   if (error) return NextResponse.json({ count: 0, avg: 0, dist: [0, 0, 0, 0, 0], latest: [] } satisfies ReviewSummary);
   const shown = data.filter((r) => r.is_public && !r.hidden);
   const dist = [0, 0, 0, 0, 0];
@@ -19,7 +19,11 @@ export async function GET() {
     count: shown.length,
     avg: shown.length ? Math.round((shown.reduce((n, r) => n + r.rating, 0) / shown.length) * 10) / 10 : 0,
     dist,
-    latest: shown.filter((r) => r.comment.trim()).slice(0, 8).map((r) => ({ id: r.id, rating: r.rating, comment: r.comment, items: r.items, at: r.created_at })),
+    // รีวิวที่มีข้อความ หรือร้านตอบกลับแล้ว
+    latest: shown
+      .filter((r) => r.comment.trim() || r.reply.trim())
+      .slice(0, 8)
+      .map((r) => ({ id: r.id, rating: r.rating, comment: r.comment, items: r.items, at: r.created_at, reply: r.reply, repliedAt: r.replied_at })),
   };
   return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=60" } });
 }

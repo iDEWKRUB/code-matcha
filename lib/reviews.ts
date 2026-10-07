@@ -4,7 +4,8 @@ export const MAX_REVIEW = 300;
 export const REVIEW_STATUSES = ["ready", "completed"];
 export const REVIEW_DAYS = 14;
 
-export type PublicReview = { id: number; rating: number; comment: string; items: string; at: string };
+export type PublicReview = { id: number; rating: number; comment: string; items: string; at: string; reply: string; repliedAt: string | null };
+export const MAX_REPLY = 300;
 export type ReviewSummary = { count: number; avg: number; dist: number[]; latest: PublicReview[] };
 export type AdminReview = PublicReview & { orderNo: number; date: string; isPublic: boolean; hidden: boolean; source: "line" | "pos" };
 

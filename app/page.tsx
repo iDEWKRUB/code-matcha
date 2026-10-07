@@ -39,7 +39,7 @@ import Loader from "./Loader";
 import { setVisitor, track } from "./track";
 import PowderThumb, { powderTone } from "./PowderThumb";
 import Seal from "./Seal";
-import ReviewStrip from "./review/ReviewStrip";
+import ReviewStrip, { RatingBadge } from "./review/ReviewStrip";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
@@ -562,6 +562,7 @@ export default function OrderPage() {
             <p className="hero-jp">いらっしゃいませ</p>
             <h1>CODE-MATCHA</h1>
             <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
+            <RatingBadge />
             <a className="points-chip" href="/member">
               <Icon name="gift" size={15} /> แต้มสะสม {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
             </a>
