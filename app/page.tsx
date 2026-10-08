@@ -630,6 +630,8 @@ export default function OrderPage() {
                       </span>
                       <span className="art-face art-back">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img className="art-blur" src={m.photoUrl} alt="" aria-hidden="true" loading="lazy" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.photoUrl} alt={`รูปจริง ${m.name}`} loading="lazy" />
                       </span>
                     </span>

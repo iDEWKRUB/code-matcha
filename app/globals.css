@@ -2055,8 +2055,13 @@ small .bf-code { margin-right: 6px; }
 .art-flip { position: relative; display: grid; place-items: center; width: 100%; transition: transform .5s cubic-bezier(.3,.7,.3,1); transform-style: preserve-3d; }
 .card-art.flipped .art-flip { transform: rotateY(180deg); }
 .art-face { display: grid; place-items: center; width: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-.art-back { position: absolute; inset: -8px 0 -2px; transform: rotateY(180deg); border-radius: 16px; overflow: hidden; }
-.art-back img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* การ์ดที่มีรูป: ย้าย padding ไปที่หน้าการ์ตูน ให้หน้ารูปเต็มกรอบพอดี ไม่มีแถบสีโผล่ */
+.has-photo .card-art { padding: 0; }
+.has-photo .art-face:not(.art-back) { padding: 8px 0 2px; }
+.art-back { position: absolute; inset: 0; transform: rotateY(180deg); border-radius: 16px; overflow: hidden; background: #1c2419; }
+/* รูปจริงทั้งใบ ไม่ตัดหัวท้าย + พื้นหลังเป็นรูปเดียวกันเบลอ */
+.art-back img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.art-back img.art-blur { object-fit: cover; filter: blur(14px) brightness(.85); transform: scale(1.2); }
 .flip-btn { position: absolute; top: 112px; right: 22px; z-index: 2; min-height: 30px; padding: 0 10px 0 8px; border-radius: 999px; border: 0; background: rgba(28,36,25,.78); color: #fff; font: inherit; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
 .flip-btn::before { content: ""; position: absolute; inset: -7px; }
 .flip-btn[aria-pressed="true"] { background: #fff; color: var(--ink); }
