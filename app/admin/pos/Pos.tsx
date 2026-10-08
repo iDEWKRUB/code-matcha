@@ -313,7 +313,7 @@ export default function Pos() {
               {(
                 [
                   ["all", "ทั้งหมด"],
-                  ["drink", "เครื่องดื่ม"],
+                  ["drink", "เครื่องดื่มมัทฉะ"],
                   ["soda", "เครื่องดื่มโซดา"],
                   ["food", "อาหาร & ขนม"],
                 ] as [Cat, string][]
