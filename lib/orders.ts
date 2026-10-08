@@ -12,7 +12,8 @@ export const MENU_COLUMNS =
 export async function getMenu(): Promise<MenuItem[]> {
   const { data, error } = await db().from("menu_items").select(MENU_COLUMNS).order("sort");
   if (error) throw error;
-  return data as unknown as MenuItem[];
+  // ราคาโปรต้องถูกกว่าราคาปกติ ไม่งั้นถือว่าไม่มีโปร (กันลูกค้าจ่ายแพงกว่าปกติ)
+  return (data as unknown as MenuItem[]).map((m) => (m.promoPrice !== null && m.promoPrice >= m.price ? { ...m, promoPrice: null } : m));
 }
 
 // ผงมัทฉะให้ลูกค้าเลือก (activeOnly = เฉพาะที่เปิดขาย) เรียงตาม sort

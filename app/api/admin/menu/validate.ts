@@ -34,6 +34,9 @@ export function parseMenuInput(body: unknown, required: boolean): { row: Row } |
       row.promo_price = promo;
     }
   }
+  if (typeof row.price === "number" && typeof row.promo_price === "number" && row.promo_price >= row.price) {
+    return { error: "ราคาโปรต้องน้อยกว่าราคาปกติ" };
+  }
 
   if ("temps" in b) {
     const temps = Array.isArray(b.temps) ? b.temps.filter((t) => t === "iced" || t === "hot") : [];
