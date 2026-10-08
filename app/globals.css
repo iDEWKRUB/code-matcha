@@ -2153,3 +2153,8 @@ small .bf-code { margin-right: 6px; }
 .sn-until { display: flex; gap: 6px; flex-wrap: wrap; }
 .sn-tpl { display: flex; gap: 6px; flex-wrap: wrap; }
 .sn-tpl button { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px dashed var(--edge); background: #fff; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+/* POS: ปุ่มสลับมุมมองรูปจริง */
+.ps-photos { min-height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font: inherit; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--ink); }
+.ps-photos[aria-pressed="true"] { background: #2F4A2A; border-color: #2F4A2A; color: #fff; }
+.ps-art-photo { overflow: hidden; }
+.ps-art-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }

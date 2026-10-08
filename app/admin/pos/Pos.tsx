@@ -27,6 +27,7 @@ import type { PosBill } from "@/lib/pos";
 import BarArt from "../../bar/BarArt";
 import type { TrayScan } from "../../bar/scan";
 import MenuArt, { artTint } from "../../MenuArt";
+import Icon from "../../Icon";
 import Seal from "../../Seal";
 
 type Data = { menu: MenuItem[]; powders: Powder[]; barItems: BarItem[]; bills: PosBill[]; recent: PosBill[] };
@@ -53,6 +54,20 @@ export default function Pos() {
   const [mode, setMode] = useState<Mode>("menu");
   const [cat, setCat] = useState<Cat>("all");
   const [q, setQ] = useState("");
+  // มุมมองรูปจริง: เมนูที่มีรูปจริงแสดงรูปแทนการ์ตูน (จำค่าไว้ในเครื่องนี้)
+  const [photos, setPhotos] = useState(false);
+  useEffect(() => {
+    try {
+      setPhotos(localStorage.getItem("pos-photos") === "1");
+    } catch {}
+  }, []);
+  const togglePhotos = () =>
+    setPhotos((v) => {
+      try {
+        localStorage.setItem("pos-photos", v ? "0" : "1");
+      } catch {}
+      return !v;
+    });
   const [edit, setEdit] = useState<{ item: MenuItem; line: CartLine } | null>(null);
   const [draft, setDraft] = useState<CartLine[]>([]);
   const [barDraft, setBarDraft] = useState<Record<string, number>>({});
@@ -308,14 +323,22 @@ export default function Pos() {
                 </button>
               ))}
               <input className="ps-search" placeholder="ค้นหาเมนู" value={q} onChange={(e) => setQ(e.target.value)} aria-label="ค้นหาเมนู" />
+              <button className="ps-photos" aria-pressed={photos} onClick={togglePhotos} title="สลับดูรูปจริง / การ์ตูน">
+                <Icon name="photo" size={18} /> รูปจริง
+              </button>
             </div>
             <div className="ps-grid">
               {menu.map((m) => {
                 const inDraft = draft.filter((l) => l.itemId === m.id).reduce((n, l) => n + l.qty, 0);
                 return (
                   <button key={m.id} className="ps-card" onClick={() => open(m)}>
-                    <span className="ps-art" style={{ background: artTint(m) }}>
-                      <MenuArt item={m} size={70} />
+                    <span className={`ps-art${photos && m.photoUrl ? " ps-art-photo" : ""}`} style={{ background: artTint(m) }}>
+                      {photos && m.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={m.photoUrl} alt={`รูปจริง ${m.name}`} loading="lazy" />
+                      ) : (
+                        <MenuArt item={m} size={70} />
+                      )}
                     </span>
                     {m.jp && <small>{m.jp}</small>}
                     <b>{m.name}</b>
