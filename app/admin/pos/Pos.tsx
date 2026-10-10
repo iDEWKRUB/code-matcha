@@ -327,7 +327,7 @@ export default function Pos() {
                 <Icon name="photo" size={18} /> รูปจริง
               </button>
             </div>
-            <div className="ps-grid">
+            <div className={`ps-grid${photos ? " ps-photo-view" : ""}`}>
               {menu.map((m) => {
                 const inDraft = draft.filter((l) => l.itemId === m.id).reduce((n, l) => n + l.qty, 0);
                 return (

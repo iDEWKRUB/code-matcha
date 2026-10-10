@@ -2158,3 +2158,10 @@ small .bf-code { margin-right: 6px; }
 .ps-photos[aria-pressed="true"] { background: #2F4A2A; border-color: #2F4A2A; color: #fff; }
 .ps-art-photo { overflow: hidden; }
 .ps-art-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* POS มุมมองรูปจริง: รูปใหญ่เต็มการ์ด ชื่อ + ราคาแถวเดียวด้านล่าง */
+.ps-photo-view { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.ps-photo-view .ps-card { padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 6px; }
+.ps-photo-view .ps-art { grid-column: 1 / -1; height: auto; aspect-ratio: 4 / 3; margin: 0; }
+.ps-photo-view .ps-card small { display: none; }
+.ps-photo-view .ps-card b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
+.ps-photo-view .ps-price { font-size: 16px; gap: 6px; padding-right: 4px; }
