@@ -2165,3 +2165,38 @@ small .bf-code { margin-right: 6px; }
 .ps-photo-view .ps-card small { display: none; }
 .ps-photo-view .ps-card b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
 .ps-photo-view .ps-price { font-size: 16px; gap: 6px; padding-right: 4px; }
+/* สติ๊กเกอร์ติดแก้ว 5x5 ซม. (cupst-) หมึกดำ 1 ดวงต่อหน้า */
+.cupst-pages { display: flex; flex-wrap: wrap; gap: 16px; }
+.cupst-sheet { width: 50mm; height: 50mm; background: #fff; outline: 0.3mm dashed #bbb; overflow: hidden; page: cupsticker; }
+.cupst { width: 50mm; height: 50mm; box-sizing: border-box; padding: 4.4mm 3.6mm 3mm; display: flex; flex-direction: column; align-items: center; text-align: center; color: #000; font-family: var(--font-sans), sans-serif; transform: translate(var(--cx, 0mm), var(--cy, 0mm)); }
+.cupst-name { font-weight: 600; font-size: 4.1mm; line-height: 1.12; text-transform: uppercase; overflow-wrap: anywhere; }
+.cupst-jp { margin-top: 1.3mm; font-family: var(--font-mincho), "Yu Mincho", serif; font-size: 2.2mm; letter-spacing: .08em; color: #222; }
+.cupst-desc { margin-top: 2.2mm; font-size: 2.5mm; line-height: 1.3; color: #111; max-width: 38mm; }
+.cupst-foot { margin-top: auto; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; text-align: left; }
+.cupst-brand { display: flex; align-items: center; gap: 1.3mm; }
+.cupst-seal { width: 7.4mm; height: 7.4mm; flex-shrink: 0; display: block; }
+.cupst-brand > span { display: flex; flex-direction: column; gap: 0.6mm; }
+.cupst-brand b { font-size: 1.95mm; letter-spacing: .05em; white-space: nowrap; }
+.cupst-brand small { font-size: 1.9mm; display: flex; align-items: center; gap: 0.9mm; }
+.cupst-brand small i { width: 1.2mm; height: 1.2mm; border-radius: 50%; background: #000; }
+.cupst-qr { display: flex; flex-direction: column; align-items: center; gap: 0.5mm; }
+.cupst-qrw { position: relative; width: 14mm; height: 14mm; display: block; }
+.cupst-qrw > span svg { width: 14mm; height: 14mm; display: block; }
+.cupst-qseal { position: absolute; left: 50%; top: 50%; width: 27%; height: 27%; transform: translate(-50%, -50%); outline: 0.55mm solid #fff; border-radius: 0.7mm; }
+.cupst-qr small { font-size: 1.55mm; }
+.cupst-count { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cupst-count > button { min-width: 42px; min-height: 42px; border-radius: 10px; border: 1px solid var(--edge); background: #fff; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+.cupst-count .cupst-quick { font-size: 14px; }
+.cupst-count .cupst-quick[aria-pressed="true"] { background: var(--matcha); color: #fff; border-color: var(--matcha); }
+.cupst-count label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.cupst-count input { width: 70px; min-height: 42px; text-align: center; border-radius: 10px; border: 1px solid var(--edge); font: inherit; font-size: 18px; }
+.mcard-print { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; border-radius: 10px; border: 1px dashed var(--edge); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
+.mcard-print:hover { background: #f4f1e8; }
+@page cupsticker { size: 50mm 50mm; margin: 0; }
+@media print {
+  body:has(.cupst-pages) { margin: 0; background: #fff; }
+  .cupst-page { padding: 0; max-width: none; display: block; }
+  .cupst-pages { display: block; }
+  .cupst-sheet { outline: 0; }
+  .cupst-sheet + .cupst-sheet { break-before: page; }
+}

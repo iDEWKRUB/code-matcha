@@ -82,6 +82,11 @@ export default function MenuTab({ menu, setMenu, reload, onError }: Props) {
                 {m.promoPrice !== null && <span className="flag sale">โปร</span>}
               </div>
             </div>
+            {m.kind !== "food" && (
+              <a className="mcard-print" href={`/admin/menu-label/${m.id}`} target="_blank" rel="noopener">
+                พิมพ์สติ๊กเกอร์แก้ว
+              </a>
+            )}
             <div className="mcard-body">
               <p className="jp">{m.jp}</p>
               <p className="nm">{m.name}</p>
