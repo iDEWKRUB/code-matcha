@@ -117,6 +117,8 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
                 <b>สแกนรับ {earn} แต้ม ใน LINE</b>
                 <small>
                   ใช้ได้ครั้งเดียว ภายใน {CLAIM_DAYS} วัน
+                  <br />
+                  ครั้งหน้าสั่งล่วงหน้าผ่าน LINE ได้เลย
                 </small>
               </span>
             </div>

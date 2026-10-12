@@ -156,6 +156,7 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
     g.drawImage(q, (W - 168) / 2, y);
     y += 176;
     center(`ใช้ได้ครั้งเดียว ภายใน ${r.claim.days} วัน`, 15);
+    center("ครั้งหน้าสั่งล่วงหน้าผ่าน LINE ได้เลย", 15);
   }
   // Wi-Fi: กรอบเส้นประ ชื่อ + รหัสตัวหนา
   dash();
