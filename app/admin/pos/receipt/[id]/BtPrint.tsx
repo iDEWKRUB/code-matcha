@@ -50,7 +50,7 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
   const wrap = (s: string, max: number) => {
     const out: string[] = [];
     let line = "";
-    for (const word of s.split(/(?<= )/)) {
+    for (const word of s.split(" ").map((w, i, a) => (i < a.length - 1 ? w + " " : w))) {
       if (g.measureText(line + word).width <= max) {
         line += word;
         continue;
@@ -110,7 +110,8 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
   const s = 64;
   const sx = (W - s) / 2;
   g.beginPath();
-  g.roundRect(sx, y, s, s, 8);
+  if (g.roundRect) g.roundRect(sx, y, s, s, 8);
+  else g.rect(sx, y, s, s);
   g.fill();
   g.fillStyle = "#fff";
   g.font = `700 24px "Yu Mincho", "Hiragino Mincho ProN", serif`;
@@ -202,11 +203,14 @@ export default function BtPrint({ receipt }: { receipt: BtReceipt }) {
   }, []);
 
   useEffect(() => {
-    drawReceipt(receipt).then((cv) => {
-      if (!prev.current) return;
-      cv.className = "bt-prev";
-      prev.current.replaceChildren(cv);
-    });
+    document.fonts.ready
+      .then(() => drawReceipt(receipt))
+      .then((cv) => {
+        if (!prev.current) return;
+        cv.className = "bt-prev";
+        prev.current.replaceChildren(cv);
+      })
+      .catch((e) => setMsg(`วาดตัวอย่างไม่สำเร็จ: ${e instanceof Error ? e.message : e}`));
   }, [receipt]);
 
   async function print() {
@@ -248,12 +252,10 @@ export default function BtPrint({ receipt }: { receipt: BtReceipt }) {
           {busy ? "กำลังพิมพ์…" : "พิมพ์ผ่าน Bluetooth"}
         </button>
       </div>
-      {!supported && <p className="bt-msg">เบราว์เซอร์นี้ใช้ Bluetooth ไม่ได้ · เปิดหน้านี้ด้วย Google Chrome บน Mac / Windows / Android</p>}
+      {!supported && <p className="bt-msg bt-warn">เบราว์เซอร์นี้ใช้ Bluetooth ไม่ได้ (Safari / iPhone ใช้ไม่ได้) · เปิดหน้านี้ด้วย Google Chrome บน Mac / Windows / Android</p>}
       {msg && <p className="bt-msg">{msg}</p>}
-      <details>
-        <summary>ดูตัวอย่างที่จะพิมพ์ (58 มม.)</summary>
-        <div ref={prev} className="bt-prev-wrap" />
-      </details>
+      <p className="bt-msg">ตัวอย่างที่จะพิมพ์ (กว้าง 58 มม.)</p>
+      <div ref={prev} className="bt-prev-wrap" />
     </section>
   );
 }

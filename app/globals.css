@@ -2210,3 +2210,4 @@ small .bf-code { margin-right: 6px; }
 .bt-box summary { font-size: 13px; color: #555; cursor: pointer; }
 .bt-prev-wrap { margin-top: 8px; display: flex; justify-content: center; background: #f2f0ea; padding: 10px; border-radius: 10px; }
 .bt-prev { width: 240px; height: auto; box-shadow: 0 2px 8px rgba(0,0,0,.15); image-rendering: pixelated; }
+.bt-warn { color: #a12c15; font-weight: 600; }
