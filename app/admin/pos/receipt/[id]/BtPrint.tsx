@@ -2,6 +2,7 @@
 
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
+import { RECEIPT } from "@/lib/config";
 import { SEAL_GLYPHS } from "@/lib/cupSticker";
 
 // ข้อมูลใบเสร็จสำหรับวาดลงกระดาษ 58 มม.
@@ -156,6 +157,13 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
     y += 176;
     center(`ใช้ได้ครั้งเดียว ภายใน ${r.claim.days} วัน · ครั้งหน้าสั่งล่วงหน้าผ่าน LINE ได้เลย`, 15);
   }
+  // Wi-Fi: กรอบเส้นประ ชื่อ + รหัสตัวหนา
+  dash();
+  center("Wi-Fi ฟรี", 19, true);
+  center(`ชื่อ: ${RECEIPT.wifi.ssid}`, 20);
+  center(`รหัส: ${RECEIPT.wifi.pass}`, 22, true);
+  dash();
+  center(RECEIPT.notice, 16);
   rule(3);
   g.font = `500 21px "Yu Mincho", "Hiragino Mincho ProN", serif`;
   const jp = "ありがとうございました";

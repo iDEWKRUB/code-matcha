@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { isAdmin } from "@/lib/auth";
-import { SHOP, pointsEarned } from "@/lib/config";
+import { RECEIPT, SHOP, pointsEarned } from "@/lib/config";
 import { CLAIM_DAYS, getBill } from "@/lib/pos";
 import Login from "../../../Login";
 import BtPrint, { type BtReceipt } from "./BtPrint";
@@ -122,6 +122,13 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
             </div>
           </>
         )}
+        <hr />
+        <div className="rc-wifi">
+          <b>Wi-Fi</b>
+          <span>ชื่อ: {RECEIPT.wifi.ssid}</span>
+          <span>รหัส: {RECEIPT.wifi.pass}</span>
+        </div>
+        <p className="rc-note">{RECEIPT.notice}</p>
         <hr />
         <p className="rc-jp">ありがとうございました</p>
         <p className="rc-thanks">ขอบคุณที่แวะมา CODE-MATCHA</p>

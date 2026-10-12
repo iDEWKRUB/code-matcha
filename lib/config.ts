@@ -11,6 +11,12 @@ export const SHOP = {
   holdMinutes: 10, // จองเวลารับไว้ให้ระหว่างรอชำระเงินกี่นาที
 };
 
+// ข้อความท้ายใบเสร็จหน้าร้าน (ประกาศที่จอดรถ + Wi-Fi) · แก้ที่นี่แล้ว push
+export const RECEIPT = {
+  notice: "โปรดทราบ เนื่องจากที่จอดรถมีจำนวนจำกัด ทางร้านขอสงวนสิทธิ์ใช้บริการไม่เกิน 2 ชม. ต่อ 1 บิล ขอบคุณที่เข้าใจนะครับ",
+  wifi: { ssid: "Nexatexh_2.4G", pass: "Demopass@2026" },
+};
+
 // สะสมแต้ม: จ่ายทุก bahtPerPoint บาท ได้ 1 แต้ม, 1 แต้ม = ลด 1 บาท, ใช้ครั้งละอย่างน้อย minRedeem แต้ม
 export const POINTS = { bahtPerPoint: 25, minRedeem: 50 };
 export const pointsEarned = (paid: number) => Math.floor(paid / POINTS.bahtPerPoint);
