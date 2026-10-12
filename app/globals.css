@@ -1855,7 +1855,7 @@ button.pp-save { background: #fff; font-family: inherit; cursor: pointer; }
 @media print {
   body:has(.rc) { background: #fff; }
   .rc-page { background: none; padding: 0; min-height: 0; }
-  .rc-tools { display: none; }
+  .rc-tools, .bt-box { display: none; }
   .rc { page: receipt; box-shadow: none; width: 76mm; }
 }
 @page receipt { size: 80mm auto; margin: 0; }
@@ -2200,3 +2200,13 @@ small .bf-code { margin-right: 6px; }
   .cupst-sheet { outline: 0; }
   .cupst-sheet + .cupst-sheet { break-before: page; }
 }
+/* ใบเสร็จ: พิมพ์ตรงเครื่อง Bluetooth 58 มม. (bt-) */
+.bt-box { width: 100%; max-width: 420px; background: #fff; border-radius: 14px; padding: 12px 14px; box-sizing: border-box; display: grid; gap: 8px; box-shadow: 0 6px 16px -12px rgba(0,0,0,.5); }
+.bt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.bt-head b { font-size: 14px; }
+.bt-btn { min-height: 42px; padding: 0 16px; border-radius: 10px; border: 0; background: #2F4A2A; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.bt-btn:disabled { opacity: .5; cursor: default; }
+.bt-msg { margin: 0; font-size: 13px; color: #555; }
+.bt-box summary { font-size: 13px; color: #555; cursor: pointer; }
+.bt-prev-wrap { margin-top: 8px; display: flex; justify-content: center; background: #f2f0ea; padding: 10px; border-radius: 10px; }
+.bt-prev { width: 240px; height: auto; box-shadow: 0 2px 8px rgba(0,0,0,.15); image-rendering: pixelated; }
