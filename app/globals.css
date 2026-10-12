@@ -2215,3 +2215,4 @@ small .bf-code { margin-right: 6px; }
 .rc-wifi b { font-size: 12px; }
 .rc-wifi span:last-child { font-weight: 700; }
 .rc-note { margin: 6px 0 0; font-size: 10.5px; line-height: 1.45; text-align: center; }
+.rc-note-h { margin: 6px 0 0; font-size: 14px; font-weight: 700; line-height: 1.3; text-align: center; }

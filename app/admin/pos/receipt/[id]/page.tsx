@@ -128,6 +128,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
           <span>ชื่อ: {RECEIPT.wifi.ssid}</span>
           <span>รหัส: {RECEIPT.wifi.pass}</span>
         </div>
+        <p className="rc-note-h">{RECEIPT.noticeTitle}</p>
         <p className="rc-note">{RECEIPT.notice}</p>
         <hr />
         <p className="rc-jp">ありがとうございました</p>

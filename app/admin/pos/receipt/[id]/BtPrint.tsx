@@ -163,7 +163,9 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
   center(`ชื่อ: ${RECEIPT.wifi.ssid}`, 20);
   center(`รหัส: ${RECEIPT.wifi.pass}`, 22, true);
   dash();
-  center(RECEIPT.notice, 16);
+  center(RECEIPT.noticeTitle, 24, true);
+  y += 2;
+  center(RECEIPT.notice, 17);
   rule(3);
   g.font = `500 21px "Yu Mincho", "Hiragino Mincho ProN", serif`;
   const jp = "ありがとうございました";
