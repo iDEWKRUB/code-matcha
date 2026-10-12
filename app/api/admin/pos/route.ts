@@ -8,6 +8,7 @@ import { getMenu, getPowders } from "@/lib/orders";
 import { promoDiscount } from "@/lib/promo";
 import { checkPromo } from "@/lib/promoServer";
 import { addOrder, createBill, getBill, openBills, payBill, posQr, recentPaidBills } from "@/lib/pos";
+import { btReceipt } from "@/lib/receipt";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -77,7 +78,15 @@ export async function POST(req: Request) {
     if (b.method !== "qr" && b.method !== "cash") return fail("เลือกวิธีชำระเงิน");
     const r = await payBill(billId, { method: b.method, cashReceived: b.cashReceived ?? null, promoCode: b.promoCode });
     if ("error" in r) return fail(r.error, 409);
-    return NextResponse.json({ bill: r.bill, bills: await openBills() });
+    // ใบเสร็จสำหรับพิมพ์ Bluetooth อัตโนมัติหลังชำระ
+    const full = await getBill(billId);
+    return NextResponse.json({ bill: r.bill, bills: await openBills(), receipt: full ? btReceipt(full) : null });
+  }
+
+  if (b.action === "receipt") {
+    const bill = await getBill(billId);
+    if (!bill || bill.status !== "paid") return fail("ไม่พบใบเสร็จนี้ (หรือบิลยังไม่ได้ชำระ)", 404);
+    return NextResponse.json({ receipt: btReceipt(bill) });
   }
 
   if (b.action === "order") {

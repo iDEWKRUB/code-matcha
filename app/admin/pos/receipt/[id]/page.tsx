@@ -4,7 +4,8 @@ import { isAdmin } from "@/lib/auth";
 import { RECEIPT, SHOP, pointsEarned } from "@/lib/config";
 import { CLAIM_DAYS, getBill } from "@/lib/pos";
 import Login from "../../../Login";
-import BtPrint, { type BtReceipt } from "./BtPrint";
+import { btReceipt } from "@/lib/receipt";
+import BtPrint from "./BtPrint";
 import PrintButton from "./PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -28,18 +29,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const change = bill.payMethod === "cash" && bill.cashReceived != null ? bill.cashReceived - bill.total : 0;
 
   // ใบเสร็จชุดเดียวกัน สำหรับเครื่องพิมพ์ Bluetooth 58 มม.
-  const bt: BtReceipt = {
-    no,
-    when: when(bill.paidAt!),
-    label: bill.label ?? "",
-    items: orders.flatMap((o) => o.items.map((i) => ({ name: i.name, qty: i.qty, price: baht(i.price), detail: i.detail ?? "" }))),
-    subtotal: baht(bill.subtotal),
-    promo: bill.promoDiscount > 0 ? { code: bill.promoCode ?? "", amount: baht(bill.promoDiscount) } : null,
-    total: baht(bill.total),
-    pay: bill.payMethod === "cash" ? "เงินสด" : "พร้อมเพย์ QR",
-    cash: bill.payMethod === "cash" && bill.cashReceived != null ? { received: baht(bill.cashReceived), change: baht(change) } : null,
-    claim: qr && earn > 0 ? { url: claimUrl, earn, days: CLAIM_DAYS } : null,
-  };
+  const bt = btReceipt(bill);
 
   return (
     <main className="rc-page">

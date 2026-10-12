@@ -2215,3 +2215,11 @@ small .bf-code { margin-right: 6px; }
 .rc-wifi b { font-size: 12px; }
 .rc-note { margin: 6px 0 0; font-size: 10.5px; line-height: 1.45; text-align: center; }
 .rc-note-h { margin: 6px 0 0; font-size: 12px; font-weight: 700; line-height: 1.3; text-align: center; }
+/* POS: เครื่องพิมพ์ใบเสร็จ Bluetooth */
+.ps-printer { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px dashed var(--line); background: #fff; color: var(--deep); font: inherit; font-weight: 600; font-size: 13.5px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.ps-printer i { width: 9px; height: 9px; border-radius: 50%; background: #c9c3b4; }
+.ps-printer.on { border-style: solid; border-color: #9bbf6a; }
+.ps-printer.on i { background: #3ea34a; box-shadow: 0 0 0 3px rgba(62,163,74,.2); }
+.ps-printmsg { margin: 0; font-size: 14px; color: var(--deep); }
+.ps-auto { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--mute); cursor: pointer; }
+.ps-auto input { width: 18px; height: 18px; accent-color: var(--deep); }

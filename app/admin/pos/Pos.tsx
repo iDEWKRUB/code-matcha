@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BAR_MAX_QTY, barCode, barIdFromQr, type BarItem } from "@/lib/bar";
+import { btSupported, connectPrinter, onPrinter, printErr, printReceipt, type BtReceipt, type PrinterState } from "@/lib/btPrinter";
 import BarFilter, { useBarFilter } from "../../bar/BarFilter";
 import {
   MAX_QTY,
@@ -80,6 +81,43 @@ export default function Pos() {
   const [err, setErr] = useState("");
   const [pay, setPay] = useState<Pay | null>(null);
   const [paid, setPaid] = useState<PosBill | null>(null);
+  // เครื่องพิมพ์ Bluetooth: เชื่อมครั้งเดียวตอนเปิดร้าน แล้วพิมพ์ใบเสร็จเองทุกครั้งที่ชำระ
+  const [pr, setPr] = useState<PrinterState>({ name: "", connected: false });
+  const [canBt, setCanBt] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(true);
+  const [paidReceipt, setPaidReceipt] = useState<BtReceipt | null>(null);
+  const [printMsg, setPrintMsg] = useState("");
+  useEffect(() => {
+    setCanBt(btSupported());
+    try {
+      setAutoPrint(localStorage.getItem("pos-autoprint") !== "0");
+    } catch {}
+    return onPrinter(setPr);
+  }, []);
+  const toggleAuto = () =>
+    setAutoPrint((v) => {
+      try {
+        localStorage.setItem("pos-autoprint", v ? "0" : "1");
+      } catch {}
+      return !v;
+    });
+  async function pairPrinter() {
+    setPrintMsg("");
+    try {
+      await connectPrinter();
+    } catch (e) {
+      setPrintMsg(printErr(e));
+    }
+  }
+  async function btPrint(r: BtReceipt) {
+    setPrintMsg("กำลังพิมพ์ใบเสร็จ…");
+    try {
+      await printReceipt(r, (p) => setPrintMsg(`กำลังพิมพ์ใบเสร็จ… ${p}%`));
+      setPrintMsg("พิมพ์ใบเสร็จแล้ว");
+    } catch (e) {
+      setPrintMsg(printErr(e));
+    }
+  }
   const [history, setHistory] = useState(false);
 
   const load = useCallback(async () => {
@@ -237,7 +275,7 @@ export default function Pos() {
     const cash = pay.method === "cash" ? (pay.cash ? Number(pay.cash) : due) : null;
     setBusy(true);
     try {
-      const r = await api<{ bill: PosBill; bills: PosBill[] }>({
+      const r = await api<{ bill: PosBill; bills: PosBill[]; receipt: BtReceipt | null }>({
         action: "pay",
         billId: pay.billId,
         method: pay.method,
@@ -246,6 +284,10 @@ export default function Pos() {
       });
       setPay(null);
       setPaid(r.bill);
+      setPaidReceipt(r.receipt);
+      setPrintMsg("");
+      // เคยเลือกเครื่องไว้แล้ว = พิมพ์ทันที (ไม่ต้องกดอะไร)
+      if (autoPrint && pr.name && r.receipt) btPrint(r.receipt);
       setBillId(null);
       setLabel("");
       load();
@@ -302,6 +344,12 @@ export default function Pos() {
               มาม่าบาร์
             </button>
           </nav>
+          {canBt && (
+            <button className={`ps-printer${pr.connected ? " on" : ""}`} onClick={pairPrinter} title="เครื่องพิมพ์ใบเสร็จ Bluetooth">
+              <i aria-hidden="true" />
+              {pr.name ? (pr.connected ? `เครื่องพิมพ์ · ${pr.name}` : "เครื่องพิมพ์หลุด · กดเชื่อมใหม่") : "เชื่อมเครื่องพิมพ์"}
+            </button>
+          )}
           <a className="ps-back" href="/admin">
             หลังร้าน
           </a>
@@ -635,9 +683,15 @@ export default function Pos() {
               {billName(paid)} · {paid.payMethod === "cash" ? "เงินสด" : "พร้อมเพย์ QR"}
               {paid.payMethod === "cash" && paid.cashReceived != null && paid.cashReceived > paid.total && ` · ทอน ${baht(paid.cashReceived - paid.total)}`}
             </span>
+            {printMsg && <p className="ps-printmsg">{printMsg}</p>}
+            {canBt && (
+              <label className="ps-auto">
+                <input type="checkbox" checked={autoPrint} onChange={toggleAuto} /> พิมพ์ใบเสร็จอัตโนมัติหลังชำระ
+              </label>
+            )}
             <div className="ps-acts">
-              <button className="ps-later" onClick={() => receipt(paid.id)}>
-                พิมพ์ใบเสร็จ
+              <button className="ps-later" onClick={() => (canBt && paidReceipt ? btPrint(paidReceipt) : receipt(paid.id))}>
+                {printMsg && pr.name ? "พิมพ์อีกครั้ง" : "พิมพ์ใบเสร็จ"}
               </button>
               <button className="ps-pay" onClick={() => setPaid(null)}>
                 บิลต่อไป
