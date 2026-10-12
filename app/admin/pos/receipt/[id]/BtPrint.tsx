@@ -155,15 +155,15 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
     y += 4;
     g.drawImage(q, (W - 168) / 2, y);
     y += 176;
-    center(`ใช้ได้ครั้งเดียว ภายใน ${r.claim.days} วัน · ครั้งหน้าสั่งล่วงหน้าผ่าน LINE ได้เลย`, 15);
+    center(`ใช้ได้ครั้งเดียว ภายใน ${r.claim.days} วัน`, 15);
   }
   // Wi-Fi: กรอบเส้นประ ชื่อ + รหัสตัวหนา
   dash();
   center("Wi-Fi ฟรี", 19, true);
   center(`ชื่อ: ${RECEIPT.wifi.ssid}`, 20);
-  center(`รหัส: ${RECEIPT.wifi.pass}`, 22, true);
+  center(`รหัส: ${RECEIPT.wifi.pass}`, 20);
   dash();
-  center(RECEIPT.noticeTitle, 24, true);
+  center(RECEIPT.noticeTitle, 19, true);
   y += 2;
   center(RECEIPT.notice, 17);
   rule(3);

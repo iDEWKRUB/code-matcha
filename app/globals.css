@@ -2213,6 +2213,5 @@ small .bf-code { margin-right: 6px; }
 .bt-warn { color: #a12c15; font-weight: 600; }
 .rc-wifi { display: grid; justify-items: center; gap: 1px; font-size: 12px; }
 .rc-wifi b { font-size: 12px; }
-.rc-wifi span:last-child { font-weight: 700; }
 .rc-note { margin: 6px 0 0; font-size: 10.5px; line-height: 1.45; text-align: center; }
-.rc-note-h { margin: 6px 0 0; font-size: 14px; font-weight: 700; line-height: 1.3; text-align: center; }
+.rc-note-h { margin: 6px 0 0; font-size: 12px; font-weight: 700; line-height: 1.3; text-align: center; }
