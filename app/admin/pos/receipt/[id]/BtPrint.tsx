@@ -2,6 +2,7 @@
 
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
+import { SEAL_GLYPHS } from "@/lib/cupSticker";
 
 // ข้อมูลใบเสร็จสำหรับวาดลงกระดาษ 58 มม.
 export type BtReceipt = {
@@ -15,7 +16,6 @@ export type BtReceipt = {
   pay: string;
   cash: { received: string; change: string } | null;
   claim: { url: string; earn: number; days: number } | null;
-  reviewUrl: string;
 };
 
 const W = 384; // หัวพิมพ์ 58 มม. = 48 มม. x 8 จุด/มม.
@@ -43,8 +43,9 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
   g.fillStyle = "#fff";
   g.fillRect(0, 0, W, c.height);
   g.fillStyle = "#000";
+  g.strokeStyle = "#000";
   g.textBaseline = "top";
-  let y = 10;
+  let y = 14;
   const set = (size: number, bold = false) => (g.font = `${bold ? 700 : 500} ${size}px ${font}`);
   // ตัดบรรทัดที่ช่องว่างก่อน (คำอังกฤษไม่ขาดกลางคำ) ถ้าคำยาวเกินบรรทัดค่อยตัดทีละตัวอักษร
   const wrap = (s: string, max: number) => {
@@ -67,89 +68,101 @@ async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
     if (line.trim()) out.push(line.trimEnd());
     return out;
   };
-  const row = (l: string, rr: string, size = 22, bold = false) => {
+  const row = (l: string, rr: string, size = 21, bold = false, indent = 0) => {
     set(size, bold);
     const rw = rr ? g.measureText(rr).width : 0;
-    const lines = wrap(l, W - PAD * 2 - rw - 10);
-    lines.forEach((t, i) => g.fillText(t, PAD, y + i * (size + 6)));
+    const lines = wrap(l, W - PAD * 2 - indent - rw - 12);
+    lines.forEach((t, i) => g.fillText(t, PAD + indent, y + i * (size + 5)));
     if (rr) g.fillText(rr, W - PAD - rw, y);
-    y += lines.length * (size + 6) + 2;
+    y += lines.length * (size + 5) + 3;
   };
-  const center = (s: string, size: number, bold = false) => {
+  const center = (s: string, size: number, bold = false, spacing = 0) => {
     set(size, bold);
+    g.letterSpacing = `${spacing}px`;
     for (const t of wrap(s, W - PAD * 2)) {
       g.fillText(t, (W - g.measureText(t).width) / 2, y);
       y += size + 6;
     }
+    g.letterSpacing = "0px";
   };
-  const hr = () => {
-    y += 4;
-    for (let x = PAD; x < W - PAD; x += 8) g.fillRect(x, y, 4, 2);
-    y += 10;
+  const dash = () => {
+    y += 6;
+    for (let x = PAD; x < W - PAD; x += 7) g.fillRect(x, y, 4, 2);
+    y += 12;
   };
-  const qr = async (url: string, title: string, sub: string) => {
-    const q = document.createElement("canvas");
-    await QRCode.toCanvas(q, url, { margin: 0, width: 150, errorCorrectionLevel: "M" });
-    g.drawImage(q, PAD, y);
-    const x = PAD + 162;
-    set(20, true);
-    let ty = y + 8;
-    for (const t of wrap(title, W - x - PAD)) {
-      g.fillText(t, x, ty);
-      ty += 26;
-    }
-    set(16);
-    for (const t of wrap(sub, W - x - PAD)) {
-      g.fillText(t, x, ty);
-      ty += 22;
-    }
-    y += Math.max(150, ty - y) + 6;
+  const rule = (h = 2) => {
+    y += 6;
+    g.fillRect(PAD, y, W - PAD * 2, h);
+    y += h + 10;
+  };
+  const rrect = (x: number, yy: number, w: number, h: number, rad: number) => {
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x, yy, w, h, rad);
+    else g.rect(x, yy, w, h);
   };
 
-  // หัว: ตรา 暗号 + ชื่อร้าน
-  const s = 64;
-  const sx = (W - s) / 2;
-  g.beginPath();
-  if (g.roundRect) g.roundRect(sx, y, s, s, 8);
-  else g.rect(sx, y, s, s);
-  g.fill();
-  g.fillStyle = "#fff";
-  g.font = `700 24px "Yu Mincho", "Hiragino Mincho ProN", serif`;
-  for (const [i, ch] of ["暗", "号"].entries()) g.fillText(ch, sx + (s - g.measureText(ch).width) / 2, y + 6 + i * 28);
-  g.fillStyle = "#000";
-  y += s + 8;
-  center("CODE-MATCHA", 28, true);
-  center("Matcha & Working Space", 18);
-  hr();
-  row(`ใบเสร็จ ${r.no}`, "", 20);
-  row(r.when, "", 20);
-  if (r.label) row(`${r.label} · ทานที่ร้าน`, "", 20);
-  hr();
+  // หัว: ตรา 暗号 พื้นขาว ขอบดำคู่ ตัวพู่กันสีดำ
+  const S = 84, sx = (W - S) / 2;
+  rrect(sx, y, S, S, 10);
+  g.lineWidth = 4;
+  g.stroke();
+  rrect(sx + 6, y + 6, S - 12, S - 12, 6);
+  g.lineWidth = 1.5;
+  g.stroke();
+  g.save();
+  g.translate(sx, y);
+  g.scale(S / 100, S / 100);
+  g.fill(new Path2D(SEAL_GLYPHS));
+  g.restore();
+  y += S + 12;
+  center("CODE-MATCHA", 30, true, 3);
+  center("MATCHA | WORKING SPACE", 15, false, 3);
+  center("W.Place 3 ซ.กรุงเทพนนท์ 8", 16);
+  rule(3);
+  row(`ใบเสร็จ ${r.no}`, "", 19);
+  row(r.when, r.label ? `${r.label} · ทานที่ร้าน` : "", 19);
+  dash();
   for (const i of r.items) {
-    row(`${i.name} ×${i.qty}`, i.price, 22);
-    if (i.detail) row(i.detail, "", 17);
+    row(`${i.name}`, i.price, 22, true);
+    row(`x${i.qty}${i.detail ? "  ·  " + i.detail : ""}`, "", 17, false, 14);
+    y += 4;
   }
-  hr();
-  row("รวม", r.subtotal);
-  if (r.promo) row(`โค้ด ${r.promo.code}`, `-${r.promo.amount}`);
-  row("ยอดสุทธิ", `฿${r.total}`, 28, true);
-  row("ชำระโดย", r.pay, 20);
+  dash();
+  row("รวม", r.subtotal, 20);
+  if (r.promo) row(`โค้ด ${r.promo.code}`, `-${r.promo.amount}`, 20);
+  // ยอดสุทธิ: แถบดำ ตัวขาว
+  y += 6;
+  g.fillRect(PAD, y, W - PAD * 2, 50);
+  g.fillStyle = "#fff";
+  set(22, true);
+  g.fillText("ยอดสุทธิ", PAD + 12, y + 13);
+  set(30, true);
+  const tt = `฿${r.total}`;
+  g.fillText(tt, W - PAD - 12 - g.measureText(tt).width, y + 8);
+  g.fillStyle = "#000";
+  y += 62;
+  row("ชำระโดย", r.pay, 19);
   if (r.cash) {
-    row("รับเงิน", r.cash.received, 20);
-    row("เงินทอน", r.cash.change, 20);
+    row("รับเงิน", r.cash.received, 19);
+    row("เงินทอน", r.cash.change, 19);
   }
   if (r.claim) {
-    hr();
-    await qr(r.claim.url, `รับ ${r.claim.earn} แต้มใน LINE`, `ใช้ได้ครั้งเดียว ภายใน ${r.claim.days} วัน`);
+    dash();
+    const q = document.createElement("canvas");
+    await QRCode.toCanvas(q, r.claim.url, { margin: 0, width: 168, errorCorrectionLevel: "M" });
+    center(`สแกนรับ ${r.claim.earn} แต้มใน LINE`, 21, true);
+    y += 4;
+    g.drawImage(q, (W - 168) / 2, y);
+    y += 176;
+    center(`ใช้ได้ครั้งเดียว ภายใน ${r.claim.days} วัน · ครั้งหน้าสั่งล่วงหน้าผ่าน LINE ได้เลย`, 15);
   }
-  if (r.reviewUrl) {
-    hr();
-    await qr(r.reviewUrl, "ให้คะแนนบิลนี้", "ไม่ระบุชื่อ · ทุกคะแนนเรานำไปปรับปรุง");
-  }
-  hr();
-  center("ありがとうございました", 20);
-  center("ขอบคุณที่แวะมา CODE-MATCHA", 20);
-  y += 10;
+  rule(3);
+  g.font = `500 21px "Yu Mincho", "Hiragino Mincho ProN", serif`;
+  const jp = "ありがとうございました";
+  g.fillText(jp, (W - g.measureText(jp).width) / 2, y);
+  y += 30;
+  center("ขอบคุณที่แวะมา CODE-MATCHA", 18);
+  y += 12;
 
   const out = document.createElement("canvas");
   out.width = W;
