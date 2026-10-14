@@ -130,8 +130,9 @@ export default function OrderPage() {
   const [service, setService] = useState<Service | null>(null);
   const [tableNo, setTableNo] = useState("");
   const [note, setNote] = useState("");
-  // การ์ดเมนูที่พลิกไปดูรูปจริงอยู่
-  const [flipped, setFlipped] = useState<Set<string>>(new Set());
+  // เริ่มต้นเป็นรูปจริง · กดปุ่มเพื่อสลับดูการ์ตูน (หน้าเมนูทั้งหมด ทั้งหน้า / หน้ารายละเอียด ทีละแก้ว)
+  const [toon, setToon] = useState(false);
+  const [sheetToon, setSheetToon] = useState(false);
   // เลือกเมนูแบบการ์ดสไลด์ (ค่าเริ่มต้น) หรือดูเมนูทั้งหมดแบบตาราง (จำไว้ในเครื่อง)
   const [view, setView] = useState<"deck" | "grid">("deck");
   useEffect(() => {
@@ -145,7 +146,6 @@ export default function OrderPage() {
       localStorage.setItem("menu-view", v);
     } catch {}
   };
-  const flip = (id: string) => setFlipped((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // ข้อความบนแก้ว: ร้านติดสติ๊กเกอร์ QR เฉพาะออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความขึ้น
   const [cup, setCup] = useState({ msg: "", to: "", from: "", forCup: "" });
   const [sending, setSending] = useState(false);
@@ -343,6 +343,7 @@ export default function OrderPage() {
 
   function open(it: MenuItem) {
     setEdit(it);
+    setSheetToon(false);
     track("view_item");
     const food = it.kind === "food";
     setOpts({
@@ -643,9 +644,14 @@ export default function OrderPage() {
         />
       )}
       {view === "grid" && (
-        <button type="button" className="dk-back" onClick={() => pickView("deck")}>
-          ‹ กลับไปเลือกแบบการ์ดสไลด์
-        </button>
+        <div className="grid-tools">
+          <button type="button" className="dk-back" onClick={() => pickView("deck")}>
+            ‹ กลับไปแบบการ์ดสไลด์
+          </button>
+          <button type="button" className="toon-btn" aria-pressed={toon} onClick={() => setToon((v) => !v)}>
+            {toon ? "ดูรูปจริง" : "ดูการ์ตูน"}
+          </button>
+        </div>
       )}
       {view === "grid" && MENU_GROUPS.map(({ id: kind, label }) => {
         const list = menu.filter((m) => menuGroup(m) === kind);
@@ -660,21 +666,12 @@ export default function OrderPage() {
         {list.map((m) => {
           const n = cart.filter((l) => l.itemId === m.id).reduce((a, l) => a + l.qty, 0);
           return (
-            <li key={m.id} className={m.photoUrl && m.kind !== "food" ? "has-photo" : undefined}>
+            <li key={m.id} className={m.photoUrl && m.kind !== "food" && !toon ? "photo-view" : undefined}>
               <button className="card" style={tint(artTint(m))} onClick={() => open(m)} disabled={!m.available}>
-                <div className={`card-art${flipped.has(m.id) ? " flipped" : ""}`}>
-                  {m.photoUrl && m.kind !== "food" ? (
-                    <span className="art-flip">
-                      <span className="art-face">
-                        <MenuArt item={m} size={104} />
-                      </span>
-                      <span className="art-face art-back">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img className="art-blur" src={m.photoUrl} alt="" aria-hidden="true" loading="lazy" />
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={m.photoUrl} alt={`รูปจริง ${m.name}`} loading="lazy" />
-                      </span>
-                    </span>
+                <div className="card-art">
+                  {m.photoUrl && m.kind !== "food" && !toon ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="card-photo" src={m.photoUrl} alt={m.name} loading="lazy" />
                   ) : (
                     <MenuArt item={m} size={104} />
                   )}
@@ -699,23 +696,6 @@ export default function OrderPage() {
                   {m.available && !closed && <span className="plus" aria-hidden="true">+</span>}
                 </div>
               </button>
-              {m.photoUrl && m.kind !== "food" && (
-                <button
-                  type="button"
-                  className="flip-btn"
-                  aria-pressed={flipped.has(m.id)}
-                  aria-label={flipped.has(m.id) ? `ดูการ์ตูน ${m.name}` : `ดูรูปจริง ${m.name}`}
-                  onClick={() => flip(m.id)}
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />
-                    <path d="M21 3v5h-5" />
-                    <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
-                    <path d="M3 21v-5h5" />
-                  </svg>
-                  {flipped.has(m.id) ? "การ์ตูน" : "รูปจริง"}
-                </button>
-              )}
             </li>
           );
         })}
@@ -738,7 +718,12 @@ export default function OrderPage() {
           <div className="backdrop" onClick={close} />
           <div className="sheet" role="dialog" aria-label="เลือกตัวเลือก">
             <div className="grab" />
-            {edit.photoUrl && edit.kind !== "food" ? (
+            {edit.photoUrl && edit.kind !== "food" && (
+              <button type="button" className="sheet-toon" aria-pressed={sheetToon} onClick={() => setSheetToon((v) => !v)}>
+                {sheetToon ? "ดูรูปจริง" : "ดูการ์ตูน"}
+              </button>
+            )}
+            {edit.photoUrl && edit.kind !== "food" && !sheetToon ? (
               <div className="sheet-photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={edit.photoUrl} alt={edit.name} />

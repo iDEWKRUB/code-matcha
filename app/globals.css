@@ -2297,3 +2297,14 @@ small .bf-code { margin-right: 6px; }
 .dk-arrow.prev { left: 6px; }
 .dk-arrow.next { right: 6px; }
 .dk { margin-top: 8px; }
+/* หน้าเมนูทั้งหมด: รูปจริงเป็นค่าเริ่มต้น (แนวตั้ง 3:4) + ปุ่มสลับการ์ตูน */
+.grid-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 20px 0; }
+.grid-tools .dk-back { margin: 0; }
+.toon-btn { min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE2CF; background: #fff; color: #2F4A2A; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.toon-btn[aria-pressed="true"] { background: #2F4A2A; color: #fff; border-color: #2F4A2A; }
+.grid li.photo-view .card-art { padding: 0; aspect-ratio: 3 / 4; overflow: hidden; background: #F2EEE5; }
+.card-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card:disabled .card-photo { filter: grayscale(1); opacity: .55; }
+/* หน้ารายละเอียด: ปุ่มสลับรูปจริง/การ์ตูน มุมขวาบนของภาพ */
+.sheet-toon { position: absolute; right: 26px; top: 30px; z-index: 2; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: rgba(28,36,25,.8); color: #fff; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.sheet-toon[aria-pressed="true"] { background: #fff; color: #1C2419; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
