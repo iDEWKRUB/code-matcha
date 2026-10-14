@@ -72,7 +72,18 @@ async function shrink(file: File): Promise<Blob> {
 }
 
 // แจ้งให้ชัดว่าตอนนี้สั่งไม่ได้เพราะอะไร และเปิดอีกทีเมื่อไร
-function ClosedNotice({ hours, compact = false }: { hours: Hours; compact?: boolean }) {
+function ClosedNotice({ hours, compact = false, slim = false }: { hours: Hours; compact?: boolean; slim?: boolean }) {
+  // แถบบางบนหน้าเมนู: บอกว่าร้านปิดแบบไม่แย่งความเด่นจากการ์ดเมนู (ตอนกดสั่งยังแจ้งเต็ม ๆ)
+  if (slim)
+    return (
+      <p className="closed-slim" role="status">
+        <Icon name="clock" size={15} />
+        <span>
+          <b>{hours.accepting ? "หมดเวลาสั่งวันนี้" : "ปิดรับออเดอร์ชั่วคราว"}</b>
+          {hours.accepting ? ` · เปิด ${hours.openTime}–${hours.closeTime} น.` : " · ดูเมนูไว้ก่อนได้"}
+        </span>
+      </p>
+    );
   return (
     <div className={`closed-note${compact ? " compact" : ""}`} role="status">
       <span className="closed-ico">
@@ -600,7 +611,7 @@ export default function OrderPage() {
           </a>
         </nav>
       )}
-      {closed && <ClosedNotice hours={hours!} />}
+      {closed && <ClosedNotice hours={hours!} slim />}
       {friendCard && <div className="friend-wrap">{friendCard}</div>}
       {invitedBy && (
         <p className="promo-banner invite-banner" role="note">
