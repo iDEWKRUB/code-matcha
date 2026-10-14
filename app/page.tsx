@@ -41,6 +41,7 @@ import PowderThumb, { powderTone } from "./PowderThumb";
 import Seal from "./Seal";
 import ReviewStrip, { RatingBadge } from "./review/ReviewStrip";
 import Notice from "./Notice";
+import MenuDeck from "./MenuDeck";
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
@@ -120,6 +121,19 @@ export default function OrderPage() {
   const [note, setNote] = useState("");
   // การ์ดเมนูที่พลิกไปดูรูปจริงอยู่
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
+  // เลือกเมนูแบบการ์ดสไลด์ (ค่าเริ่มต้น) หรือดูเมนูทั้งหมดแบบตาราง (จำไว้ในเครื่อง)
+  const [view, setView] = useState<"deck" | "grid">("deck");
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("menu-view") === "grid") setView("grid");
+    } catch {}
+  }, []);
+  const pickView = (v: "deck" | "grid") => {
+    setView(v);
+    try {
+      localStorage.setItem("menu-view", v);
+    } catch {}
+  };
   const flip = (id: string) => setFlipped((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // ข้อความบนแก้ว: ร้านติดสติ๊กเกอร์ QR เฉพาะออเดอร์นี้ คนได้แก้วสแกนแล้วข้อความขึ้น
   const [cup, setCup] = useState({ msg: "", to: "", from: "", forCup: "" });
@@ -607,7 +621,20 @@ export default function OrderPage() {
         </p>
       )}
 
-      {MENU_GROUPS.map(({ id: kind, label }) => {
+      {view === "deck" && (
+        <MenuDeck
+          groups={MENU_GROUPS.map(({ id, label }) => ({ id, label, items: menu.filter((m) => menuGroup(m) === id) })).filter((x) => x.items.length)}
+          count={(id) => cart.filter((l) => l.itemId === id).reduce((a, l) => a + l.qty, 0)}
+          onPick={open}
+          onShowAll={() => pickView("grid")}
+        />
+      )}
+      {view === "grid" && (
+        <button type="button" className="dk-back" onClick={() => pickView("deck")}>
+          ‹ กลับไปเลือกแบบการ์ดสไลด์
+        </button>
+      )}
+      {view === "grid" && MENU_GROUPS.map(({ id: kind, label }) => {
         const list = menu.filter((m) => menuGroup(m) === kind);
         if (!list.length) return null;
         return (
@@ -698,6 +725,12 @@ export default function OrderPage() {
           <div className="backdrop" onClick={close} />
           <div className="sheet" role="dialog" aria-label="เลือกตัวเลือก">
             <div className="grab" />
+            {edit.photoUrl && edit.kind !== "food" ? (
+              <div className="sheet-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={edit.photoUrl} alt={edit.name} />
+              </div>
+            ) : (
             <div className="sheet-art" style={tint(artTint(edit))}>
               {edit.kind === "food" ? (
                 <Food
@@ -721,6 +754,7 @@ export default function OrderPage() {
                 />
               )}
             </div>
+            )}
             <p className="jp" style={{ fontSize: 14 }}>{edit.jp}</p>
             <h2>{edit.name}</h2>
             <p className="ds">{edit.description}</p>
