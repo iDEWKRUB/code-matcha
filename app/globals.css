@@ -2287,3 +2287,13 @@ small .bf-code { margin-right: 6px; }
 .hero-chips .rv-badge b { font-size: 12.5px; }
 .hero-seal svg, .hero-seal > * { max-width: 44px; max-height: 44px; }
 .dk-deck { height: 276px; }
+/* การ์ดสไลด์ใหญ่ขึ้น: ขนาดตามจอ (--cw = ความกว้างการ์ดใบกลาง) */
+.dk-deck { height: calc(var(--cw, 250px) * 4 / 3 + 26px); }
+.dk-card { width: var(--cw, 250px); height: calc(var(--cw, 250px) * 4 / 3); margin-left: calc(var(--cw, 250px) / -2); border-radius: 24px; }
+.dk-card.on { box-shadow: 0 0 0 2.5px rgba(168,211,90,.7), 0 0 46px -2px rgba(168,211,90,.85), 0 26px 40px -20px rgba(0,0,0,.5); }
+.dk-price { right: 12px; bottom: 12px; font-size: 16px; padding: 4px 14px; }
+.dk-flag { left: 12px; bottom: 12px; font-size: 12px; padding: 4px 11px; }
+.dk-arrow { top: calc(var(--cw, 250px) * 2 / 3 - 20px); }
+.dk-arrow.prev { left: 6px; }
+.dk-arrow.next { right: 6px; }
+.dk { margin-top: 8px; }

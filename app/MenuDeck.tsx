@@ -6,7 +6,8 @@ import MenuArt, { artTint } from "./MenuArt";
 
 export type DeckGroup = { id: string; label: string; items: MenuItem[] };
 
-const STEP = 112; // ระยะห่างการ์ดแต่ละใบ (px)
+// ขนาดการ์ดตามความกว้างจอ: การ์ดใบกลางกว้าง ~68% ของจอ (สูงสุด 300px) สัดส่วน 3:4 เท่ารูปโปสเตอร์
+const cardW = (w: number) => Math.round(Math.min(300, Math.max(200, w * 0.68)));
 
 // เลือกเมนูแบบการ์ดสไลด์: ปัดซ้าย-ขวา ใบกลางเรืองแสง · แตะการ์ด/กดปุ่ม = เปิดหน้าตัวเลือกเดิม
 // ไม่มีลากลง: ใน LINE การลากลงคือท่าปิดหน้าเว็บ (ลากแนวตั้งปล่อยให้เลื่อนหน้าตามปกติ)
@@ -26,6 +27,15 @@ export default function MenuDeck({
   const group = groups.find((x) => x.id === g) ?? groups[0];
   const list = group?.items ?? [];
   const [cur, setCur] = useState(0);
+  const deckRef = useRef<HTMLDivElement>(null);
+  const [cw, setCw] = useState(250);
+  useEffect(() => {
+    const fit = () => setCw(cardW(deckRef.current?.clientWidth ?? window.innerWidth));
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+  const STEP = cw * 0.62; // ระยะห่างการ์ดแต่ละใบ
   const [drag, setDrag] = useState<number | null>(null); // ระยะลากแนวนอน (px)
   const start = useRef<{ x: number; y: number; mode: "x" | "y" | null; id: number } | null>(null);
 
@@ -86,7 +96,9 @@ export default function MenuDeck({
         </div>
       )}
       <div
+        ref={deckRef}
         className={`dk-deck${drag ? " drag" : ""}`}
+        style={{ "--cw": `${cw}px` } as React.CSSProperties}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -109,7 +121,7 @@ export default function MenuDeck({
               data-i={i}
               className={`dk-card${a < 0.5 ? " on" : ""}${it.available ? "" : " out"}`}
               style={{
-                transform: `translateX(${d * STEP}px) translateY(${a * 14}px) translateZ(${-a * 110}px) rotateY(${-d * 16}deg)`,
+                transform: `translateX(${d * STEP}px) translateY(${a * 18}px) translateZ(${-a * 140}px) rotateY(${-d * 18}deg)`,
                 opacity: a > 2.4 ? 0 : 1 - a * 0.25,
                 zIndex: 10 - Math.round(a),
               }}
