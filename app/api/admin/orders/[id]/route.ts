@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { orderUri, type Card } from "@/lib/flex";
+import { orderReceiptUrl } from "@/lib/orderReceipt";
 import { pushCard } from "@/lib/line";
 import type { OrderStatus } from "@/lib/menu";
 import { ORDER_COLUMNS, earnPoints, itemLines, pointsBalance, revokeEarned, rowWhen, type OrderRow } from "@/lib/orders";
@@ -79,6 +80,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       note: "ขอบคุณที่อุดหนุน CODE-MATCHA · ทุกคะแนนรีวิว เราจะนำไปปรับปรุงให้ดีขึ้นเพื่อลูกค้า (ไม่ระบุชื่อ)",
       // รีวิวผ่านการ์ดเดิม ไม่ต้องส่งข้อความเพิ่ม (ไม่กินโควตา LINE)
       button: { label: "ให้คะแนนแก้วนี้", uri: `${orderUri()}/review?o=${current.id}` },
+      link: { label: "ดูใบเสร็จ", uri: orderReceiptUrl(current.id) },
     });
   }
   if (to === "cancelled") {

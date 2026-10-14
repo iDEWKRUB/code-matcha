@@ -21,6 +21,7 @@ export type Card = {
   items?: string[]; // รายการอาหาร/เครื่องดื่ม (แสดงเป็นบรรทัด)
   note?: string; // ข้อความเล็กท้ายการ์ด
   button?: { label: string; uri: string };
+  link?: { label: string; uri: string }; // ปุ่มรองแบบลิงก์ใต้ปุ่มหลัก (เช่น ดูใบเสร็จ)
   hero?: string; // รูปใหญ่ด้านบน (https) กดแล้วไปที่ลิงก์ของปุ่ม
 };
 
@@ -99,14 +100,18 @@ export function bubble(c: Card) {
           },
         }),
     body: { type: "box", layout: "vertical", paddingAll: "18px", backgroundColor: "#fbfcf6", contents: body.length ? body : [text(" ")] },
-    ...(c.button
+    ...(c.button || c.link
       ? {
           footer: {
             type: "box",
             layout: "vertical",
             paddingAll: "12px",
+            spacing: "sm",
             backgroundColor: "#fbfcf6",
-            contents: [{ type: "button", style: "primary", color, height: "sm", action: { type: "uri", label: c.button.label, uri: c.button.uri } }],
+            contents: [
+              ...(c.button ? [{ type: "button", style: "primary", color, height: "sm", action: { type: "uri", label: c.button.label, uri: c.button.uri } }] : []),
+              ...(c.link ? [{ type: "button", style: "link", color, height: "sm", action: { type: "uri", label: c.link.label, uri: c.link.uri } }] : []),
+            ],
           },
         }
       : {}),

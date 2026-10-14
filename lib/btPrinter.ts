@@ -12,6 +12,7 @@ export type BtReceipt = {
   items: { name: string; qty: number; price: string; detail: string }[];
   subtotal: string;
   promo: { code: string; amount: string } | null;
+  adjust?: { label: string; amount: string }[]; // ส่วนลดอื่น เช่น ใช้แต้ม
   total: string;
   pay: string;
   cash: { received: string; change: string } | null;
@@ -131,6 +132,7 @@ export async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
   dash();
   row("รวม", r.subtotal, 20);
   if (r.promo) row(`โค้ด ${r.promo.code}`, `-${r.promo.amount}`, 20);
+  for (const a of r.adjust ?? []) row(a.label, `-${a.amount}`, 20);
   // ยอดสุทธิ: แถบดำ ตัวขาว
   y += 6;
   g.fillRect(PAD, y, W - PAD * 2, 50);

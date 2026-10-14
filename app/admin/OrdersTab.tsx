@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Order, OrderStatus } from "@/lib/menu";
+import { printErr, printReceipt, type BtReceipt } from "@/lib/btPrinter";
 import Icon from "../Icon";
 
 export type Stats = { orders: number; revenue: number; cups: number };
@@ -121,6 +122,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                         </a>
                       </div>
                     )}
+                    {o.channel === "line" && st !== "payment_review" && <ReceiptButton id={o.id} />}
                     {st === "payment_review" && o.hasSlip && (
                       <a className="slip" href={`/api/admin/orders/${o.id}/slip`} target="_blank" rel="noreferrer">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -152,5 +154,30 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
         })}
       </div>
     </>
+  );
+}
+
+// พิมพ์ใบเสร็จของออเดอร์ LINE ออกเครื่อง Bluetooth 58 มม. (เมื่อลูกค้าขอใบเสร็จกระดาษ)
+function ReceiptButton({ id }: { id: number }) {
+  const [msg, setMsg] = useState("");
+  async function go() {
+    setMsg("กำลังพิมพ์…");
+    try {
+      const r = await fetch(`/api/admin/orders/${id}/receipt`);
+      const j = (await r.json()) as { receipt?: BtReceipt; error?: string };
+      if (!r.ok || !j.receipt) throw new Error(j.error ?? "โหลดใบเสร็จไม่สำเร็จ");
+      await printReceipt(j.receipt, (p) => setMsg(`กำลังพิมพ์… ${p}%`));
+      setMsg("พิมพ์แล้ว");
+    } catch (e) {
+      setMsg(printErr(e));
+    }
+  }
+  return (
+    <div className="rcpt-wrap">
+      <button type="button" className="rcpt-btn" onClick={go} disabled={msg.startsWith("กำลัง")}>
+        <Icon name="note" size={15} /> พิมพ์ใบเสร็จ
+      </button>
+      {msg && <small>{msg}</small>}
+    </div>
   );
 }

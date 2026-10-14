@@ -2223,3 +2223,11 @@ small .bf-code { margin-right: 6px; }
 .ps-printmsg { margin: 0; font-size: 14px; color: var(--deep); }
 .ps-auto { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--mute); cursor: pointer; }
 .ps-auto input { width: 18px; height: 18px; accent-color: var(--deep); }
+.rc-hint { margin: 0; font-size: 13px; color: #6b7163; text-align: center; }
+.rc-miss { margin: 40px 16px; text-align: center; color: #555; }
+.mb-receipt { color: var(--matcha, #2F4A2A); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+/* การ์ดออเดอร์: พิมพ์ใบเสร็จ LINE (Bluetooth) */
+.rcpt-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.rcpt-btn { min-height: 34px; padding: 0 12px; border-radius: 10px; border: 1px dashed var(--edge); background: #fff; color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.rcpt-btn:disabled { opacity: .6; }
+.rcpt-wrap small { font-size: 12px; color: var(--stone); }

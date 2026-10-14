@@ -456,7 +456,17 @@ export default function MemberPage() {
                 <li key={i}>
                   <div>
                     <b>{h.label}</b>
-                    <small>{dateTH(h.at, { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</small>
+                    <small>
+                      {dateTH(h.at, { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      {h.receipt && (
+                        <>
+                          {" · "}
+                          <a className="mb-receipt" href={h.receipt} target="_blank" rel="noopener">
+                            ใบเสร็จ ›
+                          </a>
+                        </>
+                      )}
+                    </small>
                   </div>
                   <span className={h.delta > 0 ? "mb-plus" : "mb-minus"}>
                     {h.delta > 0 ? "+" : "−"}

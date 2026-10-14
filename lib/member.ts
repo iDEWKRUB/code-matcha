@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { MenuItem } from "./menu";
+import { orderReceiptUrl } from "./orderReceipt";
 import { getMenu } from "./orders";
 import { referralInfo } from "./referral";
 import { db } from "./supabase";
@@ -29,7 +30,7 @@ export type Coupon = {
   customerName?: string;
 };
 
-export type HistoryRow = { at: string; delta: number; kind: string; label: string };
+export type HistoryRow = { at: string; delta: number; kind: string; label: string; receipt?: string }; // receipt = ลิงก์ใบเสร็จออนไลน์ (ออเดอร์ LINE)
 
 type RewardRow = {
   id: number;
@@ -114,7 +115,7 @@ type LedgerRow = {
   kind: string;
   note: string;
   created_at: string;
-  orders: { daily_no: number; status: string; expires_at: string | null; pickup_date: string } | null;
+  orders: { id: number; channel: string; daily_no: number; status: string; expires_at: string | null; pickup_date: string } | null;
 };
 
 // แต้มที่ใช้กับออเดอร์ที่ยกเลิก/หมดเวลาจ่าย ถือว่าคืนแล้ว (ตรงกับ points_balance ในฐานข้อมูล)
@@ -129,7 +130,7 @@ export async function memberSummary(userId: string, name: string) {
   const [ledger, coupons, firstOrder, rewards, menu, referral] = await Promise.all([
     db()
       .from("points_ledger")
-      .select("delta,kind,note,created_at,orders(daily_no,status,expires_at,pickup_date)")
+      .select("delta,kind,note,created_at,orders(id,channel,daily_no,status,expires_at,pickup_date)")
       .eq("line_user_id", userId)
       .order("created_at", { ascending: false }),
     db().from("reward_redemptions").select(REDEMPTION_COLUMNS).eq("line_user_id", userId).neq("status", "cancelled").order("created_at", { ascending: false }).limit(20),
@@ -152,6 +153,7 @@ export async function memberSummary(userId: string, name: string) {
     delta: r.delta,
     kind: r.kind,
     label: r.kind === "reward" ? `แลก ${r.note}` : r.kind === "referral" ? r.note : r.orders ? `${LABEL[r.kind] ?? r.kind} #${r.orders.daily_no}` : (LABEL[r.kind] ?? r.kind),
+    ...(r.kind === "earn" && r.orders?.channel === "line" && r.orders.status !== "cancelled" ? { receipt: orderReceiptUrl(r.orders.id) } : {}),
   }));
 
   // รูปการ์ตูนของของขวัญ: ส่งเฉพาะเมนูที่ใช้
