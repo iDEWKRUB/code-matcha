@@ -8,7 +8,8 @@ export type DeckGroup = { id: string; label: string; items: MenuItem[] };
 
 const STEP = 112; // ระยะห่างการ์ดแต่ละใบ (px)
 
-// เลือกเมนูแบบการ์ดสไลด์: ปัดซ้าย-ขวา ใบกลางเรืองแสง · แตะ/ลากลงช่อง/กดปุ่ม = เปิดหน้าตัวเลือกเดิม
+// เลือกเมนูแบบการ์ดสไลด์: ปัดซ้าย-ขวา ใบกลางเรืองแสง · แตะการ์ด/กดปุ่ม = เปิดหน้าตัวเลือกเดิม
+// ไม่มีลากลง: ใน LINE การลากลงคือท่าปิดหน้าเว็บ (ลากแนวตั้งปล่อยให้เลื่อนหน้าตามปกติ)
 // มีรูปจริงใช้รูปจริง ไม่มีรูปใช้การ์ตูน · เมนูหมดเป็นสีเทาเลือกไม่ได้
 export default function MenuDeck({
   groups,
@@ -25,7 +26,7 @@ export default function MenuDeck({
   const group = groups.find((x) => x.id === g) ?? groups[0];
   const list = group?.items ?? [];
   const [cur, setCur] = useState(0);
-  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const [drag, setDrag] = useState<number | null>(null); // ระยะลากแนวนอน (px)
   const start = useRef<{ x: number; y: number; mode: "x" | "y" | null; id: number } | null>(null);
 
   // เปลี่ยนหมวด: เริ่มที่ใบที่ 2 (มีการ์ดทั้งสองข้าง) หรือใบแรกถ้ามีใบเดียว
@@ -45,23 +46,22 @@ export default function MenuDeck({
     if ((e.target as HTMLElement).closest(".dk-arrow")) return;
     start.current = { x: e.clientX, y: e.clientY, mode: null, id: e.pointerId };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
   }
   function move(e: React.PointerEvent) {
     const s = start.current;
     if (!s || s.id !== e.pointerId) return;
     const dx = e.clientX - s.x, dy = e.clientY - s.y;
-    if (!s.mode && Math.hypot(dx, dy) > 8) s.mode = Math.abs(dx) > Math.abs(dy) ? "x" : dy > 0 ? "y" : "x";
-    if (s.mode === "x") setDrag({ dx, dy: 0 });
-    if (s.mode === "y") setDrag({ dx: 0, dy });
+    if (!s.mode && Math.hypot(dx, dy) > 8) s.mode = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (s.mode === "x") setDrag(dx);
   }
   function up(e: React.PointerEvent) {
     const s = start.current;
     if (!s || s.id !== e.pointerId) return;
     start.current = null;
     setDrag(null);
-    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    const dx = e.clientX - s.x;
     if (s.mode === "x" && Math.abs(dx) > 40) return go(at + (dx < 0 ? 1 : -1));
-    if (s.mode === "y" && dy > 80) return pick(m);
     if (!s.mode) {
       const hit = (e.target as HTMLElement).closest<HTMLElement>("[data-i]");
       if (hit) {
@@ -72,7 +72,7 @@ export default function MenuDeck({
     }
   }
 
-  const f = drag ? -drag.dx / STEP : 0;
+  const f = drag ? -drag / STEP : 0;
   return (
     <section className="dk" aria-label="เลือกเมนู">
       <h2 className="dk-q">วันนี้เลือกแก้วไหนดี?</h2>
@@ -86,7 +86,7 @@ export default function MenuDeck({
         </div>
       )}
       <div
-        className={`dk-deck${drag ? " drag" : ""}${drag && drag.dy > 60 ? " near" : ""}`}
+        className={`dk-deck${drag ? " drag" : ""}`}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -101,7 +101,6 @@ export default function MenuDeck({
       >
         {list.map((it, i) => {
           const d = i - at - f, a = Math.abs(d), on = i === at;
-          const y = on && drag ? Math.max(0, drag.dy) : 0;
           const n = count(it.id);
           const photo = it.photoUrl && it.kind !== "food";
           return (
@@ -110,7 +109,7 @@ export default function MenuDeck({
               data-i={i}
               className={`dk-card${a < 0.5 ? " on" : ""}${it.available ? "" : " out"}`}
               style={{
-                transform: `translateX(${d * STEP}px) translateY(${a * 14 + y}px) translateZ(${-a * 110}px) rotateY(${-d * 16}deg) scale(${on && y ? 1 - Math.min(y, 120) / 600 : 1})`,
+                transform: `translateX(${d * STEP}px) translateY(${a * 14}px) translateZ(${-a * 110}px) rotateY(${-d * 16}deg)`,
                 opacity: a > 2.4 ? 0 : 1 - a * 0.25,
                 zIndex: 10 - Math.round(a),
               }}
@@ -149,9 +148,6 @@ export default function MenuDeck({
             </button>
           </>
         )}
-        <div className="dk-slot" aria-hidden="true">
-          ลากลงมาเพื่อเลือก
-        </div>
       </div>
       <div className="dk-info" aria-live="polite">
         <small>{m.jp}</small>
