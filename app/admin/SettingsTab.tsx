@@ -11,6 +11,7 @@ import { Price } from "./MenuTab";
 import MemberPanel from "./MemberPanel";
 import MessageLog from "./MessageLog";
 import PromoPanel from "./PromoPanel";
+import WifiPanel from "./WifiPanel";
 
 type Section = "shop" | "menu" | "promo" | "member" | "line";
 const SECTIONS: { id: Section; icon: IconName; label: string; hint: string }[] = [
@@ -366,6 +367,8 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
         </div>
       </section>
       )}
+
+      {sec === "shop" && <WifiPanel />}
 
       {sec === "promo" && (
       <section className="panel">

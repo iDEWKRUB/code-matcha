@@ -8,7 +8,7 @@ import { getMenu, getPowders } from "@/lib/orders";
 import { promoDiscount } from "@/lib/promo";
 import { checkPromo } from "@/lib/promoServer";
 import { addOrder, createBill, getBill, openBills, payBill, posQr, recentPaidBills } from "@/lib/pos";
-import { btReceipt } from "@/lib/receipt";
+import { btReceipt, getWifi } from "@/lib/receipt";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -79,14 +79,14 @@ export async function POST(req: Request) {
     const r = await payBill(billId, { method: b.method, cashReceived: b.cashReceived ?? null, promoCode: b.promoCode });
     if ("error" in r) return fail(r.error, 409);
     // ใบเสร็จสำหรับพิมพ์ Bluetooth อัตโนมัติหลังชำระ
-    const full = await getBill(billId);
-    return NextResponse.json({ bill: r.bill, bills: await openBills(), receipt: full ? btReceipt(full) : null });
+    const [full, wifi] = await Promise.all([getBill(billId), getWifi()]);
+    return NextResponse.json({ bill: r.bill, bills: await openBills(), receipt: full ? btReceipt(full, wifi) : null });
   }
 
   if (b.action === "receipt") {
     const bill = await getBill(billId);
     if (!bill || bill.status !== "paid") return fail("ไม่พบใบเสร็จนี้ (หรือบิลยังไม่ได้ชำระ)", 404);
-    return NextResponse.json({ receipt: btReceipt(bill) });
+    return NextResponse.json({ receipt: btReceipt(bill, await getWifi()) });
   }
 
   if (b.action === "order") {

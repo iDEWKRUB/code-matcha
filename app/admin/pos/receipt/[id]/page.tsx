@@ -4,7 +4,7 @@ import { isAdmin } from "@/lib/auth";
 import { RECEIPT, SHOP, pointsEarned } from "@/lib/config";
 import { CLAIM_DAYS, getBill } from "@/lib/pos";
 import Login from "../../../Login";
-import { btReceipt } from "@/lib/receipt";
+import { btReceipt, getWifi } from "@/lib/receipt";
 import BtPrint from "./BtPrint";
 import PrintButton from "./PrintButton";
 
@@ -29,7 +29,8 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const change = bill.payMethod === "cash" && bill.cashReceived != null ? bill.cashReceived - bill.total : 0;
 
   // ใบเสร็จชุดเดียวกัน สำหรับเครื่องพิมพ์ Bluetooth 58 มม.
-  const bt = btReceipt(bill);
+  const wifi = await getWifi();
+  const bt = btReceipt(bill, wifi);
 
   return (
     <main className="rc-page">
@@ -115,11 +116,13 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
           </>
         )}
         <hr />
-        <div className="rc-wifi">
-          <b>Wi-Fi</b>
-          <span>ชื่อ: {RECEIPT.wifi.ssid}</span>
-          <span>รหัส: {RECEIPT.wifi.pass}</span>
-        </div>
+        {wifi && (
+          <div className="rc-wifi">
+            <b>Wi-Fi</b>
+            <span>ชื่อ: {wifi.ssid}</span>
+            {wifi.pass && <span>รหัส: {wifi.pass}</span>}
+          </div>
+        )}
         <p className="rc-note-h">{RECEIPT.noticeTitle}</p>
         <p className="rc-note">{RECEIPT.notice}</p>
         <hr />

@@ -2,6 +2,16 @@ import "server-only";
 import type { BtReceipt } from "./btPrinter";
 import { SHOP, pointsEarned } from "./config";
 import { CLAIM_DAYS, type PosBill } from "./pos";
+import { db } from "./supabase";
+
+export type Wifi = { ssid: string; pass: string };
+
+// Wi-Fi ท้ายใบเสร็จ (ตั้งในหน้าแอดมิน) · ยังไม่ได้ตั้ง หรืออ่านไม่ได้ = null แล้วใบเสร็จจะไม่พิมพ์ส่วน Wi-Fi
+export async function getWifi(): Promise<Wifi | null> {
+  const { data, error } = await db().from("shop_settings").select("wifi_ssid,wifi_pass").eq("id", 1).maybeSingle();
+  if (error || !data?.wifi_ssid) return null;
+  return { ssid: data.wifi_ssid, pass: data.wifi_pass ?? "" };
+}
 
 export const baht = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const receiptWhen = (s: string) =>
@@ -16,7 +26,7 @@ export function claimLink(bill: PosBill) {
 }
 
 // ข้อมูลใบเสร็จสำหรับเครื่องพิมพ์ Bluetooth 58 มม. (หน้าใบเสร็จ + พิมพ์อัตโนมัติหลังชำระใน POS ใช้ชุดเดียวกัน)
-export function btReceipt(bill: PosBill): BtReceipt {
+export function btReceipt(bill: PosBill, wifi: Wifi | null): BtReceipt {
   const orders = bill.orders.filter((o) => o.status !== "cancelled");
   const earn = pointsEarned(bill.total);
   const url = claimLink(bill);
@@ -32,5 +42,6 @@ export function btReceipt(bill: PosBill): BtReceipt {
     pay: bill.payMethod === "cash" ? "เงินสด" : "พร้อมเพย์ QR",
     cash: bill.payMethod === "cash" && bill.cashReceived != null ? { received: baht(bill.cashReceived), change: baht(change) } : null,
     claim: url && earn > 0 ? { url, earn, days: CLAIM_DAYS } : null,
+    wifi,
   };
 }

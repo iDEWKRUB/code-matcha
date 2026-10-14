@@ -16,6 +16,7 @@ export type BtReceipt = {
   pay: string;
   cash: { received: string; change: string } | null;
   claim: { url: string; earn: number; days: number } | null;
+  wifi: { ssid: string; pass: string } | null;
 };
 
 const W = 384; // หัวพิมพ์ 58 มม. = 48 มม. x 8 จุด/มม.
@@ -159,10 +160,12 @@ export async function drawReceipt(r: BtReceipt): Promise<HTMLCanvasElement> {
   }
   // Wi-Fi: กรอบเส้นประ ชื่อ + รหัสตัวหนา
   dash();
-  center("Wi-Fi ฟรี", 19, true);
-  center(`ชื่อ: ${RECEIPT.wifi.ssid}`, 20);
-  center(`รหัส: ${RECEIPT.wifi.pass}`, 20);
-  dash();
+  if (r.wifi) {
+    center("Wi-Fi ฟรี", 19, true);
+    center(`ชื่อ: ${r.wifi.ssid}`, 20);
+    if (r.wifi.pass) center(`รหัส: ${r.wifi.pass}`, 20);
+    dash();
+  }
   center(RECEIPT.noticeTitle, 19, true);
   y += 2;
   center(RECEIPT.notice, 17);
