@@ -363,9 +363,13 @@ export default function Pos() {
                   ["all", "ทั้งหมด"],
                   ["drink", "เครื่องดื่มมัทฉะ"],
                   ["soda", "เครื่องดื่มโซดา"],
+                  ["tea", "เครื่องดื่มชา"],
                   ["food", "อาหาร & ขนม"],
                 ] as [Cat, string][]
-              ).map(([id, t]) => (
+              )
+                // หมวดที่ไม่มีเมนูเลยไม่ต้องแสดง
+                .filter(([id]) => id === "all" || data.menu.some((m) => menuGroup(m) === id))
+                .map(([id, t]) => (
                 <button key={id} aria-pressed={cat === id} onClick={() => setCat(id)}>
                   {t}
                 </button>

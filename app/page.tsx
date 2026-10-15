@@ -637,7 +637,12 @@ export default function OrderPage() {
 
       {view === "deck" && (
         <MenuDeck
-          groups={MENU_GROUPS.map(({ id, label }) => ({ id, label, items: menu.filter((m) => menuGroup(m) === id) })).filter((x) => x.items.length)}
+          groups={[
+            // หมวดพิเศษก่อน: โปรวันนี้ / เมนูแนะนำ (ไม่มีเมนู = ไม่แสดงแท็บ)
+            { id: "promo", label: "โปรวันนี้!", hot: true, items: menu.filter((m) => m.promoPrice !== null) },
+            { id: "rec", label: "เมนูแนะนำ", items: menu.filter((m) => m.recommended) },
+            ...MENU_GROUPS.map(({ id, label }) => ({ id, label, items: menu.filter((m) => menuGroup(m) === id) })),
+          ].filter((x) => x.items.length)}
           count={(id) => cart.filter((l) => l.itemId === id).reduce((a, l) => a + l.qty, 0)}
           onPick={open}
           onShowAll={() => pickView("grid")}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MenuItem } from "@/lib/menu";
 import MenuArt, { artTint } from "./MenuArt";
 
-export type DeckGroup = { id: string; label: string; items: MenuItem[] };
+export type DeckGroup = { id: string; label: string; items: MenuItem[]; hot?: boolean }; // hot = แท็บเด่นสีแดง (โปร)
 
 // ขนาดการ์ดตามความกว้างจอ: การ์ดใบกลางกว้าง ~68% ของจอ (สูงสุด 300px) สัดส่วน 3:4 เท่ารูปโปสเตอร์
 const cardW = (w: number) => Math.round(Math.min(300, Math.max(200, w * 0.68)));
@@ -89,7 +89,7 @@ export default function MenuDeck({
       {groups.length > 1 && (
         <div className="dk-tabs" role="group" aria-label="หมวดเมนู">
           {groups.map((x) => (
-            <button key={x.id} type="button" aria-pressed={x.id === group.id} onClick={() => setG(x.id)}>
+            <button key={x.id} type="button" className={x.hot ? "hot" : undefined} aria-pressed={x.id === group.id} onClick={() => setG(x.id)}>
               {x.label}
             </button>
           ))}
@@ -179,7 +179,7 @@ export default function MenuDeck({
         {m.available ? "เลือกแก้วนี้" : "หมดวันนี้"}
       </button>
       <button type="button" className="dk-all" onClick={onShowAll}>
-        ดูเมนูทั้งหมด ({groups.reduce((s, x) => s + x.items.length, 0)})
+        ดูเมนูทั้งหมด ({new Set(groups.flatMap((x) => x.items.map((i) => i.id))).size})
       </button>
     </section>
   );

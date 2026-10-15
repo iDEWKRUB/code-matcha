@@ -76,14 +76,17 @@ export const LOOK_IDS = [...LOOKS, ...FOOD_LOOKS].map((l) => l.id);
 export const lookOf = (item: Pick<MenuItem, "id" | "look">) => item.look ?? item.id;
 
 // หมวดในหน้าสั่ง: เมนูที่ใช้แก้วโซดาผลไม้ (look ลงท้าย -soda) อยู่หมวด "เครื่องดื่มโซดา" ให้อัตโนมัติ
-export type MenuGroup = "drink" | "soda" | "food";
+export type MenuGroup = "drink" | "soda" | "tea" | "food";
 export const MENU_GROUPS: { id: MenuGroup; label: string }[] = [
   { id: "drink", label: "เครื่องดื่มมัทฉะ" },
   { id: "soda", label: "เครื่องดื่มโซดา" },
-  { id: "food", label: "อาหาร" },
+  { id: "tea", label: "เครื่องดื่มชา" },
+  { id: "food", label: "อาหาร & ขนม" },
 ];
-export const menuGroup = (item: Pick<MenuItem, "id" | "look" | "kind">): MenuGroup =>
-  item.kind === "food" ? "food" : lookOf(item).endsWith("-soda") ? "soda" : "drink";
+// ชา (ไม่ใช่มัทฉะ) ดูจากชื่อ: มีคำว่า ชา / tea แต่ไม่มี มัทฉะ / matcha
+const isTea = (name: string) => /ชา|tea/i.test(name) && !/มัทฉะ|matcha/i.test(name);
+export const menuGroup = (item: Pick<MenuItem, "id" | "look" | "kind"> & { name?: string }): MenuGroup =>
+  item.kind === "food" ? "food" : lookOf(item).endsWith("-soda") ? "soda" : isTea(item.name ?? "") ? "tea" : "drink";
 
 export const basePrice = (item: MenuItem) => item.promoPrice ?? item.price;
 

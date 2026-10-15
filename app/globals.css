@@ -2308,3 +2308,9 @@ small .bf-code { margin-right: 6px; }
 /* หน้ารายละเอียด: ปุ่มสลับรูปจริง/การ์ตูน มุมขวาบนของภาพ */
 .sheet-toon { position: absolute; right: 26px; top: 30px; z-index: 2; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: rgba(28,36,25,.8); color: #fff; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .sheet-toon[aria-pressed="true"] { background: #fff; color: #1C2419; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+/* แท็บหมวดการ์ดสไลด์: เลื่อนแนวนอนได้เมื่อหมวดเยอะ · โปรวันนี้ = สีแดง */
+.dk-tabs { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.dk-tabs::-webkit-scrollbar { display: none; }
+.dk-tabs button { flex-shrink: 0; }
+.dk-tabs button.hot { color: #C23B22; }
+.dk-tabs button.hot[aria-pressed="true"] { background: #C23B22; color: #fff; }
