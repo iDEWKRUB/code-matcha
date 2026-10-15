@@ -721,46 +721,53 @@ export default function OrderPage() {
       {edit && opts && (
         <>
           <div className="backdrop" onClick={close} />
-          <div className="sheet" role="dialog" aria-label="เลือกตัวเลือก">
-            <div className="grab" />
-            {edit.photoUrl && edit.kind !== "food" && (
-              <button type="button" className="sheet-toon" aria-pressed={sheetToon} onClick={() => setSheetToon((v) => !v)}>
-                {sheetToon ? "ดูรูปจริง" : "ดูการ์ตูน"}
-              </button>
-            )}
-            {edit.photoUrl && edit.kind !== "food" && !sheetToon ? (
-              <div className="sheet-photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={edit.photoUrl} alt={edit.name} />
-              </div>
+          <div className="sheet sheet-opt" role="dialog" aria-label="เลือกตัวเลือก">
+            {/* หัวแผ่น: รูปเล็กซ้าย + ชื่อ/คำอธิบาย + ปุ่มปิด (ไม่มีแถบลาก ลากลงใน LINE = ปิดหน้า) */}
+            <div className="sheet-top">
+              <div className="sheet-thumb" style={tint(artTint(edit))}>
+                {edit.photoUrl && edit.kind !== "food" && !sheetToon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={edit.photoUrl} alt={edit.name} />
+                ) : (
+                  <>
+            {edit.kind === "food" ? (
+              <Food
+                look={lookOf(edit)}
+                toppings={opts.toppings.filter((id) => freeToppings(edit).some((t) => t.id === id))}
+                choices={opts.toppings}
+                size={96}
+              />
             ) : (
-            <div className="sheet-art" style={tint(artTint(edit))}>
-              {edit.kind === "food" ? (
-                <Food
-                  look={lookOf(edit)}
-                  toppings={opts.toppings.filter((id) => freeToppings(edit).some((t) => t.id === id))}
-                  choices={opts.toppings}
-                  size={150}
-                />
-              ) : (
-                <Cup
-                  key={`${edit.id}-${opts.temp}-${opts.milk}`}
-                  itemId={lookOf(edit)}
-                  temp={opts.temp}
-                  milk={opts.milk}
-                  sweet={opts.sweet}
-                  powder={edit && opts.powder && powderExtra(edit, powders.find((p) => p.id === opts.powder) ?? { extraPerGram: 0 }) > 0 ? "rich" : null}
-                  extraShot={opts.extraShot}
-                  softCream={opts.softCream}
-                  animate
-                  size={150}
-                />
-              )}
-            </div>
+              <Cup
+                key={`${edit.id}-${opts.temp}-${opts.milk}`}
+                itemId={lookOf(edit)}
+                temp={opts.temp}
+                milk={opts.milk}
+                sweet={opts.sweet}
+                powder={edit && opts.powder && powderExtra(edit, powders.find((p) => p.id === opts.powder) ?? { extraPerGram: 0 }) > 0 ? "rich" : null}
+                extraShot={opts.extraShot}
+                softCream={opts.softCream}
+                animate
+                size={96}
+              />
             )}
-            <p className="jp" style={{ fontSize: 14 }}>{edit.jp}</p>
-            <h2>{edit.name}</h2>
-            <p className="ds">{edit.description}</p>
+                  </>
+                )}
+              </div>
+              <div className="sheet-head">
+                <p className="jp">{edit.jp}</p>
+                <h2>{edit.name}</h2>
+                {edit.description && <p className="ds">{edit.description}</p>}
+                {edit.photoUrl && edit.kind !== "food" && (
+                  <button type="button" className="sheet-toon" aria-pressed={sheetToon} onClick={() => setSheetToon((v) => !v)}>
+                    {sheetToon ? "ดูรูปจริง" : "ดูการ์ตูน"}
+                  </button>
+                )}
+              </div>
+              <button type="button" className="sheet-x" aria-label="ปิด" onClick={close}>
+                <Icon name="close" size={20} />
+              </button>
+            </div>
 
             {edit.kind === "food" &&
               optionGroups(edit).map((g) => (

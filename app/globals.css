@@ -2314,3 +2314,20 @@ small .bf-code { margin-right: 6px; }
 .dk-tabs button { flex-shrink: 0; }
 .dk-tabs button.hot { color: #C23B22; }
 .dk-tabs button.hot[aria-pressed="true"] { background: #C23B22; color: #fff; }
+/* แผ่นตัวเลือกแก้ว: หัวกระชับ (รูปเล็ก + ชื่อ + ปุ่มปิด) · กันเลื่อนทะลุจนหน้า LINE ปิด */
+.sheet { overscroll-behavior: contain; }
+html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavior: none; }
+.sheet-opt { padding-top: 0; }
+.sheet-top { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 12px; align-items: start; margin: 0 -20px 6px; padding: 14px 16px 12px 20px; background: #fff; border-bottom: 1px solid #EEF0E6; }
+.sheet-thumb { width: 96px; aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden; background: var(--tint, #F2EEE5); display: grid; place-items: center; }
+.sheet-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet-thumb > * { max-width: 100%; }
+.sheet-thumb [class*="pour"], .sheet-thumb .cup-label { display: none; }
+.sheet-head { min-width: 0; display: grid; gap: 2px; align-content: start; }
+.sheet-head .jp { margin: 0; font-size: 12px; }
+.sheet-head h2 { margin: 0; font-size: 19px; line-height: 1.25; }
+.sheet-head .ds { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--stone, #6B7163); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sheet-head .sheet-toon { position: static; justify-self: start; margin-top: 6px; min-height: 28px; padding: 0 11px; font-size: 12px; background: #F1F3EA; color: #2F4A2A; }
+.sheet-head .sheet-toon[aria-pressed="true"] { background: #2F4A2A; color: #fff; box-shadow: none; }
+.sheet-x { width: 38px; height: 38px; border-radius: 50%; border: 0; background: #F1F3EA; color: #1C2419; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+.sheet-x:active { transform: scale(.94); }
