@@ -25,6 +25,7 @@ type Form = {
   maxUses: string;
   expiresOn: string;
   note: string;
+  showCustomers: boolean;
 };
 const EMPTY: Form = {
   code: "",
@@ -37,6 +38,7 @@ const EMPTY: Form = {
   maxUses: "",
   expiresOn: "",
   note: "",
+  showCustomers: true,
 };
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const digits = (s: string) => s.replace(/\D/g, "");
@@ -154,12 +156,18 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
         maxUses: num(form.maxUses),
         expiresOn: form.expiresOn || null,
         note: form.note,
+        showCustomers: form.showCustomers,
       }),
     );
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return setErr(j.error ?? "บันทึกไม่สำเร็จ");
     setPromos(j);
     setForm(null);
+  }
+
+  async function toggleShow(p: PromoRule) {
+    const r = await fetch(`/api/admin/promos/${encodeURIComponent(p.code)}`, json("PATCH", { showCustomers: !p.showCustomers }));
+    if (r.ok) setPromos(await r.json());
   }
 
   async function toggle(p: PromoRule) {
@@ -234,6 +242,9 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
                   {p.expiresOn ? ` · ถึง ${p.expiresOn}` : " · ไม่หมดอายุ"}
                   {p.note ? ` · ${p.note}` : ""}
                 </small>
+                <button type="button" className={`show-chip${p.showCustomers ? " on" : ""}`} onClick={() => toggleShow(p)}>
+                  {p.showCustomers ? "แสดงในหน้าชำระ" : "โค้ดลับ (ไม่แสดง)"}
+                </button>
               </div>
               <button className="toggle" role="switch" aria-checked={p.active} onClick={() => toggle(p)}>
                 <span className="knob" aria-hidden="true" />
@@ -290,6 +301,10 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
             <label className="row" style={{ marginTop: 12 }}>
               <span>เฉพาะลูกค้าใหม่ (ยังไม่เคยสั่ง)</span>
               <input type="checkbox" checked={form.newCustomersOnly} onChange={(e) => set("newCustomersOnly", e.target.checked)} />
+            </label>
+            <label className="row" style={{ marginTop: 8 }}>
+              <span>แสดงให้ลูกค้าเห็นในหน้าชำระ (กดใช้ได้เลย ไม่ต้องพิมพ์)</span>
+              <input type="checkbox" checked={form.showCustomers} onChange={(e) => set("showCustomers", e.target.checked)} />
             </label>
             <label className="promo-note">
               บันทึกช่วยจำ (ไม่แสดงให้ลูกค้า)

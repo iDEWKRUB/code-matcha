@@ -195,6 +195,8 @@ export default function OrderPage() {
   const [usePoints, setUsePoints] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
+  // โค้ดที่ร้านเปิดให้เห็น (โหลดตอนเปิดหน้าชำระ) กดแล้วใช้เลย
+  const [offers, setOffers] = useState<(AppliedPromo & { label: string; expiresOn: string | null })[]>([]);
   const [promoErr, setPromoErr] = useState("");
   const [promoBusy, setPromoBusy] = useState(false);
   const [bar, setBar] = useState<BarHours | null>(null);
@@ -317,7 +319,8 @@ export default function OrderPage() {
   const pointsToUse = usePoints ? usable : 0;
   const payAmount = afterPromo - pointsToUse;
 
-  async function applyPromo() {
+  async function applyPromo(code = promoInput) {
+    setPromoInput(code);
     setPromoErr("");
     setPromoBusy(true);
     try {
@@ -325,7 +328,7 @@ export default function OrderPage() {
       const r = await fetch("/api/promo", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ code: promoInput, subtotal: total }),
+        body: JSON.stringify({ code, subtotal: total }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error ?? "ใช้โค้ดไม่ได้");
@@ -362,6 +365,11 @@ export default function OrderPage() {
   async function openCheckout() {
     setSendErr("");
     setCheckout(true);
+    const tk = liff.current ? liff.current.getIDToken() : "dev";
+    fetch("/api/promo", { headers: { Authorization: `Bearer ${tk}` } })
+      .then((r) => (r.ok ? r.json() : { promos: [] }))
+      .then((j) => setOffers(j.promos ?? []))
+      .catch(() => setOffers([]));
     loadMenu().catch(() => {}); // รีเฟรชที่ว่างของช่องเวลา
     loadMine().catch(() => {});
   }
@@ -1103,7 +1111,7 @@ export default function OrderPage() {
                   onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === "Enter" && promoInput && applyPromo()}
                 />
-                <button className="btn primary-sm" disabled={!promoInput || promoBusy} onClick={applyPromo}>
+                <button className="btn primary-sm" disabled={!promoInput || promoBusy} onClick={() => applyPromo()}>
                   {promoBusy ? "…" : "ใช้โค้ด"}
                 </button>
               </div>
@@ -1112,6 +1120,24 @@ export default function OrderPage() {
               <p className="err" role="alert">
                 {promoErr}
               </p>
+            )}
+            {!promo && offers.length > 0 && (
+              <div className="offers" aria-label="โค้ดที่ใช้ได้">
+                {offers.map((o) => {
+                  const short = total < o.minSpend ? o.minSpend - total : 0;
+                  return (
+                    <button key={o.code} type="button" className="offer" disabled={promoBusy || short > 0} onClick={() => applyPromo(o.code)}>
+                      <span className="offer-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
+                      <span className="offer-t">
+                        <b>{o.code}</b>
+                        <small>{o.label}{o.expiresOn ? ` · ถึง ${o.expiresOn.slice(8)}/${o.expiresOn.slice(5, 7)}` : ""}</small>
+                        {short > 0 && <small className="offer-short">ซื้อเพิ่มอีก ฿{short} ใช้ได้</small>}
+                      </span>
+                      <span className="offer-go">{short > 0 ? "ยังไม่ครบ" : "ใช้เลย"}</span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
 
             <div className="lg">

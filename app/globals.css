@@ -2337,3 +2337,16 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .owhen .pk.soon { background: #fde9c9; color: #7a4a00; }
 .owhen .pk.late { background: #fbe0da; color: #a12c15; }
 .owhen .pk.now { background: #dfeefa; color: #0e3b6d; }
+/* หน้าชำระ: โค้ดที่ใช้ได้ (คูปองกดใช้) · แอดมิน: ป้ายแสดง/ซ่อนโค้ด */
+.offers { display: grid; gap: 8px; margin-top: 8px; }
+.offer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1.5px dashed #b7c99a; background: #f6f9ee; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.offer:disabled { cursor: default; opacity: .75; }
+.offer-v { min-width: 54px; height: 44px; border-radius: 10px; background: #C23B22; color: #fff; font-weight: 800; font-size: 17px; display: grid; place-items: center; padding: 0 8px; }
+.offer-t { display: grid; gap: 1px; min-width: 0; }
+.offer-t b { font-size: 14.5px; letter-spacing: .04em; }
+.offer-t small { font-size: 12px; color: var(--stone); }
+.offer-t .offer-short { color: #a4472e; font-weight: 600; }
+.offer-go { font-size: 13px; font-weight: 700; color: #2F4A2A; white-space: nowrap; }
+.offer:disabled .offer-go { color: var(--stone); font-weight: 600; }
+.show-chip { margin-top: 6px; min-height: 26px; padding: 0 10px; border-radius: 999px; border: 1px dashed var(--edge); background: #fff; color: var(--stone); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.show-chip.on { border-style: solid; border-color: #9bbf6a; background: #eef3e2; color: #2F4A2A; }

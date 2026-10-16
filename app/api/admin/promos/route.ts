@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     expires_on: expires,
     active: b.active !== false,
     note: typeof b.note === "string" ? b.note.trim().slice(0, 80) : "",
+    show_customers: b.showCustomers === true,
   };
   const { error } = await db().from("promo_codes").upsert(row);
   if (error) throw error;

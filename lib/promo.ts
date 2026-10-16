@@ -12,6 +12,7 @@ export type PromoRule = {
   expiresOn: string | null; // YYYY-MM-DD
   active: boolean;
   note: string;
+  showCustomers: boolean; // แสดงในหน้าชำระเงินให้ลูกค้ากดใช้
   used?: number; // จำนวนครั้งที่ใช้แล้ว (หน้าแอดมิน)
 };
 

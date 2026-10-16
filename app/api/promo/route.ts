@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import { verifyIdToken } from "@/lib/line";
-import { checkPromo } from "@/lib/promoServer";
+import { promoLabel } from "@/lib/promo";
+import { checkPromo, customerPromos } from "@/lib/promoServer";
+
+// โค้ดที่ลูกค้าคนนี้ใช้ได้ (ร้านเลือกให้แสดงในหน้าชำระ) · ไม่ส่งบันทึกช่วยจำของร้านออกไป
+export async function GET(req: Request) {
+  const token = req.headers.get("authorization")?.replace(/^Bearers+/i, "");
+  const user = token ? await verifyIdToken(token) : null;
+  if (!user) return NextResponse.json({ promos: [] });
+  const list = await customerPromos(user.userId);
+  return NextResponse.json({
+    promos: list.map((r) => ({ code: r.code, kind: r.kind, value: r.value, maxDiscount: r.maxDiscount, minSpend: r.minSpend, newCustomersOnly: r.newCustomersOnly, expiresOn: r.expiresOn, label: promoLabel(r) })),
+  });
+}
 
 // ลูกค้ากด "ใช้โค้ด" ในตะกร้า → ตรวจสิทธิ์ แล้วส่งกติกากลับไปคำนวณส่วนลดในหน้าเว็บ
 export async function POST(req: Request) {

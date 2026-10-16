@@ -5,7 +5,7 @@ import { db } from "./supabase";
 import { nowInShop } from "./time";
 
 const COLUMNS =
-  "code,kind,value,maxDiscount:max_discount,minSpend:min_spend,newCustomersOnly:new_customers_only,perUserLimit:per_user_limit,maxUses:max_uses,expiresOn:expires_on,active,note";
+  "code,kind,value,maxDiscount:max_discount,minSpend:min_spend,newCustomersOnly:new_customers_only,perUserLimit:per_user_limit,maxUses:max_uses,expiresOn:expires_on,active,note,showCustomers:show_customers";
 
 // นับเฉพาะออเดอร์ที่ยังมีผล (ไม่ถูกยกเลิก และไม่ใช่รอจ่ายที่หมดเวลาแล้ว)
 async function countUses(code: string, userId?: string) {
@@ -47,4 +47,17 @@ export async function checkPromo(input: string, userId: string, subtotal: number
     if ((count ?? 0) > 0) return { error: "โค้ดนี้สำหรับลูกค้าใหม่ที่ยังไม่เคยสั่งเท่านั้น" };
   }
   return { rule };
+}
+
+// โค้ดที่ร้านเปิดให้เห็นในหน้าชำระ และลูกค้าคนนี้ใช้ได้ (ยอดยังไม่ถึงขั้นต่ำก็แสดง พร้อมบอกว่าขาดอีกเท่าไร)
+export async function customerPromos(userId: string): Promise<PromoRule[]> {
+  const { data, error } = await db().from("promo_codes").select(COLUMNS).eq("active", true).eq("show_customers", true);
+  if (error) throw error;
+  const out: PromoRule[] = [];
+  for (const r of data as unknown as PromoRule[]) {
+    // ตรวจสิทธิ์ด้วยยอดที่ถึงขั้นต่ำพอดี (เรื่องยอดให้หน้าเว็บบอกเอง)
+    const ok = await checkPromo(r.code, userId, Math.max(r.minSpend, 1));
+    if ("rule" in ok) out.push(r);
+  }
+  return out;
 }
