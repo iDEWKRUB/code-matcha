@@ -551,7 +551,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           <dd>{SHOP.holdMinutes} นาที</dd>
           <dt>สะสมแต้ม</dt>
           <dd>
-            ทุก ฿{POINTS.bahtPerPoint} = 1 แต้ม · ใช้ขั้นต่ำ {POINTS.minRedeem} แต้ม (1 แต้ม = ฿1)
+            ทุก ฿{POINTS.bahtPerPoint} = 1 แต้ม · ใช้ได้ทุกแต้ม ไม่มีขั้นต่ำ (1 แต้ม = ฿1)
           </dd>
         </dl>
       </section>

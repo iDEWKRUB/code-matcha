@@ -50,7 +50,7 @@ export default function ClaimPage() {
           <p className="claim-pts">
             <b>+{s.earned}</b> แต้ม
           </p>
-          <p className="claim-sub">แต้มสะสมทั้งหมด {s.points.toLocaleString()} แต้ม · ใช้แทนเงินสดได้ตั้งแต่ 50 แต้ม</p>
+          <p className="claim-sub">แต้มสะสมทั้งหมด {s.points.toLocaleString()} แต้ม · ใช้แทนเงินสดได้ทุกแต้ม</p>
         </>
       ) : (
         <>

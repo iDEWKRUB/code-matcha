@@ -5,7 +5,7 @@ import { checkPromo, customerPromos } from "@/lib/promoServer";
 
 // โค้ดที่ลูกค้าคนนี้ใช้ได้ (ร้านเลือกให้แสดงในหน้าชำระ) · ไม่ส่งบันทึกช่วยจำของร้านออกไป
 export async function GET(req: Request) {
-  const token = req.headers.get("authorization")?.replace(/^Bearers+/i, "");
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const user = token ? await verifyIdToken(token) : null;
   if (!user) return NextResponse.json({ promos: [] });
   const list = await customerPromos(user.userId);

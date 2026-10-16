@@ -66,7 +66,7 @@ async function commandCard(cmd: string, userId: string, link: string): Promise<C
       subtitle: need ? `อีก ${need} แต้มก็ใช้เป็นส่วนลดได้แล้ว` : `ใช้เป็นส่วนลดได้สูงสุด ฿${bal}`,
       rows: [
         ["ได้แต้ม", `ทุก ฿${POINTS.bahtPerPoint} ที่จ่าย = 1 แต้ม`],
-        ["ใช้แต้ม", `1 แต้ม = ฿1 (ขั้นต่ำ ${POINTS.minRedeem})`],
+        ["ใช้แต้ม", "1 แต้ม = ฿1 ใช้ได้ทุกแต้ม"],
         ["หมดอายุ", "ไม่มีวันหมดอายุ"],
       ],
       note: "แลกของขวัญ ดูคูปอง และประวัติแต้มได้ในบัตรสมาชิก",

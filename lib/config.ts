@@ -19,7 +19,7 @@ export const RECEIPT = {
 };
 
 // สะสมแต้ม: จ่ายทุก bahtPerPoint บาท ได้ 1 แต้ม, 1 แต้ม = ลด 1 บาท, ใช้ครั้งละอย่างน้อย minRedeem แต้ม
-export const POINTS = { bahtPerPoint: 25, minRedeem: 50 };
+export const POINTS = { bahtPerPoint: 25, minRedeem: 1 }; // ใช้ได้ตั้งแต่ 1 แต้ม
 export const pointsEarned = (paid: number) => Math.floor(paid / POINTS.bahtPerPoint);
 
 // ระดับบัตรสมาชิก ตามแต้มที่ "สะสมมาทั้งหมด" (ใช้แต้มแลกของแล้วระดับไม่ลด)

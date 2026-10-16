@@ -2354,3 +2354,15 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .cupst-sheet.two { display: flex; gap: var(--cgap, 2mm); padding: 0 var(--cedge, 1mm); box-sizing: border-box; }
 .cupst-sheet.two > .cupst, .cupst-blank { flex: 0 0 50mm; width: 50mm; height: 50mm; }
 @media screen { .cupst-sheet.two > .cupst { outline: .3mm dashed #ccc; } }
+/* หน้าเมนู: คูปองสำหรับคุณ (เลื่อนแนวนอน) */
+.coupons { margin: 10px 0 0; }
+.coupons-h { display: block; margin: 0 20px 6px; font-size: 13px; color: #2F4A2A; }
+.coupons-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 20px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.coupons-row::-webkit-scrollbar { display: none; }
+.coupon { flex: 0 0 auto; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1.5px dashed #b7c99a; background: #fff; font: inherit; color: inherit; text-align: left; cursor: pointer; max-width: 300px; }
+.coupon.on { border-style: solid; border-color: #2F4A2A; background: #f1f6e7; }
+.coupon-v { min-width: 48px; height: 40px; border-radius: 10px; background: #C23B22; color: #fff; font-weight: 800; font-size: 15px; display: grid; place-items: center; padding: 0 6px; }
+.coupon-t { display: grid; min-width: 0; }
+.coupon-t b { font-size: 13.5px; white-space: nowrap; }
+.coupon-t small { font-size: 11.5px; color: var(--stone); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.coupon-go { font-size: 12.5px; font-weight: 700; color: #2F4A2A; white-space: nowrap; }

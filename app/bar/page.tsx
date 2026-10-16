@@ -937,7 +937,7 @@ export default function BarPage() {
               ) : (
                 <p className="nb-muted nb-pts-note">
                   {points < POINTS.minRedeem
-                    ? `สะสมครบ ${POINTS.minRedeem} แต้มเพื่อใช้เป็นส่วนลด (อีก ${POINTS.minRedeem - points} แต้ม)`
+                    ? "ยังไม่มีแต้ม · ได้แต้มทุก ฿" + POINTS.bahtPerPoint + " ที่จ่าย ใช้ลดได้ตั้งแต่ครั้งหน้า"
                     : `ใช้แต้มได้เมื่อยอดตั้งแต่ ฿${POINTS.minRedeem} ขึ้นไป`}
                 </p>
               )}

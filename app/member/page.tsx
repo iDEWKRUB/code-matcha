@@ -305,7 +305,7 @@ export default function MemberPage() {
             )}
           </p>
           <p className="mb-how">
-            ทุก ฿{POINTS.bahtPerPoint} ได้ 1 แต้ม · ใช้แทนเงินสดได้ 1 แต้ม = ฿1 (ครั้งละ {POINTS.minRedeem} แต้มขึ้นไป)
+            ทุก ฿{POINTS.bahtPerPoint} ได้ 1 แต้ม · ใช้แทนเงินสดได้ 1 แต้ม = ฿1 ใช้ได้ทุกครั้งที่สั่ง ไม่มีขั้นต่ำ
             หรือแลกของขวัญด้านล่าง
           </p>
         </section>

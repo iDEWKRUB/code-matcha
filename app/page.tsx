@@ -278,6 +278,7 @@ export default function OrderPage() {
             .catch(() => {});
         }
         const [, pending] = await Promise.all([menuP, loadMine(), profileP]);
+        loadOffers();
         track("visit");
         // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
         if (pending) {
@@ -328,6 +329,21 @@ export default function OrderPage() {
   const usable = Math.min(points, afterPromo) >= POINTS.minRedeem ? Math.min(points, afterPromo) : 0;
   const pointsToUse = usePoints ? usable : 0;
   const payAmount = afterPromo - pointsToUse;
+
+  function loadOffers() {
+    const tk = liff.current ? liff.current.getIDToken() : "dev";
+    fetch("/api/promo", { headers: { Authorization: `Bearer ${tk}` } })
+      .then((r) => (r.ok ? r.json() : { promos: [] }))
+      .then((j) => setOffers(j.promos ?? []))
+      .catch(() => setOffers([]));
+  }
+  // ลูกค้ากดเก็บคูปองในหน้าเมนู = จำไว้ ใส่ให้เองตอนชำระ (ใช้กลไกเดียวกับโค้ดจากใบปลิว)
+  function keepOffer(code: string) {
+    setLinkPromo(code);
+    try {
+      localStorage.setItem("link-promo", code);
+    } catch {}
+  }
 
   function dropLinkPromo() {
     setLinkPromo("");
@@ -384,11 +400,7 @@ export default function OrderPage() {
   async function openCheckout() {
     setSendErr("");
     setCheckout(true);
-    const tk = liff.current ? liff.current.getIDToken() : "dev";
-    fetch("/api/promo", { headers: { Authorization: `Bearer ${tk}` } })
-      .then((r) => (r.ok ? r.json() : { promos: [] }))
-      .then((j) => setOffers(j.promos ?? []))
-      .catch(() => setOffers([]));
+    loadOffers();
     if (linkPromo && !promo) applyPromo(linkPromo);
     loadMenu().catch(() => {}); // รีเฟรชที่ว่างของช่องเวลา
     loadMine().catch(() => {});
@@ -655,7 +667,24 @@ export default function OrderPage() {
           </span>
         </p>
       )}
-      {linkPromo && (
+      {offers.length > 0 && (
+        <section className="coupons" aria-label="คูปองสำหรับคุณ">
+          <b className="coupons-h">คูปองสำหรับคุณ · กดเก็บ แล้วระบบใส่ให้ตอนชำระ</b>
+          <div className="coupons-row">
+            {offers.map((o) => (
+              <button key={o.code} type="button" className={`coupon${linkPromo === o.code ? " on" : ""}`} aria-pressed={linkPromo === o.code} onClick={() => keepOffer(o.code)}>
+                <span className="coupon-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
+                <span className="coupon-t">
+                  <b>{o.label.split(" · ")[0]}</b>
+                  <small>{o.label.split(" · ").slice(1).join(" · ") || o.code}</small>
+                </span>
+                <span className="coupon-go">{linkPromo === o.code ? "เก็บแล้ว ✓" : "เก็บ"}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+      {linkPromo && !offers.some((o) => o.code === linkPromo) && (
         <p className="promo-banner link-promo" role="note">
           <span className="pb-ico">
             <Icon name="gift" size={18} />
@@ -1184,7 +1213,7 @@ export default function OrderPage() {
             ) : (
               <p className="ds">
                 {points < POINTS.minRedeem
-                  ? `สะสมครบ ${POINTS.minRedeem} แต้มเพื่อใช้เป็นส่วนลด (อีก ${POINTS.minRedeem - points} แต้ม)`
+                  ? "ยังไม่มีแต้ม · ได้แต้มทุก ฿" + POINTS.bahtPerPoint + " ที่จ่าย ใช้ลดได้ตั้งแต่ครั้งหน้า"
                   : `ใช้แต้มได้เมื่อยอดสั่งตั้งแต่ ฿${POINTS.minRedeem} ขึ้นไป`}
               </p>
             )}
