@@ -2192,7 +2192,6 @@ small .bf-code { margin-right: 6px; }
 .cupst-count input { width: 70px; min-height: 42px; text-align: center; border-radius: 10px; border: 1px solid var(--edge); font: inherit; font-size: 18px; }
 .mcard-print { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; border-radius: 10px; border: 1px dashed var(--edge); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
 .mcard-print:hover { background: #f4f1e8; }
-@page cupsticker { size: 50mm 50mm; margin: 0; }
 @media print {
   body:has(.cupst-pages) { margin: 0; background: #fff; }
   .cupst-page { padding: 0; max-width: none; display: block; }
@@ -2350,3 +2349,8 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .offer:disabled .offer-go { color: var(--stone); font-weight: 600; }
 .show-chip { margin-top: 6px; min-height: 26px; padding: 0 10px; border-radius: 999px; border: 1px dashed var(--edge); background: #fff; color: var(--stone); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .show-chip.on { border-style: solid; border-color: #9bbf6a; background: #eef3e2; color: #2F4A2A; }
+/* สติ๊กเกอร์แก้ว: ม้วน 2 ดวงคู่ = 1 หน้าต่อแถว */
+.cupst-sheet { width: var(--pw, 50mm); }
+.cupst-sheet.two { display: flex; gap: var(--cgap, 2mm); padding: 0 var(--cedge, 1mm); box-sizing: border-box; }
+.cupst-sheet.two > .cupst, .cupst-blank { flex: 0 0 50mm; width: 50mm; height: 50mm; }
+@media screen { .cupst-sheet.two > .cupst { outline: .3mm dashed #ccc; } }

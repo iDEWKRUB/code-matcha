@@ -48,26 +48,48 @@ function Label({ s, qr }: { s: CupSticker; qr: string }) {
 // เลื่อนตำแหน่งดวงได้ (จำไว้ในเครื่องนี้) เผื่อเครื่องพิมพ์วางดวงเหลื่อม
 export default function MenuLabelPrint({ sticker, qr }: { sticker: CupSticker; qr: string }) {
   const [n, setN] = useState(1);
-  const [tune, setTune] = useState({ x: 0, y: 0 });
+  // cols = ดวงต่อแถวของม้วน (1 หรือ 2) · gap = ช่องว่างระหว่างดวง · edge = ขอบกระดาษรองซ้าย/ขวา (มม.)
+  const [tune, setTune] = useState({ x: 0, y: 0, cols: 2, gap: 2, edge: 1 });
   useEffect(() => {
     try {
       const t = JSON.parse(localStorage.getItem("cupst-tune") ?? "null");
-      if (t) setTune({ x: Number(t.x) || 0, y: Number(t.y) || 0 });
+      if (t)
+        setTune({
+          x: Number(t.x) || 0,
+          y: Number(t.y) || 0,
+          cols: t.cols === 1 ? 1 : 2,
+          gap: Number.isFinite(t.gap) ? t.gap : 2,
+          edge: Number.isFinite(t.edge) ? t.edge : 1,
+        });
     } catch {}
   }, []);
-  function saveTune(t: { x: number; y: number }) {
+  function saveTune(t: typeof tune) {
     setTune(t);
     try {
       localStorage.setItem("cupst-tune", JSON.stringify(t));
     } catch {}
   }
   const clamp = (v: number) => Math.max(1, Math.min(MAX, Math.round(v) || 1));
+  const cols = tune.cols;
+  const pageW = cols === 2 ? 100 + tune.gap + tune.edge * 2 : 50;
+  const rows = Math.ceil(n / cols);
 
   return (
     <main className="cupm-page cupst-page">
       <section className="cupm-tools nba-noprint">
         <h1>สติ๊กเกอร์ติดแก้ว 5×5 ซม. · {sticker.name}</h1>
-        <p className="nba-muted">พิมพ์ด้วยเครื่องพิมพ์สติ๊กเกอร์ (หมึกดำ) · 1 ดวงต่อหน้า · ตั้งขนาดกระดาษในเครื่องพิมพ์เป็น 50 × 50 มม. ระยะขอบ 0</p>
+        <div className="nba-layout" role="group" aria-label="ม้วนสติ๊กเกอร์">
+          <button aria-pressed={cols === 2} onClick={() => saveTune({ ...tune, cols: 2 })}>
+            ม้วน 2 ดวงคู่ (กว้าง ~10 ซม.)
+          </button>
+          <button aria-pressed={cols === 1} onClick={() => saveTune({ ...tune, cols: 1 })}>
+            ม้วนดวงเดียว (กว้าง 5 ซม.)
+          </button>
+        </div>
+        <p className="nba-muted">
+          ตั้งขนาดกระดาษในหน้าพิมพ์เป็น <b>{pageW.toFixed(1).replace(/.0$/, "")} × 50 มม.</b> · Pages per sheet = 1 · Margins = None
+          {cols === 2 && " · พิมพ์ทีละแถว แถวละ 2 ดวง"}
+        </p>
         <div className="cupst-count" role="group" aria-label="จำนวนดวง">
           <button type="button" onClick={() => setN(clamp(n - 1))} aria-label="ลดจำนวน">
             −
@@ -94,21 +116,40 @@ export default function MenuLabelPrint({ sticker, qr }: { sticker: CupSticker; q
             เลื่อนขึ้น/ลง (มม.)
             <input id="cupst-y" type="number" step="0.5" value={tune.y} onChange={(e) => saveTune({ ...tune, y: Number(e.target.value) || 0 })} />
           </label>
+          {cols === 2 && (
+            <>
+              <label>
+                ช่องว่างระหว่างดวง (มม.)
+                <input id="cupst-gap" type="number" step="0.5" min="0" value={tune.gap} onChange={(e) => saveTune({ ...tune, gap: Math.max(0, Number(e.target.value) || 0) })} />
+              </label>
+              <label>
+                ขอบซ้าย/ขวาของม้วน (มม.)
+                <input id="cupst-edge" type="number" step="0.5" min="0" value={tune.edge} onChange={(e) => saveTune({ ...tune, edge: Math.max(0, Number(e.target.value) || 0) })} />
+              </label>
+            </>
+          )}
         </div>
         <div className="nba-acts">
           <button className="nba-ghost" onClick={() => window.close()}>
             ปิด
           </button>
           <button className="nba-primary" onClick={() => window.print()}>
-            พิมพ์ {n} ดวง
+            พิมพ์ {n} ดวง{cols === 2 ? ` (${rows} แถว)` : ""}
           </button>
         </div>
       </section>
 
-      <div className="cupst-pages" style={{ "--cx": `${tune.x}mm`, "--cy": `${tune.y}mm` } as React.CSSProperties}>
-        {Array.from({ length: n }, (_, i) => (
-          <div className="cupst-sheet" key={i}>
-            <Label s={sticker} qr={qr} />
+      {/* ขนาดหน้าตามม้วนที่เลือก (Chrome ใช้ขนาดนี้ตอนพิมพ์) */}
+      <style>{`@page cupsticker { size: ${pageW}mm 50mm; margin: 0; }`}</style>
+      <div
+        className="cupst-pages"
+        style={{ "--cx": `${tune.x}mm`, "--cy": `${tune.y}mm`, "--cgap": `${tune.gap}mm`, "--cedge": `${tune.edge}mm`, "--pw": `${pageW}mm` } as React.CSSProperties}
+      >
+        {Array.from({ length: rows }, (_, r) => (
+          <div className={`cupst-sheet${cols === 2 ? " two" : ""}`} key={r}>
+            {Array.from({ length: cols }, (_, c) =>
+              r * cols + c < n ? <Label key={c} s={sticker} qr={qr} /> : <span key={c} className="cupst-blank" />,
+            )}
           </div>
         ))}
       </div>
