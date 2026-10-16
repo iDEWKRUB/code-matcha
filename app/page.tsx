@@ -30,7 +30,7 @@ import {
 import type { BarHours } from "@/lib/bar";
 import { MAX_CUP_FOR, MAX_CUP_MSG, MAX_CUP_NAME } from "@/lib/cupMsg";
 import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
-import { promoDiscount, type PromoRule } from "@/lib/promo";
+import { normalizeCode, promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
 import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
@@ -158,6 +158,8 @@ export default function OrderPage() {
   const [hours, setHours] = useState<Hours | null>(null);
   const [isFriend, setIsFriend] = useState<boolean | null>(null); // null = ยังไม่รู้ / เช็กไม่ได้
   const [invitedBy, setInvitedBy] = useState(""); // ชื่อเพื่อนที่ชวนมา (เปิดจากลิงก์ ?ref=)
+  // โค้ดจากลิงก์/QR ใบปลิว (?promo=) ใส่ให้เองตอนเปิดหน้าชำระ · จำไว้ในเครื่องเผื่อรีเฟรช
+  const [linkPromo, setLinkPromo] = useState("");
 
   // LINE ส่งแจ้งเตือนได้เฉพาะคนที่เป็นเพื่อนกับ OA
   function checkFriend() {
@@ -254,6 +256,14 @@ export default function OrderPage() {
         } else {
           throw new Error("ยังไม่ได้ตั้งค่า LIFF");
         }
+        const qp = normalizeCode(new URLSearchParams(location.search).get("promo") ?? "");
+        try {
+          if (qp) localStorage.setItem("link-promo", qp);
+          const saved = qp || localStorage.getItem("link-promo") || "";
+          if (saved) setLinkPromo(saved);
+        } catch {
+          if (qp) setLinkPromo(qp);
+        }
         // เปิดจากลิงก์ชวนเพื่อน → ผูกคำชวนไว้ (ได้แต้มเมื่อร้านยืนยันการจ่ายออเดอร์แรก)
         const ref = new URLSearchParams(location.search).get("ref");
         if (ref) {
@@ -319,6 +329,13 @@ export default function OrderPage() {
   const pointsToUse = usePoints ? usable : 0;
   const payAmount = afterPromo - pointsToUse;
 
+  function dropLinkPromo() {
+    setLinkPromo("");
+    try {
+      localStorage.removeItem("link-promo");
+    } catch {}
+  }
+
   async function applyPromo(code = promoInput) {
     setPromoInput(code);
     setPromoErr("");
@@ -336,6 +353,8 @@ export default function OrderPage() {
     } catch (e) {
       setPromo(null);
       setPromoErr(e instanceof Error ? e.message : "ใช้โค้ดไม่ได้");
+      // โค้ดจากใบปลิวใช้ไม่ได้แล้ว (ใช้ครบ/หมดอายุ) ไม่ต้องเตือนค้างไว้
+      if (code === linkPromo) dropLinkPromo();
     } finally {
       setPromoBusy(false);
     }
@@ -370,6 +389,7 @@ export default function OrderPage() {
       .then((r) => (r.ok ? r.json() : { promos: [] }))
       .then((j) => setOffers(j.promos ?? []))
       .catch(() => setOffers([]));
+    if (linkPromo && !promo) applyPromo(linkPromo);
     loadMenu().catch(() => {}); // รีเฟรชที่ว่างของช่องเวลา
     loadMine().catch(() => {});
   }
@@ -405,6 +425,7 @@ export default function OrderPage() {
       }
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
       track("order");
+      if (promo?.code === linkPromo) dropLinkPromo();
       setCart([]);
       setNote("");
       setCup({ msg: "", to: "", from: "", forCup: "" });
@@ -631,6 +652,16 @@ export default function OrderPage() {
           </span>
           <span className="pb-text">
             {invitedBy} ชวนคุณมา สั่งครั้งแรกรับเพิ่ม {REFERRAL.friendPoints} แต้ม
+          </span>
+        </p>
+      )}
+      {linkPromo && (
+        <p className="promo-banner link-promo" role="note">
+          <span className="pb-ico">
+            <Icon name="gift" size={18} />
+          </span>
+          <span className="pb-text">
+            มีโค้ด <b>{linkPromo}</b> รอใช้อยู่ ระบบใส่ให้เองตอนชำระเงิน
           </span>
         </p>
       )}
