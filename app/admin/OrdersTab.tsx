@@ -89,6 +89,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                         {o.source === "bar" ? "มาม่าบาร์ · ลูกค้าต้มเอง" : o.service === "pickup" ? `มารับ ${o.pickupTime} น.` : o.service === "dine_in" ? `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""}` : "กลับบ้าน · รอที่ร้าน"}
                       </span>
                     </div>
+                    <OrderWhen o={o} />
                     <p className="who">
                       {o.customerName} · <strong>฿{o.total}</strong>
                       {o.promoDiscount > 0 && (
@@ -179,5 +180,34 @@ function ReceiptButton({ id }: { id: number }) {
       </button>
       {msg && <small>{msg}</small>}
     </div>
+  );
+}
+
+// เวลาสั่ง + เวลารับ (นับถอยหลัง) ของออเดอร์ · บอร์ดรีเฟรชทุก 5 วิ ตัวเลขจึงเดินเอง
+const hhmm = (d: Date) => d.toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" });
+const ago = (min: number) => (min < 1 ? "เมื่อสักครู่" : min < 60 ? `${min} นาทีที่แล้ว` : `${Math.floor(min / 60)} ชม. ${min % 60} นาทีที่แล้ว`);
+function OrderWhen({ o }: { o: Order }) {
+  const now = Date.now();
+  const placed = new Date(o.createdAt);
+  const sinceMin = Math.floor((now - placed.getTime()) / 60000);
+  let pick: { text: string; tone: string } | null = null;
+  if (o.source !== "bar" && o.service === "pickup" && o.pickupTime) {
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+    const at = new Date(`${o.pickupDate}T${o.pickupTime}:00+07:00`).getTime();
+    const left = Math.round((at - now) / 60000);
+    const day = o.pickupDate !== today ? `${new Date(o.pickupDate + "T12:00:00+07:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" })} ` : "";
+    pick = day
+      ? { text: `รับวันที่ ${day}${o.pickupTime} น. (ล่วงหน้า)`, tone: "" }
+      : left > 0
+        ? { text: `รับ ${day}${o.pickupTime} · อีก ${left >= 60 ? `${Math.floor(left / 60)} ชม. ` : ""}${left % 60} นาที`, tone: left <= 10 ? "soon" : "" }
+        : { text: `รับ ${day}${o.pickupTime} · ${left === 0 ? "ถึงเวลาแล้ว" : `เลยมา ${-left} นาที`}`, tone: "late" };
+  } else if (o.source !== "bar") pick = { text: "ลูกค้าอยู่ที่ร้าน · ทำให้เลย", tone: "now" };
+  return (
+    <p className="owhen">
+      <span>
+        สั่ง {hhmm(placed)} น. · {ago(sinceMin)}
+      </span>
+      {pick && <span className={`pk ${pick.tone}`}>{pick.text}</span>}
+    </p>
   );
 }

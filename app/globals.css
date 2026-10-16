@@ -2331,3 +2331,9 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .sheet-head .sheet-toon[aria-pressed="true"] { background: #2F4A2A; color: #fff; box-shadow: none; }
 .sheet-x { width: 38px; height: 38px; border-radius: 50%; border: 0; background: #F1F3EA; color: #1C2419; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
 .sheet-x:active { transform: scale(.94); }
+/* การ์ดออเดอร์: เวลาสั่ง + เวลารับนับถอยหลัง */
+.owhen { margin: 4px 0 2px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 12.5px; color: var(--stone); }
+.owhen .pk { font-weight: 700; color: #2F4A2A; background: #eef3e2; border-radius: 999px; padding: 1px 9px; }
+.owhen .pk.soon { background: #fde9c9; color: #7a4a00; }
+.owhen .pk.late { background: #fbe0da; color: #a12c15; }
+.owhen .pk.now { background: #dfeefa; color: #0e3b6d; }
