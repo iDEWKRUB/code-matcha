@@ -1145,7 +1145,10 @@ export default function OrderPage() {
               )}
             </div>
 
-            <div className="lg">โค้ดส่วนลด</div>
+            <div className="lg">
+              ส่วนลดที่ใช้ได้
+              {offers.length > 0 && <span>คูปอง {offers.length} ใบ{points > 0 ? ` · แต้ม ${points.toLocaleString()}` : ""}</span>}
+            </div>
             {promo ? (
               <div className="promo-applied">
                 <span className="code-chip">{promo.code}</span>
@@ -1181,19 +1184,21 @@ export default function OrderPage() {
                 {promoErr}
               </p>
             )}
-            {!promo && offers.length > 0 && (
-              <div className="offers" aria-label="โค้ดที่ใช้ได้">
+            {offers.length > 0 && (
+              <div className="offers" aria-label="คูปองที่ใช้ได้">
                 {offers.map((o) => {
                   const short = total < o.minSpend ? o.minSpend - total : 0;
+                  const on = promo?.code === o.code;
+                  const save = promoDiscount(o, total);
                   return (
-                    <button key={o.code} type="button" className="offer" disabled={promoBusy || short > 0} onClick={() => applyPromo(o.code)}>
+                    <button key={o.code} type="button" className={`offer${on ? " on" : ""}`} aria-pressed={on} disabled={promoBusy || short > 0 || on} onClick={() => applyPromo(o.code)}>
                       <span className="offer-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
                       <span className="offer-t">
                         <b>{o.code}</b>
                         <small>{o.label}{o.expiresOn ? ` · ถึง ${o.expiresOn.slice(8)}/${o.expiresOn.slice(5, 7)}` : ""}</small>
                         {short > 0 && <small className="offer-short">ซื้อเพิ่มอีก ฿{short} ใช้ได้</small>}
                       </span>
-                      <span className="offer-go">{short > 0 ? "ยังไม่ครบ" : "ใช้เลย"}</span>
+                      <span className="offer-go">{on ? "ใช้อยู่ ✓" : short > 0 ? "ยังไม่ครบ" : `ใช้ ลด ฿${save}`}</span>
                     </button>
                   );
                 })}

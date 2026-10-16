@@ -2366,3 +2366,5 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .coupon-t b { font-size: 13.5px; white-space: nowrap; }
 .coupon-t small { font-size: 11.5px; color: var(--stone); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 .coupon-go { font-size: 12.5px; font-weight: 700; color: #2F4A2A; white-space: nowrap; }
+.offer.on { border-style: solid; border-color: #2F4A2A; background: #eaf2dc; opacity: 1; }
+.offer.on .offer-go { color: #2F4A2A; font-weight: 700; }
