@@ -2402,3 +2402,4 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .dp-pos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .dp-pos .text { flex: 1 1 200px; }
 .dp-check { display: inline-block; margin-top: 6px; font-size: 13px; color: #2F4A2A; font-weight: 600; }
+.dm-need { color: #a12c15; font-weight: 700; }

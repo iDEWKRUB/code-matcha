@@ -1358,6 +1358,8 @@ export default function OrderPage() {
                     ? `สั่งส่งขั้นต่ำ ฿${deliveryCfg.min}`
                     : dKm !== null && deliveryCfg && dKm > deliveryCfg.km
                       ? "ตำแหน่งเกินรัศมีส่ง"
+                      : !dPin
+                      ? "ปักหมุดตำแหน่งส่งก่อน"
                       : "ใส่ที่อยู่และเบอร์โทรก่อน"
                   : !ready
                   ? service === "delivery" ? "เลือกเวลาส่งก่อน" : "เลือกเวลามารับก่อน"

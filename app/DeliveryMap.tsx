@@ -43,7 +43,6 @@ export default function DeliveryMap({ shop, km, value, onChange }: { shop: Pin; 
       m.on("click", (e) => put(e.latlng.lat, e.latlng.lng));
       map.current = m;
       pin.current = mk;
-      if (!value) set.current(start);
     });
     return () => {
       alive = false;
@@ -86,7 +85,7 @@ export default function DeliveryMap({ shop, km, value, onChange }: { shop: Pin; 
         )}
       </div>
       {msg && <p className="dm-msg">{msg}</p>}
-      <p className="dm-hint">ลากหมุดสีแดง หรือแตะบนแผนที่ ให้ตรงจุดที่จะรับของ</p>
+      <p className={value ? "dm-hint" : "dm-hint dm-need"}>{value ? "ลากหมุดสีแดง หรือแตะบนแผนที่ ให้ตรงจุดที่จะรับของ" : "แตะบนแผนที่ ลากหมุด หรือกดใช้ตำแหน่งปัจจุบัน เพื่อปักจุดส่ง"}</p>
     </div>
   );
 }
