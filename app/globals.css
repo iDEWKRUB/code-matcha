@@ -2360,6 +2360,8 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .coupons-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 20px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .coupons-row::-webkit-scrollbar { display: none; }
 .coupon { flex: 0 0 auto; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1.5px dashed #b7c99a; background: #fff; font: inherit; color: inherit; text-align: left; cursor: pointer; max-width: 300px; }
+.coupon:disabled { cursor: default; opacity: .8; }
+.coupon:disabled .coupon-go { color: #a4472e; }
 .coupon.on { border-style: solid; border-color: #2F4A2A; background: #f1f6e7; }
 .coupon-v { min-width: 48px; height: 40px; border-radius: 10px; background: #C23B22; color: #fff; font-weight: 800; font-size: 15px; display: grid; place-items: center; padding: 0 6px; }
 .coupon-t { display: grid; min-width: 0; }

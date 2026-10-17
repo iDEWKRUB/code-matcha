@@ -222,7 +222,7 @@ export default function OrderPage() {
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   // โค้ดที่ร้านเปิดให้เห็น (โหลดตอนเปิดหน้าชำระ) กดแล้วใช้เลย
-  const [offers, setOffers] = useState<(AppliedPromo & { label: string; expiresOn: string | null })[]>([]);
+  const [offers, setOffers] = useState<(AppliedPromo & { label: string; expiresOn: string | null; timeFrom: string | null; nowOk: boolean })[]>([]);
   const [promoErr, setPromoErr] = useState("");
   const [promoBusy, setPromoBusy] = useState(false);
   const [bar, setBar] = useState<BarHours | null>(null);
@@ -389,6 +389,7 @@ export default function OrderPage() {
   }
 
   async function applyPromo(code = promoInput) {
+    let hoursErr = false;
     setPromoInput(code);
     setPromoErr("");
     setPromoBusy(true);
@@ -400,13 +401,17 @@ export default function OrderPage() {
         body: JSON.stringify({ code, subtotal: total }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error ?? "ใช้โค้ดไม่ได้");
+      if (!r.ok) {
+        hoursErr = j.hours === true;
+        throw new Error(j.error ?? "ใช้โค้ดไม่ได้");
+      }
       setPromo(j as AppliedPromo);
     } catch (e) {
       setPromo(null);
       setPromoErr(e instanceof Error ? e.message : "ใช้โค้ดไม่ได้");
       // โค้ดจากใบปลิวใช้ไม่ได้แล้ว (ใช้ครบ/หมดอายุ) ไม่ต้องเตือนค้างไว้
-      if (code === linkPromo) dropLinkPromo();
+      // (โปรช่วงเวลาที่ยังไม่ถึงเวลา เก็บไว้ใช้ตอนถึงช่วง)
+      if (code === linkPromo && !hoursErr) dropLinkPromo();
     } finally {
       setPromoBusy(false);
     }
@@ -726,13 +731,13 @@ export default function OrderPage() {
           <b className="coupons-h">คูปองสำหรับคุณ · กดเก็บ แล้วระบบใส่ให้ตอนชำระ</b>
           <div className="coupons-row">
             {offers.map((o) => (
-              <button key={o.code} type="button" className={`coupon${linkPromo === o.code ? " on" : ""}`} aria-pressed={linkPromo === o.code} onClick={() => keepOffer(o.code)}>
+              <button key={o.code} type="button" className={`coupon${linkPromo === o.code ? " on" : ""}`} aria-pressed={linkPromo === o.code} disabled={!o.nowOk} onClick={() => keepOffer(o.code)}>
                 <span className="coupon-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
                 <span className="coupon-t">
                   <b>{o.label.split(" · ")[0]}</b>
                   <small>{o.label.split(" · ").slice(1).join(" · ") || o.code}</small>
                 </span>
-                <span className="coupon-go">{linkPromo === o.code ? "เก็บแล้ว ✓" : "เก็บ"}</span>
+                <span className="coupon-go">{!o.nowOk ? `เริ่ม ${o.timeFrom}` : linkPromo === o.code ? "เก็บแล้ว ✓" : "เก็บ"}</span>
               </button>
             ))}
           </div>
@@ -1289,14 +1294,14 @@ export default function OrderPage() {
                   const on = promo?.code === o.code;
                   const save = promoDiscount(o, total);
                   return (
-                    <button key={o.code} type="button" className={`offer${on ? " on" : ""}`} aria-pressed={on} disabled={promoBusy || short > 0 || on} onClick={() => applyPromo(o.code)}>
+                    <button key={o.code} type="button" className={`offer${on ? " on" : ""}`} aria-pressed={on} disabled={promoBusy || short > 0 || on || !o.nowOk} onClick={() => applyPromo(o.code)}>
                       <span className="offer-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
                       <span className="offer-t">
                         <b>{o.code}</b>
                         <small>{o.label}{o.expiresOn ? ` · ถึง ${o.expiresOn.slice(8)}/${o.expiresOn.slice(5, 7)}` : ""}</small>
                         {short > 0 && <small className="offer-short">ซื้อเพิ่มอีก ฿{short} ใช้ได้</small>}
                       </span>
-                      <span className="offer-go">{on ? "ใช้อยู่ ✓" : short > 0 ? "ยังไม่ครบ" : `ใช้ ลด ฿${save}`}</span>
+                      <span className="offer-go">{on ? "ใช้อยู่ ✓" : !o.nowOk ? `เริ่ม ${o.timeFrom} น.` : short > 0 ? "ยังไม่ครบ" : `ใช้ ลด ฿${save}`}</span>
                     </button>
                   );
                 })}

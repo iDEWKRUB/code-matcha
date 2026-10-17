@@ -24,6 +24,8 @@ type Form = {
   perUserLimit: string;
   maxUses: string;
   expiresOn: string;
+  timeFrom: string;
+  timeTo: string;
   note: string;
   showCustomers: boolean;
 };
@@ -37,6 +39,8 @@ const EMPTY: Form = {
   perUserLimit: "1",
   maxUses: "",
   expiresOn: "",
+  timeFrom: "",
+  timeTo: "",
   note: "",
   showCustomers: true,
 };
@@ -155,6 +159,8 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
         perUserLimit: num(form.perUserLimit) ?? 1,
         maxUses: num(form.maxUses),
         expiresOn: form.expiresOn || null,
+        timeFrom: form.timeFrom || null,
+        timeTo: form.timeTo || null,
         note: form.note,
         showCustomers: form.showCustomers,
       }),
@@ -296,6 +302,14 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
               <label>
                 ใช้ได้ถึงวันที่ (เว้นว่าง = ไม่หมดอายุ)
                 <input className="text" type="date" value={form.expiresOn} onChange={(e) => set("expiresOn", e.target.value)} />
+              </label>
+              <label>
+                สั่งได้ตั้งแต่ (เว้นว่าง = ทั้งวัน)
+                <input className="text" type="time" value={form.timeFrom} onChange={(e) => set("timeFrom", e.target.value)} />
+              </label>
+              <label>
+                ถึงก่อน
+                <input className="text" type="time" value={form.timeTo} onChange={(e) => set("timeTo", e.target.value)} />
               </label>
             </div>
             <label className="row" style={{ marginTop: 12 }}>

@@ -13,6 +13,8 @@ export type PromoRule = {
   active: boolean;
   note: string;
   showCustomers: boolean; // แสดงในหน้าชำระเงินให้ลูกค้ากดใช้
+  timeFrom: string | null; // ใช้ได้เฉพาะช่วงเวลา HH:MM (null = ทั้งวัน)
+  timeTo: string | null;
   used?: number; // จำนวนครั้งที่ใช้แล้ว (หน้าแอดมิน)
 };
 
@@ -26,12 +28,15 @@ export function promoDiscount(rule: Pick<PromoRule, "kind" | "value" | "maxDisco
   return Math.max(0, Math.min(d, subtotal));
 }
 
-export function promoLabel(r: Pick<PromoRule, "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly">) {
+export const promoHours = (r: Pick<PromoRule, "timeFrom" | "timeTo">) => (r.timeFrom && r.timeTo ? `${r.timeFrom}–${r.timeTo} น.` : "");
+
+export function promoLabel(r: Pick<PromoRule, "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly" | "timeFrom" | "timeTo">) {
   return [
     r.kind === "percent" ? `ลด ${r.value}%` : `ลด ฿${r.value}`,
     r.kind === "percent" && r.maxDiscount !== null && `สูงสุด ฿${r.maxDiscount}`,
     r.minSpend > 0 && `เมื่อซื้อครบ ฿${r.minSpend}`,
     r.newCustomersOnly && "เฉพาะลูกค้าใหม่",
+    promoHours(r) && `สั่งได้เฉพาะ ${promoHours(r)}`,
   ]
     .filter(Boolean)
     .join(" · ");

@@ -102,6 +102,8 @@ export async function POST(req: Request) {
   if (typeof body.promoCode === "string" && body.promoCode.trim()) {
     const r = await checkPromo(body.promoCode, user.userId, total);
     if ("error" in r) return fail(r.error, 409);
+    // โปรช่วงเวลา (Happy Hour) ใช้กับออเดอร์ของวันนี้เท่านั้น ไม่ใช้กับสั่งล่วงหน้าของพรุ่งนี้
+    if (r.rule.timeFrom && date !== now.date) return fail(`โค้ด ${r.rule.code} ใช้ได้เฉพาะออเดอร์ของวันนี้ช่วง ${r.rule.timeFrom}–${r.rule.timeTo} น.`, 409);
     promoCode = r.rule.code;
     promoOff = promoDiscount(r.rule, total);
   }

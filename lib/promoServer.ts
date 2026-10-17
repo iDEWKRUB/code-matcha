@@ -1,11 +1,18 @@
 import "server-only";
 import type { PromoRule } from "./promo";
-import { normalizeCode } from "./promo";
+import { normalizeCode, promoHours } from "./promo";
 import { db } from "./supabase";
-import { nowInShop } from "./time";
+import { nowInShop, toMinutes } from "./time";
+
+// ตอนนี้อยู่ในช่วงเวลาที่โค้ดใช้ได้ไหม (ตามเวลาร้าน · เวลาสิ้นสุดไม่นับ เช่น 17:00-19:00 สั่งได้ถึง 18:59)
+export function inPromoHours(r: Pick<PromoRule, "timeFrom" | "timeTo">) {
+  if (!r.timeFrom || !r.timeTo) return true;
+  const m = nowInShop().minutes;
+  return m >= toMinutes(r.timeFrom) && m < toMinutes(r.timeTo);
+}
 
 const COLUMNS =
-  "code,kind,value,maxDiscount:max_discount,minSpend:min_spend,newCustomersOnly:new_customers_only,perUserLimit:per_user_limit,maxUses:max_uses,expiresOn:expires_on,active,note,showCustomers:show_customers";
+  "code,kind,value,maxDiscount:max_discount,minSpend:min_spend,newCustomersOnly:new_customers_only,perUserLimit:per_user_limit,maxUses:max_uses,expiresOn:expires_on,active,note,showCustomers:show_customers,timeFrom:time_from,timeTo:time_to";
 
 // นับเฉพาะออเดอร์ที่ยังมีผล (ไม่ถูกยกเลิก และไม่ใช่รอจ่ายที่หมดเวลาแล้ว)
 async function countUses(code: string, userId?: string) {
@@ -26,7 +33,7 @@ export async function listPromos(): Promise<PromoRule[]> {
 }
 
 // ตรวจว่าลูกค้าคนนี้ใช้โค้ดได้ไหม คืน rule หรือข้อความ error
-export async function checkPromo(input: string, userId: string, subtotal: number): Promise<{ rule: PromoRule } | { error: string }> {
+export async function checkPromo(input: string, userId: string, subtotal: number, anyTime = false): Promise<{ rule: PromoRule } | { error: string; hours?: boolean }> {
   const code = normalizeCode(input);
   if (!code) return { error: "กรุณาใส่โค้ด" };
   const { data, error } = await db().from("promo_codes").select(COLUMNS).eq("code", code).maybeSingle();
@@ -34,6 +41,7 @@ export async function checkPromo(input: string, userId: string, subtotal: number
   const rule = data as unknown as PromoRule | null;
   if (!rule || !rule.active) return { error: "ไม่พบโค้ดนี้ หรือโค้ดถูกปิดแล้ว" };
   if (rule.expiresOn && rule.expiresOn < nowInShop().date) return { error: "โค้ดนี้หมดอายุแล้ว" };
+  if (!anyTime && !inPromoHours(rule)) return { error: `โค้ดนี้สั่งได้เฉพาะช่วง ${promoHours(rule)}`, hours: true };
   if (subtotal < rule.minSpend) return { error: `โค้ดนี้ใช้ได้เมื่อซื้อครบ ฿${rule.minSpend}` };
   if (rule.maxUses !== null && (await countUses(code)) >= rule.maxUses) return { error: "สิทธิ์โค้ดนี้เต็มแล้ว" };
   if ((await countUses(code, userId)) >= rule.perUserLimit) return { error: "คุณใช้โค้ดนี้ครบสิทธิ์แล้ว" };
@@ -50,14 +58,15 @@ export async function checkPromo(input: string, userId: string, subtotal: number
 }
 
 // โค้ดที่ร้านเปิดให้เห็นในหน้าชำระ และลูกค้าคนนี้ใช้ได้ (ยอดยังไม่ถึงขั้นต่ำก็แสดง พร้อมบอกว่าขาดอีกเท่าไร)
-export async function customerPromos(userId: string): Promise<PromoRule[]> {
+// โค้ดเฉพาะช่วงเวลาแสดงตลอด (ให้ลูกค้ารู้ล่วงหน้า) แต่กดใช้ได้เฉพาะในช่วง → nowOk
+export async function customerPromos(userId: string): Promise<(PromoRule & { nowOk: boolean })[]> {
   const { data, error } = await db().from("promo_codes").select(COLUMNS).eq("active", true).eq("show_customers", true);
   if (error) throw error;
-  const out: PromoRule[] = [];
+  const out: (PromoRule & { nowOk: boolean })[] = [];
   for (const r of data as unknown as PromoRule[]) {
     // ตรวจสิทธิ์ด้วยยอดที่ถึงขั้นต่ำพอดี (เรื่องยอดให้หน้าเว็บบอกเอง)
-    const ok = await checkPromo(r.code, userId, Math.max(r.minSpend, 1));
-    if ("rule" in ok) out.push(r);
+    const ok = await checkPromo(r.code, userId, Math.max(r.minSpend, 1), true);
+    if ("rule" in ok) out.push({ ...r, nowOk: inPromoHours(r) });
   }
   return out;
 }
