@@ -8,8 +8,9 @@ import { buildItems } from "@/lib/cartServer";
 import { cleanCupMsg } from "@/lib/cupMsg";
 import { sealCup } from "@/lib/cupCrypt";
 import crypto from "crypto";
-import { whenText, type Service } from "@/lib/menu";
-import { getMenu, getPowders, getSettings, itemLines, openNow, paymentFor, pointsBalance, queueAhead } from "@/lib/orders";
+import { distanceKm, validLatLng } from "@/lib/geo";
+import { whenText, type Delivery, type Service } from "@/lib/menu";
+import { deliveryRows, getMenu, getPowders, getSettings, getTomorrowSlots, itemLines, openNow, paymentFor, pointsBalance, queueAhead, tomorrowDate } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { isBookable, nowInShop } from "@/lib/time";
 
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
     cupTo?: unknown;
     cupFrom?: unknown;
     cupFor?: unknown;
+    pickupDate?: unknown; // "tomorrow" = สั่งล่วงหน้าสำหรับพรุ่งนี้
+    delivery?: unknown; // { lat, lng, address, phone }
   };
   try {
     body = await req.json();
@@ -55,14 +58,35 @@ export async function POST(req: Request) {
   if (!shop.accepting) return fail("ร้านปิดรับออเดอร์ชั่วคราว", 409);
 
   // วิธีรับ: สั่งล่วงหน้าต้องเลือกรอบ / อยู่ที่ร้านแล้ว (ทานที่ร้าน, กลับบ้าน) ทำให้เลยตอนร้านเปิด
-  const service: Service = body.service === "dine_in" || body.service === "takeaway" ? body.service : "pickup";
+  const service: Service = body.service === "dine_in" || body.service === "takeaway" || body.service === "delivery" ? body.service : "pickup";
   const tableNo = service === "dine_in" && typeof body.tableNo === "string" ? body.tableNo.trim().slice(0, 10) : "";
   const now = nowInShop();
   let time: string;
-  if (service === "pickup") {
-    if (cups > shop.slotCapacity) return fail(`สั่งได้สูงสุด ${shop.slotCapacity} รายการต่อรอบรับ`);
-    if (typeof pickupTime !== "string" || !isBookable(pickupTime, now.minutes, shop))
-      return fail("เวลารับนี้ไม่ว่างแล้ว เลือกเวลาอื่น", 409);
+  let date = now.date;
+  // ร้านไปส่ง: ตรวจเปิดบริการ ยอดขั้นต่ำ พิกัด และรัศมี (คำนวณระยะที่เซิร์ฟเวอร์)
+  let delivery: Delivery | null = null;
+  if (service === "delivery") {
+    if (!shop.deliveryEnabled || shop.shopLat === null || shop.shopLng === null) return fail("ตอนนี้ร้านยังไม่เปิดบริการส่ง", 409);
+    if (total < shop.deliveryMin) return fail(`สั่งส่งได้เมื่อยอดตั้งแต่ ฿${shop.deliveryMin}`);
+    const d = (body.delivery ?? {}) as Record<string, unknown>;
+    if (!validLatLng(d.lat, d.lng)) return fail("กรุณาปักหมุดตำแหน่งจัดส่ง");
+    const address = typeof d.address === "string" ? d.address.trim().slice(0, 200) : "";
+    const phone = typeof d.phone === "string" ? d.phone.replace(/[^\d+]/g, "").slice(0, 15) : "";
+    if (address.length < 5) return fail("กรุณาใส่รายละเอียดที่อยู่ เช่น อาคาร ชั้น ห้อง");
+    if (phone.replace(/\D/g, "").length < 9) return fail("กรุณาใส่เบอร์โทรสำหรับติดต่อตอนไปส่ง");
+    const km = distanceKm({ lat: shop.shopLat, lng: shop.shopLng }, { lat: d.lat as number, lng: d.lng as number });
+    if (km > shop.deliveryKm) return fail(`ตำแหน่งนี้ห่างร้าน ${km.toFixed(1)} กม. เกินรัศมีส่ง ${shop.deliveryKm} กม.`);
+    delivery = { lat: d.lat as number, lng: d.lng as number, km: Math.round(km * 10) / 10, address, phone };
+  }
+  if (service === "pickup" || service === "delivery") {
+    if (cups > shop.slotCapacity) return fail(`สั่งได้สูงสุด ${shop.slotCapacity} รายการต่อรอบ`);
+    if (typeof pickupTime !== "string") return fail("กรุณาเลือกเวลา");
+    if (body.pickupDate === "tomorrow") {
+      // สั่งล่วงหน้าสำหรับพรุ่งนี้: ต้องเปิดรับอยู่ และเป็นรอบของพรุ่งนี้
+      const tSlots = await getTomorrowSlots(shop);
+      if (!tSlots.some((s) => s.time === pickupTime)) return fail("รอบของพรุ่งนี้นี้ปิดรับแล้ว เลือกเวลาอื่น", 409);
+      date = tomorrowDate();
+    } else if (!isBookable(pickupTime, now.minutes, shop)) return fail("เวลานี้ไม่ว่างแล้ว เลือกเวลาอื่น", 409);
     time = pickupTime;
   } else {
     if (!openNow(shop)) return fail(`ตอนนี้ร้านยังไม่เปิด (เปิด ${shop.openTime}–${shop.closeTime} น.)`, 409);
@@ -90,10 +114,10 @@ export async function POST(req: Request) {
   const pay = afterPromo - points;
 
   const { data, error } = await db().rpc("place_order", {
-    p_date: now.date,
+    p_date: date,
     p_time: time,
     // ลูกค้าหน้าร้านไม่นับโควตารอบรับ
-    p_capacity: service === "pickup" ? shop.slotCapacity : 100000,
+    p_capacity: service === "pickup" || service === "delivery" ? shop.slotCapacity : 100000,
     p_user: user.userId,
     p_name: user.name,
     p_items: items,
@@ -113,7 +137,7 @@ export async function POST(req: Request) {
   // ข้อความบนแก้ว: ผูกรหัสสุ่มให้ QR ของออเดอร์นี้ แล้วเก็บแบบเข้ารหัส (ร้านไม่เห็นเนื้อหา มีแค่ปุ่มพิมพ์สติ๊กเกอร์)
   const cup = cleanCupMsg(body);
   const cupToken = cup ? crypto.randomBytes(12).toString("base64url") : "";
-  if (service !== "pickup" || promoCode || cup) {
+  if (service !== "pickup" || promoCode || cup || delivery) {
     const { error: svcErr } = await db()
       .from("orders")
       .update({
@@ -121,18 +145,19 @@ export async function POST(req: Request) {
         table_no: tableNo,
         promo_code: promoCode,
         promo_discount: promoOff,
+        ...(delivery && { delivery }),
         // cup_to (คอลัมน์เดิม) เก็บโน้ต "ติดที่แก้วไหน" แบบไม่เข้ารหัส · ชื่อ ถึง/จาก อยู่ในข้อความที่เข้ารหัส
         ...(cup && { cup_msg: sealCup(cupToken, { msg: cup.msg, to: cup.to, from: cup.from }), cup_to: cup.forCup, cup_token: cupToken }),
       })
       .eq("id", row.order_id);
     if (svcErr) console.error("set service/promo failed", svcErr);
   }
-  const when = whenText({ service, pickupTime: time, tableNo });
+  const when = whenText({ service, pickupTime: time, tableNo, pickupDate: date, today: now.date });
 
   // ใช้แต้มจ่ายครบ: เข้าคิวทันที แจ้งร้านและลูกค้าเลย
   if (row.order_status === "pending") {
     const lines = itemLines(items);
-    const [ahead, balance] = await Promise.all([queueAhead(now.date, time, row.order_no), pointsBalance(user.userId)]);
+    const [ahead, balance] = await Promise.all([queueAhead(date, time, row.order_no), pointsBalance(user.userId)]);
     await Promise.all([
       pushCard(process.env.LINE_STAFF_GROUP_ID, {
         tone: "amber",
@@ -142,6 +167,7 @@ export async function POST(req: Request) {
           ["ออเดอร์", `#${row.order_no}`, true],
           ["ลูกค้า", user.name],
           ["วิธีรับ", when],
+          ...deliveryRows(delivery),
         ],
         items: lines,
         note: [cleanNote && `หมายเหตุ: ${cleanNote}`, cup && `มีข้อความบนแก้ว${cup.forCup ? ` (ติดที่: ${cup.forCup})` : ""}: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า`].filter(Boolean).join(" · ") || undefined,
@@ -161,7 +187,7 @@ export async function POST(req: Request) {
         note: "ออเดอร์เสร็จเมื่อไรจะแจ้งทาง LINE อีกครั้ง",
       }, { name: user.name, orderNo: row.order_no }),
     ]);
-    return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, service, tableNo, total: 0, discount: points, promoCode, promoDiscount: promoOff });
+    return NextResponse.json({ free: true, no: row.order_no, pickupTime: time, pickupDate: date, service, tableNo, total: 0, discount: points, promoCode, promoDiscount: promoOff });
   }
 
   // ยังไม่แจ้งร้าน: ออเดอร์จะเข้าคิวหลังร้านยืนยันสลิป
@@ -172,6 +198,7 @@ export async function POST(req: Request) {
       total: pay,
       discount: points,
       pickup_time: time,
+      pickup_date: date,
       expires_at: row.order_expires,
       service,
       table_no: tableNo,
@@ -188,9 +215,9 @@ export async function GET(req: Request) {
   if (!user) return fail("เซสชัน LINE หมดอายุ กรุณาเข้าสู่ระบบใหม่", 401);
   const { data, error } = await db()
     .from("orders")
-    .select("id,daily_no,total,discount,pickup_time,expires_at,service,table_no,promo_code,promo_discount")
+    .select("id,daily_no,total,discount,pickup_time,pickup_date,expires_at,service,table_no,promo_code,promo_discount")
     .eq("line_user_id", user.userId)
-    .eq("pickup_date", nowInShop().date)
+    .in("pickup_date", [nowInShop().date, tomorrowDate()]) // รวมออเดอร์ล่วงหน้าของพรุ่งนี้ที่ยังไม่จ่าย
     .eq("source", "menu")
     .eq("status", "awaiting_payment")
     .gt("expires_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())

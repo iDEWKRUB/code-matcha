@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { checkSlip } from "@/lib/barServer";
 import { adminUri } from "@/lib/flex";
 import { pushCard, verifyIdToken } from "@/lib/line";
-import { ORDER_COLUMNS, itemLines, rowWhen, type OrderRow } from "@/lib/orders";
+import { ORDER_COLUMNS, itemLines, deliveryRows, rowWhen, type OrderRow } from "@/lib/orders";
 import { afterMatchaPaid } from "@/lib/paid";
 import { db } from "@/lib/supabase";
 
@@ -69,6 +69,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             ["ลูกค้า", order.customer_name],
             ["ยอด", `฿${order.total}`],
             ["วิธีรับ", rowWhen(order)],
+            ...deliveryRows(order.delivery),
           ],
           items: itemLines(order.items),
           note: [order.note && `หมายเหตุ: ${order.note}`, order.cup_msg && `มีข้อความบนแก้ว${order.cup_to ? ` (ติดที่: ${order.cup_to})` : ""}: พิมพ์สติ๊กเกอร์จากหน้าบาริสต้า`].filter(Boolean).join(" · ") || undefined,

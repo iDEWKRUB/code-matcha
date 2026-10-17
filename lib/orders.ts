@@ -1,7 +1,7 @@
 import "server-only";
 import QRCode from "qrcode";
 import { pointsEarned } from "./config";
-import { whenText, type MenuItem, type Order, type Payment, type Powder, type Service, type ShopSettings, type Slot } from "./menu";
+import { whenText, type Delivery, type MenuItem, type Order, type Payment, type Powder, type Service, type ShopSettings, type Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
 import { isBookable, nowInShop, slotTimes, toMinutes } from "./time";
@@ -38,7 +38,7 @@ export async function getPowders(activeOnly = true): Promise<Powder[]> {
 export async function getSettings(): Promise<ShopSettings> {
   const { data, error } = await db()
     .from("shop_settings")
-    .select("banner,banner_active,notice,notice_active,notice_until,open_time,close_time,slot_minutes,slot_capacity,accepting,order_no_start")
+    .select("banner,banner_active,notice,notice_active,notice_until,open_time,close_time,slot_minutes,slot_capacity,accepting,order_no_start,delivery_enabled,delivery_km,delivery_min,shop_lat,shop_lng,preorder_enabled,preorder_from,preorder_cutoff")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw error;
@@ -54,6 +54,14 @@ export async function getSettings(): Promise<ShopSettings> {
     slotCapacity: data?.slot_capacity ?? 8,
     accepting: data?.accepting ?? true,
     orderNoStart: data?.order_no_start ?? 1,
+    deliveryEnabled: data?.delivery_enabled ?? false,
+    deliveryKm: Number(data?.delivery_km ?? 5),
+    deliveryMin: data?.delivery_min ?? 150,
+    shopLat: data?.shop_lat ?? null,
+    shopLng: data?.shop_lng ?? null,
+    preorderEnabled: data?.preorder_enabled ?? false,
+    preorderFrom: data?.preorder_from ?? "06:00",
+    preorderCutoff: data?.preorder_cutoff ?? "20:00",
   };
 }
 
@@ -77,6 +85,27 @@ export async function getTodaySlots(s: ShopSettings): Promise<Slot[]> {
     .map((time) => ({ time, remaining: Math.max(0, s.slotCapacity - (used.get(time) ?? 0)) }));
 }
 
+// รอบรับของพรุ่งนี้ (สั่งล่วงหน้า): ตั้งแต่ preorderFrom ถึงก่อนปิดร้าน · ปิดรับเมื่อเลยเวลา preorderCutoff ของวันนี้
+export function tomorrowDate() {
+  const { date } = nowInShop();
+  return new Date(new Date(date + "T12:00:00+07:00").getTime() + 864e5).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+}
+export function preorderOpen(s: ShopSettings) {
+  return s.accepting && s.preorderEnabled && nowInShop().minutes < toMinutes(s.preorderCutoff);
+}
+export function tomorrowTimes(s: ShopSettings) {
+  const from = Math.min(toMinutes(s.preorderFrom), toMinutes(s.openTime));
+  return slotTimes({ ...s, openTime: `${String(Math.floor(from / 60)).padStart(2, "0")}:${String(from % 60).padStart(2, "0")}` });
+}
+export async function getTomorrowSlots(s: ShopSettings): Promise<Slot[]> {
+  if (!preorderOpen(s)) return [];
+  const { data, error } = await db().from("orders").select("pickup_time,cups,status,expires_at").eq("pickup_date", tomorrowDate()).neq("status", "cancelled");
+  if (error) throw error;
+  const used = new Map<string, number>();
+  for (const r of data.filter(holdsSlot)) used.set(r.pickup_time, (used.get(r.pickup_time) ?? 0) + r.cups);
+  return tomorrowTimes(s).map((time) => ({ time, remaining: Math.max(0, s.slotCapacity - (used.get(time) ?? 0)) }));
+}
+
 // ออเดอร์ที่จ่ายแล้วและยังไม่เสร็จ ที่ต้องทำก่อน (เวลารับเร็วกว่า หรือเวลาเดียวกันแต่สั่งก่อน)
 export async function queueAhead(date: string, pickupTime: string, no: number) {
   const { data, error } = await db()
@@ -93,7 +122,7 @@ export async function queueAhead(date: string, pickupTime: string, no: number) {
 }
 
 export async function paymentFor(
-  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at" | "service" | "table_no" | "promo_code" | "promo_discount">,
+  r: Pick<OrderRow, "id" | "daily_no" | "total" | "discount" | "pickup_time" | "expires_at" | "service" | "table_no" | "promo_code" | "promo_discount"> & { pickup_date?: string },
 ): Promise<Payment> {
   const id = process.env.PROMPTPAY_ID;
   if (!id) throw new Error("Missing environment variable PROMPTPAY_ID");
@@ -104,6 +133,7 @@ export async function paymentFor(
     total: r.total,
     discount: r.discount,
     pickupTime: r.pickup_time,
+    pickupDate: r.pickup_date,
     service: r.service,
     tableNo: r.table_no,
     promoCode: r.promo_code,
@@ -119,12 +149,16 @@ export function openNow(s: ShopSettings) {
   return s.accepting && m >= toMinutes(s.openTime) && m < toMinutes(s.closeTime);
 }
 
+// แถวที่อยู่จัดส่งในการ์ดแจ้งร้าน
+export const deliveryRows = (d: Delivery | null | undefined): [string, string][] =>
+  d ? [["ส่งที่", `${d.address} (${d.km} กม.)`], ["โทร", d.phone]] : [];
+
 // บรรทัดรายการในการ์ด LINE
 export const itemLines = (items: Order["items"]) => items.map((i) => `${i.qty}× ${i.name}${i.detail ? ` · ${i.detail}` : ""}`);
 
 // ข้อความเวลารับ สำหรับ LINE (จากแถวในฐานข้อมูล)
-export const rowWhen = (r: Pick<OrderRow, "service" | "pickup_time" | "table_no">) =>
-  whenText({ service: r.service, pickupTime: r.pickup_time, tableNo: r.table_no });
+export const rowWhen = (r: Pick<OrderRow, "service" | "pickup_time" | "table_no"> & { pickup_date?: string }) =>
+  whenText({ service: r.service, pickupTime: r.pickup_time, tableNo: r.table_no, pickupDate: r.pickup_date, today: nowInShop().date });
 
 export async function pointsBalance(userId: string) {
   const { data, error } = await db().rpc("points_balance", { p_user: userId });
@@ -175,10 +209,11 @@ type OrderRow = {
   pos_bill_id: number | null;
   cup_msg: string | null;
   cup_to: string | null; // โน้ต "ติดที่แก้วไหน" (ไม่เข้ารหัส)
+  delivery: Delivery | null;
 };
 
 export const ORDER_COLUMNS =
-  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no,promo_code,promo_discount,source,channel,paid_at,pos_bill_id,cup_msg,cup_to";
+  "id,daily_no,pickup_date,pickup_time,line_user_id,customer_name,items,total,discount,cups,note,status,created_at,expires_at,slip_path,service,table_no,promo_code,promo_discount,source,channel,paid_at,pos_bill_id,cup_msg,cup_to,delivery";
 
 export function toOrder(r: OrderRow): Order {
   return {
@@ -186,6 +221,7 @@ export function toOrder(r: OrderRow): Order {
     no: r.daily_no,
     pickupDate: r.pickup_date,
     pickupTime: r.pickup_time,
+    delivery: r.delivery ?? null,
     customerName: r.customer_name,
     items: r.items,
     total: r.total,

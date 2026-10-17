@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Order, OrderStatus } from "@/lib/menu";
+import { dayText, type Delivery, type Order, type OrderStatus } from "@/lib/menu";
 import { printErr, printReceipt, type BtReceipt } from "@/lib/btPrinter";
 import Icon from "../Icon";
 
@@ -49,6 +49,10 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
     reload();
   }
 
+  // ออเดอร์ของวันถัดไป (สั่งล่วงหน้า) แยกไว้ด้านล่าง ยกเว้นที่รอตรวจสลิป (ต้องตรวจเลย)
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  const later = orders.filter((o) => o.pickupDate > today && o.status !== "payment_review").sort((a, b) => a.pickupTime.localeCompare(b.pickupTime));
+  orders = orders.filter((o) => !later.includes(o));
   const count = (st: OrderStatus) => orders.filter((o) => o.status === st).length;
   const cards = [
     { label: "ออเดอร์ที่จ่ายแล้ว", value: stats.orders.toLocaleString(), sub: `${stats.cups} แก้ว` },
@@ -86,7 +90,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                     <div className="th">
                       <b>#{o.no}</b>
                       <span className={`time svc-${o.service}`}>
-                        {o.source === "bar" ? "มาม่าบาร์ · ลูกค้าต้มเอง" : o.service === "pickup" ? `มารับ ${o.pickupTime} น.` : o.service === "dine_in" ? `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""}` : "กลับบ้าน · รอที่ร้าน"}
+                        {o.source === "bar" ? "มาม่าบาร์ · ลูกค้าต้มเอง" : o.service === "delivery" ? `ไปส่ง ${o.pickupTime} น.` : o.service === "pickup" ? `มารับ ${o.pickupTime} น.` : o.service === "dine_in" ? `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""}` : "กลับบ้าน · รอที่ร้าน"}
                       </span>
                     </div>
                     <OrderWhen o={o} />
@@ -100,6 +104,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
                       {o.discount > 0 && <span className="tag">ใช้แต้ม −฿{o.discount}</span>}
                       {o.channel === "pos" && <span className={`tag pos${o.unpaid ? " unpaid" : ""}`}>{o.unpaid ? "หน้าร้าน · ยังไม่จ่าย" : "หน้าร้าน · จ่ายแล้ว"}</span>}
                     </p>
+                    {o.delivery && <DeliveryInfo d={o.delivery} />}
                     <ul className="its">
                       {o.items.map((i, k) => (
                         <li key={k}>
@@ -154,6 +159,7 @@ export default function OrdersTab({ orders, stats, fresh, reload, onError }: Pro
           );
         })}
       </div>
+      {later.length > 0 && <LaterList list={later} />}
     </>
   );
 }
@@ -191,7 +197,7 @@ function OrderWhen({ o }: { o: Order }) {
   const placed = new Date(o.createdAt);
   const sinceMin = Math.floor((now - placed.getTime()) / 60000);
   let pick: { text: string; tone: string } | null = null;
-  if (o.source !== "bar" && o.service === "pickup" && o.pickupTime) {
+  if (o.source !== "bar" && (o.service === "pickup" || o.service === "delivery") && o.pickupTime) {
     const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
     const at = new Date(`${o.pickupDate}T${o.pickupTime}:00+07:00`).getTime();
     const left = Math.round((at - now) / 60000);
@@ -209,5 +215,47 @@ function OrderWhen({ o }: { o: Order }) {
       </span>
       {pick && <span className={`pk ${pick.tone}`}>{pick.text}</span>}
     </p>
+  );
+}
+
+// ที่อยู่จัดส่งบนการ์ดออเดอร์: ที่อยู่ ระยะ เบอร์ (กดโทร) และปุ่มนำทาง
+function DeliveryInfo({ d }: { d: Delivery }) {
+  return (
+    <div className="dlv">
+      <b>ร้านไปส่ง · {d.km} กม.</b>
+      <span>{d.address}</span>
+      <span className="dlv-acts">
+        <a href={`tel:${d.phone}`}>โทร {d.phone}</a>
+        <a href={`https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`} target="_blank" rel="noreferrer">
+          นำทาง Google Maps
+        </a>
+      </span>
+    </div>
+  );
+}
+
+// ออเดอร์ล่วงหน้า (วันถัดไป) เรียงตามเวลา · พรุ่งนี้จะย้ายเข้าช่อง "ออเดอร์ใหม่" เอง
+function LaterList({ list }: { list: Order[] }) {
+  const cups = list.reduce((n, o) => n + o.cups, 0);
+  return (
+    <section className="later">
+      <h2>
+        ออเดอร์ล่วงหน้า · {dayText(list[0].pickupDate)} <span>{list.length} ออเดอร์ · {cups} แก้ว (จ่ายแล้ว)</span>
+      </h2>
+      <ul>
+        {list.map((o) => (
+          <li key={o.id}>
+            <b className="t">{o.pickupTime}</b>
+            <span className="n">#{o.no}</span>
+            <span className="w">
+              {o.customerName} · {o.service === "delivery" ? "ร้านไปส่ง" : "มารับที่ร้าน"}
+              <small>{o.items.map((i) => `${i.qty}× ${i.name}${i.detail ? ` (${i.detail})` : ""}`).join(" · ")}</small>
+              {o.delivery && <small>ส่งที่: {o.delivery.address} · {o.delivery.km} กม. · {o.delivery.phone}</small>}
+              {o.note && <small>หมายเหตุ: {o.note}</small>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { ORDER_COLUMNS, getMenu, toOrder, type OrderRow } from "@/lib/orders";
+import { ORDER_COLUMNS, getMenu, toOrder, tomorrowDate, type OrderRow } from "@/lib/orders";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -15,7 +15,7 @@ export async function GET() {
     db()
       .from("orders")
       .select(ORDER_COLUMNS)
-      .eq("pickup_date", date)
+      .in("pickup_date", [date, tomorrowDate()]) // รวมออเดอร์ล่วงหน้าของพรุ่งนี้
       .in("status", ["payment_review", "pending", "preparing", "ready"])
       .order("pickup_time")
       .order("daily_no"),

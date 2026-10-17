@@ -48,6 +48,14 @@ export type ShopSettings = {
   slotCapacity: number; // แก้วสูงสุดต่อรอบ
   accepting: boolean; // สวิตช์เปิด/ปิดรับออเดอร์
   orderNoStart: number; // เลขออเดอร์แรกของแต่ละวัน
+  deliveryEnabled: boolean; // ร้านนำไปส่ง (ฟรีในรัศมี)
+  deliveryKm: number; // รัศมีส่ง (กม.)
+  deliveryMin: number; // ยอดขั้นต่ำสั่งส่ง
+  shopLat: number | null; // พิกัดร้าน
+  shopLng: number | null;
+  preorderEnabled: boolean; // สั่งล่วงหน้าสำหรับพรุ่งนี้
+  preorderFrom: string; // รอบแรกของพรุ่งนี้ (ก่อนร้านเปิดได้)
+  preorderCutoff: string; // รับสั่งของพรุ่งนี้ถึงกี่โมงวันนี้
 };
 
 // แบบหน้าตาแก้วการ์ตูนที่เลือกให้เมนูใหม่ได้ (ต้องตรงกับสูตรใน app/Cup.tsx)
@@ -118,14 +126,29 @@ export type OrderStatus =
   | "cancelled";
 
 // วิธีรับ: pickup = สั่งล่วงหน้ามารับตามรอบ, dine_in / takeaway = ลูกค้าอยู่ที่ร้านแล้ว ทำให้เลย
-export type Service = "pickup" | "dine_in" | "takeaway";
-export const SERVICE_LABEL: Record<Service, string> = { pickup: "สั่งล่วงหน้า", dine_in: "ทานที่ร้าน", takeaway: "รับกลับบ้าน" };
+export type Service = "pickup" | "dine_in" | "takeaway" | "delivery";
+export const SERVICE_LABEL: Record<Service, string> = { pickup: "สั่งล่วงหน้า", dine_in: "ทานที่ร้าน", takeaway: "รับกลับบ้าน", delivery: "ร้านไปส่ง" };
+
+// ที่อยู่จัดส่ง (เก็บในออเดอร์)
+export type Delivery = { lat: number; lng: number; km: number; address: string; phone: string };
+
+// วันที่สั้น เช่น "พรุ่งนี้ 17 ต.ค." (ใช้เมื่อออเดอร์ไม่ใช่ของวันนี้)
+export function dayText(date: string, today?: string) {
+  const t = today ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  const d = new Date(date + "T12:00:00+07:00");
+  const label = d.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short" });
+  const tomorrow = new Date(new Date(t + "T12:00:00+07:00").getTime() + 864e5).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  return date === tomorrow ? `พรุ่งนี้ ${label}` : label;
+}
 
 // ข้อความบอกว่ารับเมื่อไร/ที่ไหน ใช้ทั้งหน้าเว็บและข้อความ LINE
-export function whenText(o: { service?: Service; pickupTime: string; tableNo?: string }) {
+export function whenText(o: { service?: Service; pickupTime: string; tableNo?: string; pickupDate?: string; today?: string }) {
   if (o.service === "dine_in") return `ทานที่ร้าน${o.tableNo ? ` · โต๊ะ ${o.tableNo}` : ""} (ทำให้เลย)`;
   if (o.service === "takeaway") return "รับกลับบ้าน · รอที่ร้าน (ทำให้เลย)";
-  return `มารับ ${o.pickupTime} น.`;
+  const today = o.today ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  const day = o.pickupDate && o.pickupDate !== today ? `${dayText(o.pickupDate, today)} ` : "";
+  if (o.service === "delivery") return `ร้านไปส่ง ${day}${o.pickupTime} น.`;
+  return `มารับ ${day}${o.pickupTime} น.`;
 }
 
 export type Order = {
@@ -137,6 +160,7 @@ export type Order = {
   no: number;
   pickupDate: string;
   pickupTime: string;
+  delivery: Delivery | null; // ออเดอร์ที่ร้านไปส่ง
   customerName: string;
   items: OrderItem[];
   total: number;
@@ -164,6 +188,7 @@ export type Payment = {
   total: number;
   discount: number;
   pickupTime: string;
+  pickupDate?: string;
   expiresAt: string;
   qr: string;
 };

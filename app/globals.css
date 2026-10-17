@@ -2368,3 +2368,37 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .coupon-go { font-size: 12.5px; font-weight: 700; color: #2F4A2A; white-space: nowrap; }
 .offer.on { border-style: solid; border-color: #2F4A2A; background: #eaf2dc; opacity: 1; }
 .offer.on .offer-go { color: #2F4A2A; font-weight: 700; }
+/* จัดส่ง: แผนที่ปักหมุด (dm-) · เลือกวันสั่งล่วงหน้า */
+.dm { display: grid; gap: 6px; }
+.dm-map { height: 240px; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); z-index: 0; }
+.dm-loading { display: grid; place-items: center; color: var(--stone); font-size: 13px; background: #f3f5ec; }
+.dm-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.dm-loc { min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2F4A2A; background: #fff; color: #2F4A2A; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.dm-ok { font-size: 13px; color: #2F4A2A; font-weight: 600; }
+.dm-over { font-size: 13px; color: #a12c15; font-weight: 700; }
+.dm-msg, .dm-hint { margin: 0; font-size: 12px; color: var(--stone); }
+.dm-pin i { display: block; width: 26px; height: 26px; margin: 0 auto; border-radius: 50% 50% 50% 0; background: #C23B22; transform: rotate(-45deg); border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+.dm-shop span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: #2F4A2A; color: #fff; font-size: 9px; line-height: 1; text-align: center; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.day-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.day-tabs button { flex: 1; min-height: 40px; border-radius: 12px; border: 1px solid var(--edge); background: #fff; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
+.day-tabs button[aria-pressed="true"] { background: #2F4A2A; color: #fff; border-color: #2F4A2A; }
+.day-tabs button:disabled { opacity: .5; cursor: default; }
+/* บอร์ดออเดอร์: ที่อยู่จัดส่ง + ออเดอร์ล่วงหน้า */
+.dlv { margin: 6px 0 4px; padding: 8px 10px; border-radius: 10px; background: #fff4e5; border: 1px solid #f1d2a6; display: grid; gap: 2px; font-size: 13px; }
+.dlv b { color: #7a4a00; font-size: 13px; }
+.dlv-acts { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 2px; }
+.dlv-acts a { color: #2F4A2A; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.later { margin-top: 18px; background: #fff; border-radius: 18px; padding: 14px 18px; border: 1px dashed var(--edge); }
+.later h2 { margin: 0 0 8px; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.later h2 span { font-size: 13px; color: var(--stone); font-weight: 600; }
+.later ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.later li { display: grid; grid-template-columns: 56px 44px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 8px 0; border-top: 1px solid #f0f0e8; }
+.later li:first-child { border-top: 0; }
+.later .t { font-size: 16px; }
+.later .n { color: var(--stone); font-weight: 700; }
+.later .w { display: grid; gap: 1px; font-size: 14px; }
+.later .w small { color: var(--stone); font-size: 12.5px; }
+.dp h3 { margin: 16px 0 6px; font-size: 15px; }
+.dp-pos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.dp-pos .text { flex: 1 1 200px; }
+.dp-check { display: inline-block; margin-top: 6px; font-size: 13px; color: #2F4A2A; font-weight: 600; }

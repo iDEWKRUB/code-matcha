@@ -12,6 +12,7 @@ import MemberPanel from "./MemberPanel";
 import MessageLog from "./MessageLog";
 import PromoPanel from "./PromoPanel";
 import WifiPanel from "./WifiPanel";
+import DeliveryPanel from "./DeliveryPanel";
 
 type Section = "shop" | "menu" | "promo" | "member" | "line";
 const SECTIONS: { id: Section; icon: IconName; label: string; hint: string }[] = [
@@ -152,6 +153,14 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
     slotCapacity: 8,
     accepting: true,
     orderNoStart: 1,
+    deliveryEnabled: false,
+    deliveryKm: 5,
+    deliveryMin: 150,
+    shopLat: null,
+    shopLng: null,
+    preorderEnabled: false,
+    preorderFrom: "06:00",
+    preorderCutoff: "20:00",
   });
   const [bannerMsg, setBannerMsg] = useState("");
   const [noticeMsg, setNoticeMsg] = useState("");
@@ -369,6 +378,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
       )}
 
       {sec === "shop" && <WifiPanel />}
+      {sec === "shop" && <DeliveryPanel />}
 
       {sec === "promo" && (
       <section className="panel">

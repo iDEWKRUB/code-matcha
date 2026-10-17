@@ -70,8 +70,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const served = current.service === "dine_in" && current.table_no;
     await notify({
       tone: "ready",
-      title: current.service === "dine_in" ? "ออเดอร์พร้อมแล้ว!" : "ออเดอร์พร้อมรับแล้ว!",
-      subtitle: served ? `ร้านจะนำไปเสิร์ฟที่โต๊ะ ${current.table_no}` : `แจ้งเลข #${no} ที่เคาน์เตอร์ได้เลย`,
+      title: current.service === "delivery" ? "ออเดอร์กำลังไปส่ง!" : current.service === "dine_in" ? "ออเดอร์พร้อมแล้ว!" : "ออเดอร์พร้อมรับแล้ว!",
+      subtitle:
+        current.service === "delivery"
+          ? "ร้านกำลังนำไปส่ง ถึงแล้วจะโทรหานะ"
+          : served
+            ? `ร้านจะนำไปเสิร์ฟที่โต๊ะ ${current.table_no}`
+            : `แจ้งเลข #${no} ที่เคาน์เตอร์ได้เลย`,
       rows: [
         ["ออเดอร์", `#${no}`, true],
         ["วิธีรับ", rowWhen(current)],

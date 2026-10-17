@@ -66,6 +66,41 @@ export async function PUT(req: Request) {
     row.order_no_start = n;
   }
 
+  // จัดส่ง + สั่งล่วงหน้า
+  for (const [k, col] of [["deliveryEnabled", "delivery_enabled"], ["preorderEnabled", "preorder_enabled"]] as const) {
+    if (k in b) {
+      if (typeof b[k] !== "boolean") return bad("ข้อมูลไม่ถูกต้อง");
+      row[col] = b[k];
+    }
+  }
+  if ("deliveryKm" in b) {
+    const v = Number(b.deliveryKm);
+    if (!(v > 0 && v <= 20)) return bad("รัศมีส่งต้องอยู่ระหว่าง 0.5–20 กม.");
+    row.delivery_km = Math.round(v * 10) / 10;
+  }
+  if ("deliveryMin" in b) {
+    const v = Number(b.deliveryMin);
+    if (!Number.isInteger(v) || v < 0 || v > 10000) return bad("ยอดขั้นต่ำไม่ถูกต้อง");
+    row.delivery_min = v;
+  }
+  if ("shopLat" in b || "shopLng" in b) {
+    const lat = Number(b.shopLat), lng = Number(b.shopLng);
+    if (b.shopLat === null && b.shopLng === null) {
+      row.shop_lat = null;
+      row.shop_lng = null;
+    } else {
+      if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || (lat === 0 && lng === 0)) return bad("พิกัดร้านไม่ถูกต้อง");
+      row.shop_lat = lat;
+      row.shop_lng = lng;
+    }
+  }
+  for (const [k, col] of [["preorderFrom", "preorder_from"], ["preorderCutoff", "preorder_cutoff"]] as const) {
+    if (k in b) {
+      if (typeof b[k] !== "string" || !TIME.test(b[k] as string)) return bad("เวลาไม่ถูกต้อง");
+      row[col] = b[k];
+    }
+  }
+
   const { error } = await db().from("shop_settings").upsert(row);
   if (error) throw error;
   return NextResponse.json(await getSettings());

@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { getBarHours } from "@/lib/barServer";
 import { activeNotice } from "@/lib/menu";
-import { getMenu, getPowders, getSettings, getTodaySlots, openNow } from "@/lib/orders";
+import { getMenu, getPowders, getSettings, getTodaySlots, getTomorrowSlots, openNow, tomorrowDate } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const settings = await getSettings();
-  const [all, slots, powders, bar] = await Promise.all([
+  const [all, slots, tomorrowSlots, powders, bar] = await Promise.all([
     getMenu(),
     getTodaySlots(settings),
+    getTomorrowSlots(settings),
     getPowders(),
     // ปุ่มเข้ามาม่าบาร์: ถ้าอ่านไม่ได้ก็แค่ไม่แสดงปุ่ม ไม่ให้หน้าเมนูล่ม
     getBarHours().catch((e) => {
@@ -29,5 +30,12 @@ export async function GET() {
     hours: { accepting: settings.accepting, openTime: settings.openTime, closeTime: settings.closeTime, openNow: openNow(settings) },
     bar: bar?.enabled ? bar : null,
     payReady: !!process.env.PROMPTPAY_ID,
+    // สั่งล่วงหน้าสำหรับพรุ่งนี้ (ว่าง = ปิดรับ/เลยเวลาปิดรับแล้ว)
+    tomorrow: tomorrowSlots.length ? { date: tomorrowDate(), slots: tomorrowSlots, cutoff: settings.preorderCutoff } : null,
+    // ร้านไปส่ง (ฟรีในรัศมี) · ต้องตั้งพิกัดร้านก่อนถึงจะเปิดให้ลูกค้าเลือก
+    delivery:
+      settings.deliveryEnabled && settings.shopLat !== null && settings.shopLng !== null
+        ? { km: settings.deliveryKm, min: settings.deliveryMin, lat: settings.shopLat, lng: settings.shopLng }
+        : null,
   });
 }

@@ -42,18 +42,24 @@ import Seal from "./Seal";
 import ReviewStrip, { RatingBadge } from "./review/ReviewStrip";
 import Notice from "./Notice";
 import MenuDeck from "./MenuDeck";
+import dynamic from "next/dynamic";
+import type { Pin } from "./DeliveryMap";
+import { distanceKm } from "@/lib/geo";
+// แผนที่โหลดเฉพาะตอนเลือก "ร้านไปส่ง" (ไลบรารีแผนที่ใช้ได้แค่ในเบราว์เซอร์)
+const DeliveryMap = dynamic(() => import("./DeliveryMap"), { ssr: false, loading: () => <div className="dm-map dm-loading">กำลังโหลดแผนที่…</div> });
 
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
 type Hours = { accepting: boolean; openTime: string; closeTime: string; openNow: boolean };
 type AppliedPromo = Pick<PromoRule, "code" | "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly">;
-type Done = { no: number; pickupTime: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean; paid?: boolean; earned?: number; ahead?: number; reason?: string };
+type Done = { no: number; pickupTime: string; pickupDate?: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean; paid?: boolean; earned?: number; ahead?: number; reason?: string };
 
 const SERVICES: { id: Service; icon: IconName; title: string; sub: string }[] = [
   { id: "dine_in", icon: "bowl", title: "ทานที่ร้าน", sub: "อยู่ร้านแล้ว ทำให้เลย" },
   { id: "takeaway", icon: "bag", title: "รับกลับบ้าน", sub: "รอรับที่เคาน์เตอร์" },
   { id: "pickup", icon: "clock", title: "สั่งล่วงหน้า", sub: "เลือกเวลามารับ" },
+  { id: "delivery", icon: "store", title: "ร้านไปส่ง", sub: "ส่งฟรีในรัศมี" },
 ];
 
 // ย่อรูปสลิปก่อนอัปโหลด (รูปจากมือถือมักใหญ่หลาย MB)
@@ -128,6 +134,24 @@ export default function OrderPage() {
   const [checkout, setCheckout] = useState(false);
   const [pickup, setPickup] = useState("");
   const [service, setService] = useState<Service | null>(null);
+  // สั่งล่วงหน้าสำหรับพรุ่งนี้ + ร้านไปส่ง (ค่าจาก /api/menu · null = ร้านไม่เปิดบริการนี้)
+  const [tomorrow, setTomorrow] = useState<{ date: string; slots: Slot[]; cutoff: string } | null>(null);
+  const [deliveryCfg, setDeliveryCfg] = useState<{ km: number; min: number; lat: number; lng: number } | null>(null);
+  const [day, setDay] = useState<"today" | "tomorrow">("today");
+  const [dPin, setDPin] = useState<Pin | null>(null);
+  const [dAddr, setDAddr] = useState("");
+  const [dPhone, setDPhone] = useState("");
+  // จำที่อยู่/เบอร์ล่าสุดไว้ในเครื่อง สั่งครั้งหน้าไม่ต้องพิมพ์ใหม่
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem("delivery-last") ?? "null");
+      if (d) {
+        setDAddr(d.address ?? "");
+        setDPhone(d.phone ?? "");
+        if (typeof d.lat === "number") setDPin({ lat: d.lat, lng: d.lng });
+      }
+    } catch {}
+  }, []);
   const [tableNo, setTableNo] = useState("");
   const [note, setNote] = useState("");
   // เริ่มต้นเป็นรูปจริง · กดปุ่มเพื่อสลับดูการ์ตูน (หน้าเมนูทั้งหมด ทั้งหน้า / หน้ารายละเอียด ทีละแก้ว)
@@ -217,7 +241,19 @@ export default function OrderPage() {
   const loadMenu = useCallback(async () => {
     const r = await fetch("/api/menu", { cache: "no-store" });
     if (!r.ok) throw new Error("โหลดเมนูไม่สำเร็จ");
-    const j = (await r.json()) as { menu: MenuItem[]; powders: Powder[]; slots: Slot[]; banner: string; notice?: string; hours: Hours; bar: BarHours | null };
+    const j = (await r.json()) as {
+      menu: MenuItem[];
+      powders: Powder[];
+      slots: Slot[];
+      banner: string;
+      notice?: string;
+      hours: Hours;
+      bar: BarHours | null;
+      tomorrow?: { date: string; slots: Slot[]; cutoff: string } | null;
+      delivery?: { km: number; min: number; lat: number; lng: number } | null;
+    };
+    setTomorrow(j.tomorrow ?? null);
+    setDeliveryCfg(j.delivery ?? null);
     setBar(j.bar ?? null);
     setMenu(j.menu);
     setPowders(j.powders ?? []);
@@ -376,8 +412,15 @@ export default function OrderPage() {
     }
   }
   // ปิดจริง = ตอนนี้ไม่เปิดให้สั่งหน้าร้าน และไม่มีรอบให้สั่งล่วงหน้าเหลือ
-  const closed = !!hours && !hours.openNow && slots.length === 0;
-  const ready = service === "pickup" ? !!pickup : !!service;
+  // ปิดจริง = ไม่เปิดหน้าร้าน ไม่มีรอบวันนี้ และไม่มีรอบล่วงหน้าของพรุ่งนี้
+  const closed = !!hours && !hours.openNow && slots.length === 0 && !tomorrow;
+  const timed = service === "pickup" || service === "delivery"; // ต้องเลือกรอบเวลา
+  const daySlots = day === "tomorrow" ? (tomorrow?.slots ?? []) : slots;
+  const dKm = deliveryCfg && dPin ? distanceKm(deliveryCfg, dPin) : null;
+  const deliveryOk =
+    service !== "delivery" ||
+    (!!deliveryCfg && dKm !== null && dKm <= deliveryCfg.km && total >= deliveryCfg.min && dAddr.trim().length >= 5 && dPhone.replace(/D/g, "").length >= 9);
+  const ready = (timed ? !!pickup : !!service) && deliveryOk;
 
   function open(it: MenuItem) {
     setEdit(it);
@@ -418,7 +461,14 @@ export default function OrderPage() {
       const r = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lines: cart, service, tableNo, pickupTime: pickup, note, cupMsg: cup.msg, cupTo: cup.to, cupFrom: cup.from, cupFor: cup.forCup, points: pointsToUse, promoCode: promo?.code ?? "" }),
+        body: JSON.stringify({
+          lines: cart,
+          service,
+          tableNo,
+          pickupTime: pickup,
+          pickupDate: timed && day === "tomorrow" ? "tomorrow" : undefined,
+          delivery: service === "delivery" && dPin ? { lat: dPin.lat, lng: dPin.lng, address: dAddr, phone: dPhone } : undefined,
+          note, cupMsg: cup.msg, cupTo: cup.to, cupFrom: cup.from, cupFor: cup.forCup, points: pointsToUse, promoCode: promo?.code ?? "" }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) setNeedLogin(true);
@@ -437,6 +487,10 @@ export default function OrderPage() {
       }
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
       track("order");
+      if (service === "delivery" && dPin)
+        try {
+          localStorage.setItem("delivery-last", JSON.stringify({ ...dPin, address: dAddr, phone: dPhone }));
+        } catch {}
       if (promo?.code === linkPromo) dropLinkPromo();
       setCart([]);
       setNote("");
@@ -447,7 +501,7 @@ export default function OrderPage() {
       setPromoInput("");
       setCheckout(false);
       if (j.free) {
-        setDone({ no: j.no, pickupTime: j.pickupTime, service: j.service, tableNo: j.tableNo, total: 0, discount: j.discount, free: true });
+        setDone({ no: j.no, pickupTime: j.pickupTime, pickupDate: j.pickupDate, service: j.service, tableNo: j.tableNo, total: 0, discount: j.discount, free: true });
         loadMine().catch(() => {});
         setPhase("done");
         return;
@@ -477,7 +531,7 @@ export default function OrderPage() {
       if (!r.ok) throw new Error(j.error ?? "ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้ง");
       // SlipOK ตรวจผ่าน = เข้าคิวแล้ว · ไม่ผ่าน = รอร้านตรวจ (บอกเหตุผลด้วย)
       const paid = j.status === "paid";
-      setDone({ no: pay.no, pickupTime: pay.pickupTime, service: pay.service, tableNo: pay.tableNo, total: pay.total, discount: pay.discount, paid, earned: j.earned, ahead: j.ahead, reason: j.reason || "" });
+      setDone({ no: pay.no, pickupTime: pay.pickupTime, pickupDate: pay.pickupDate, service: pay.service, tableNo: pay.tableNo, total: pay.total, discount: pay.discount, paid, earned: j.earned, ahead: j.ahead, reason: j.reason || "" });
       if (paid && typeof j.balance === "number") setPoints(j.balance);
       setPay(null);
       setPhase("done");
@@ -1064,8 +1118,8 @@ export default function OrderPage() {
               <ClosedNotice hours={hours} compact />
             ) : (
               <div className="services" role="radiogroup" aria-label="วิธีรับ">
-                {SERVICES.map((s) => {
-                  const off = s.id === "pickup" ? slots.length === 0 : !hours?.openNow;
+                {SERVICES.filter((s) => s.id !== "delivery" || deliveryCfg).map((s) => {
+                  const off = s.id === "pickup" || s.id === "delivery" ? slots.length === 0 && !tomorrow : !hours?.openNow;
                   return (
                     <button
                       key={s.id}
@@ -1073,11 +1127,26 @@ export default function OrderPage() {
                       aria-checked={service === s.id}
                       className="service"
                       disabled={off}
-                      onClick={() => setService(s.id)}
+                      onClick={() => {
+                        setService(s.id);
+                        setPickup("");
+                        // วันนี้หมดรอบแล้วแต่รับพรุ่งนี้ได้ → เลือกพรุ่งนี้ให้เลย
+                        if ((s.id === "pickup" || s.id === "delivery") && slots.length === 0 && tomorrow) setDay("tomorrow");
+                      }}
                     >
                       <Icon name={s.icon} size={24} />
                       <b>{s.title}</b>
-                      <small>{off ? (s.id === "pickup" ? "หมดรอบวันนี้" : "ร้านยังไม่เปิด") : s.sub}</small>
+                      <small>
+                        {off
+                          ? s.id === "pickup" || s.id === "delivery"
+                            ? "หมดรอบแล้ว"
+                            : "ร้านยังไม่เปิด"
+                          : s.id === "delivery" && deliveryCfg
+                            ? `ส่งฟรีใน ${deliveryCfg.km} กม.`
+                            : s.id === "pickup" && slots.length === 0 && tomorrow
+                              ? "รับพรุ่งนี้ได้"
+                              : s.sub}
+                      </small>
                     </button>
                   );
                 })}
@@ -1091,11 +1160,40 @@ export default function OrderPage() {
               </label>
             )}
 
-            {service === "pickup" && slots.length > 0 && (
+            {service === "delivery" && deliveryCfg && (
               <>
-              <div className="lg">เลือกเวลามารับ (วันนี้)</div>
+                <div className="lg">
+                  ส่งที่ไหน <span>ส่งฟรีในรัศมี {deliveryCfg.km} กม. · ขั้นต่ำ ฿{deliveryCfg.min}</span>
+                </div>
+                {total < deliveryCfg.min && <p className="err">สั่งส่งได้เมื่อยอดตั้งแต่ ฿{deliveryCfg.min} (ขาดอีก ฿{deliveryCfg.min - total})</p>}
+                <DeliveryMap shop={{ lat: deliveryCfg.lat, lng: deliveryCfg.lng }} km={deliveryCfg.km} value={dPin} onChange={setDPin} />
+                <label className="table-no">
+                  รายละเอียดที่อยู่ <span>(อาคาร ชั้น ห้อง จุดสังเกต)</span>
+                  <input className="text" maxLength={200} placeholder="เช่น ตึก 3 ชั้น 12 ห้อง 1205" value={dAddr} onChange={(e) => setDAddr(e.target.value)} />
+                </label>
+                <label className="table-no">
+                  เบอร์โทร <span>(ร้านโทรหาตอนไปถึง)</span>
+                  <input className="text" inputMode="tel" maxLength={15} placeholder="08x-xxx-xxxx" value={dPhone} onChange={(e) => setDPhone(e.target.value)} />
+                </label>
+              </>
+            )}
+
+            {timed && (slots.length > 0 || tomorrow) && (
+              <>
+              <div className="lg">{service === "delivery" ? "เวลาที่จะให้ไปส่ง" : "เลือกเวลามารับ"}</div>
+              {tomorrow && (
+                <div className="day-tabs" role="group" aria-label="วันที่">
+                  <button type="button" aria-pressed={day === "today"} disabled={slots.length === 0} onClick={() => { setDay("today"); setPickup(""); }}>
+                    วันนี้{slots.length === 0 ? " · หมดรอบ" : ""}
+                  </button>
+                  <button type="button" aria-pressed={day === "tomorrow"} onClick={() => { setDay("tomorrow"); setPickup(""); }}>
+                    พรุ่งนี้ (ล่วงหน้า)
+                  </button>
+                </div>
+              )}
+              {day === "tomorrow" && tomorrow && <p className="ds">สั่งของพรุ่งนี้ได้ถึง {tomorrow.cutoff} น. วันนี้ · ร้านทำสดตามเวลาที่เลือก</p>}
               <div className="slots">
-                {slots.map((s) => {
+                {daySlots.map((s) => {
                   const full = s.remaining < cups;
                   return (
                     <button key={s.time} className="slot" disabled={full} aria-pressed={pickup === s.time} onClick={() => setPickup(s.time)}>
@@ -1255,8 +1353,14 @@ export default function OrderPage() {
                   ? "หมดเวลาสั่งแล้ว"
                   : !service
                   ? "เลือกวิธีรับก่อน"
+                  : !deliveryOk
+                  ? deliveryCfg && total < deliveryCfg.min
+                    ? `สั่งส่งขั้นต่ำ ฿${deliveryCfg.min}`
+                    : dKm !== null && deliveryCfg && dKm > deliveryCfg.km
+                      ? "ตำแหน่งเกินรัศมีส่ง"
+                      : "ใส่ที่อยู่และเบอร์โทรก่อน"
                   : !ready
-                  ? "เลือกเวลามารับก่อน"
+                  ? service === "delivery" ? "เลือกเวลาส่งก่อน" : "เลือกเวลามารับก่อน"
                   : payAmount === 0
                     ? `ใช้ ${pointsToUse} แต้ม ยืนยันสั่ง`
                     : `ไปชำระเงิน ฿${payAmount}`}
