@@ -698,8 +698,14 @@ export default function OrderPage() {
             <div className="hero-chips">
               <RatingBadge />
               <a className="points-chip" href="/member">
-                <Icon name="gift" size={13} /> {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
+                <Icon name="star" size={13} /> {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
               </a>
+              {(offers.length > 0 || linkPromo) && (
+                <button type="button" className={`points-chip cpn-chip${linkPromo ? " kept" : ""}`} onClick={() => (offers.length > 0 ? setCouponsOpen(true) : undefined)}>
+                  <Icon name="gift" size={13} />{" "}
+                  {offers.length > 0 ? `คูปอง ${offers.length} ใบ${linkPromo ? " · เก็บแล้ว ✓" : " ›"}` : `โค้ด ${linkPromo} รอใช้ ✓`}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -712,7 +718,7 @@ export default function OrderPage() {
         <a className="pt-note" href="/member" role="note">
           <Icon name="bell" size={15} />
           <span>
-            ตั้งแต่ {POINTS_EXPIRY.startsText} แต้มใหม่มีอายุ {POINTS_EXPIRY.months} เดือน · แต้มที่คุณมีตอนนี้ <b>ไม่หมดอายุ</b>
+            แต้มใหม่ตั้งแต่ {POINTS_EXPIRY.startsText} อายุ {POINTS_EXPIRY.months} เดือน · แต้มเดิม <b>ไม่หมดอายุ</b>
           </span>
         </a>
       )}
@@ -735,52 +741,6 @@ export default function OrderPage() {
           </span>
           <span className="pb-text">
             {invitedBy} ชวนคุณมา สั่งครั้งแรกรับเพิ่ม {REFERRAL.friendPoints} แต้ม
-          </span>
-        </p>
-      )}
-      {offers.length > 2 && (
-        <button type="button" className="cps-banner" onClick={() => setCouponsOpen(true)}>
-          <span className="cps-banner-n">
-            <b>{offers.length}</b>
-            คูปอง
-          </span>
-          <span className="cps-banner-t">
-            <b>
-              ลดสูงสุด{" "}
-              {offers.some((o) => o.kind === "percent")
-                ? `${Math.max(...offers.filter((o) => o.kind === "percent").map((o) => o.value))}%`
-                : `฿${Math.max(...offers.map((o) => o.value))}`}{" "}
-              · เก็บได้เลย
-            </b>
-            <small>{linkPromo && offers.some((o) => o.code === linkPromo) ? `เก็บไว้แล้ว: ${linkPromo} · ระบบใส่ให้ตอนชำระ` : "เลือกคูปอง ระบบใส่ให้ตอนชำระ"}</small>
-          </span>
-          <span className="cps-banner-go">ดูทั้งหมด ›</span>
-        </button>
-      )}
-      {offers.length > 0 && offers.length <= 2 && (
-        <section className="coupons" aria-label="คูปองสำหรับคุณ">
-          <b className="coupons-h">คูปองสำหรับคุณ · กดเก็บ แล้วระบบใส่ให้ตอนชำระ</b>
-          <div className="coupons-row">
-            {offers.map((o) => (
-              <button key={o.code} type="button" className={`coupon${linkPromo === o.code ? " on" : ""}`} aria-pressed={linkPromo === o.code} onClick={() => keepOffer(o.code)}>
-                <span className="coupon-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
-                <span className="coupon-t">
-                  <b>{o.label.split(" · ")[0]}</b>
-                  <small>{o.label.split(" · ").slice(1).join(" · ") || o.code}</small>
-                </span>
-                <span className="coupon-go">{linkPromo === o.code ? "เก็บแล้ว ✓" : !o.nowOk ? `เก็บไว้ · ${o.timeFrom}` : "เก็บ"}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-      {linkPromo && !offers.some((o) => o.code === linkPromo) && (
-        <p className="promo-banner link-promo" role="note">
-          <span className="pb-ico">
-            <Icon name="gift" size={18} />
-          </span>
-          <span className="pb-text">
-            มีโค้ด <b>{linkPromo}</b> รอใช้อยู่ ระบบใส่ให้เองตอนชำระเงิน
           </span>
         </p>
       )}

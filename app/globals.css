@@ -2478,3 +2478,7 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .mb-soon button { margin-top: 6px; min-height: 36px; font-weight: 700; font-size: 13.5px; color: #2F4A2A; padding: 0; }
 .pt-note { display: flex; align-items: center; gap: 8px; margin: 10px 20px 0; padding: 8px 12px; border-radius: 12px; background: #e6edd3; color: #2F4A2A; font-size: 12.5px; line-height: 1.45; text-decoration: none; }
 .pt-note .ico { flex-shrink: 0; }
+/* ปุ่มคูปองเล็กในหัวหน้า (แทนแถบคูปองใหญ่ เพื่อให้การ์ดสไลด์เมนูเด่น) */
+.hero-chips .cpn-chip { cursor: pointer; font-family: inherit; color: #fff; background: rgba(194,59,34,.85); border-color: rgba(255,255,255,.55); }
+.hero-chips .cpn-chip.kept { background: rgba(255,255,255,.28); }
+.pt-note { margin: 6px 20px 0; padding: 5px 10px; font-size: 11.5px; line-height: 1.4; }
