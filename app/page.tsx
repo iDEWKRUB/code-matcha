@@ -167,6 +167,49 @@ export default function OrderPage() {
       if (localStorage.getItem("menu-view") === "grid") setView("grid");
     } catch {}
   }, []);
+  // ผู้ที่ยังไม่ล็อกอิน LINE (guest): ดูเมนู ใส่ตะกร้าได้ แต่ไม่เรียก API ที่เขียนฐานข้อมูล ล็อกอินตอนกดชำระเงินเท่านั้น
+  const [guest, setGuest] = useState(false);
+  const guestRef = useRef(false);
+  const liffMod = useRef<Liff | null>(null);
+  const tk = (e: Parameters<typeof track>[0]) => {
+    if (!guestRef.current) track(e);
+  };
+  const cartReady = useRef(false);
+  const resumed = useRef(false);
+  // ตะกร้าจำไว้ในเครื่อง 24 ชั่วโมง (เปลี่ยนหน้าไปล็อกอิน LINE แล้วกลับมาไม่หาย)
+  useEffect(() => {
+    if (menu.length === 0 || cartReady.current) return;
+    cartReady.current = true;
+    try {
+      const s = JSON.parse(localStorage.getItem("cart-v1") ?? "null");
+      if (!s || !Array.isArray(s.cart) || Date.now() - Number(s.t) > 24 * 3600 * 1000) return;
+      const ids = new Set(menu.map((m) => m.id));
+      const lines = (s.cart as CartLine[]).filter((l) => l && typeof l === "object" && typeof l.itemId === "string" && ids.has(l.itemId) && Array.isArray(l.toppings) && Number.isInteger(l.qty) && l.qty > 0 && l.qty < 50);
+      if (lines.length) setCart(lines);
+      if (typeof s.note === "string") setNote(s.note.slice(0, 200));
+    } catch {}
+  }, [menu]);
+  useEffect(() => {
+    if (!cartReady.current) return;
+    try {
+      if (cart.length) localStorage.setItem("cart-v1", JSON.stringify({ t: Date.now(), cart, note }));
+      else localStorage.removeItem("cart-v1");
+    } catch {}
+  }, [cart, note]);
+  useEffect(() => {
+    if (phase !== "menu" || guest || cart.length === 0 || resumed.current) return;
+    try {
+      const at = Number(localStorage.getItem("resume-checkout") ?? 0);
+      if (!at) return;
+      localStorage.removeItem("resume-checkout");
+      if (Date.now() - at > 10 * 60 * 1000) return;
+    } catch {
+      return;
+    }
+    resumed.current = true;
+    openCheckout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, guest, cart.length]);
   const pickView = (v: "deck" | "grid") => {
     setView(v);
     try {
@@ -234,6 +277,7 @@ export default function OrderPage() {
 
   // ออเดอร์ที่ค้างจ่าย + แต้มคงเหลือ
   const loadMine = useCallback(async () => {
+    if (guestRef.current) return null;
     const token = liff.current ? liff.current.getIDToken() : "dev";
     const r = await fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
     if (!r.ok) return null;
@@ -278,19 +322,21 @@ export default function OrderPage() {
         if (liffId) {
           const l = (await import("@line/liff")).default;
           await l.init({ liffId });
+          liffMod.current = l;
           if (!l.isLoggedIn()) {
-            l.login({ redirectUri: location.href });
-            return;
-          }
-          liff.current = l;
-          profileP = l
+            guestRef.current = true;
+            setGuest(true);
+          } else liff.current = l;
+          profileP = guestRef.current
+            ? Promise.resolve()
+            : l
             .getProfile()
             .then((p) => {
               setName(p.displayName);
               setVisitor(p.userId);
             })
             .catch(() => {});
-          checkFriend();
+          if (!guestRef.current) checkFriend();
         } else if (process.env.NODE_ENV !== "production") {
           setName("Dev (โหมดทดสอบ)");
         } else {
@@ -305,8 +351,13 @@ export default function OrderPage() {
           if (qp) setLinkPromo(qp);
         }
         // เปิดจากลิงก์ชวนเพื่อน → ผูกคำชวนไว้ (ได้แต้มเมื่อร้านยืนยันการจ่ายออเดอร์แรก)
-        const ref = new URLSearchParams(location.search).get("ref");
-        if (ref) {
+        let ref = new URLSearchParams(location.search).get("ref");
+        try {
+          if (ref && guestRef.current) localStorage.setItem("pending-ref", ref);
+          else if (!ref && !guestRef.current) ref = localStorage.getItem("pending-ref");
+          if (ref && !guestRef.current) localStorage.removeItem("pending-ref");
+        } catch {}
+        if (ref && !guestRef.current) {
           const token = liff.current ? liff.current.getIDToken() : "dev";
           fetch("/api/member/referral", {
             method: "POST",
@@ -319,7 +370,7 @@ export default function OrderPage() {
         }
         const [, pending] = await Promise.all([menuP, loadMine(), profileP]);
         loadOffers();
-        track("visit");
+        tk("visit");
         // มีออเดอร์ที่ยังไม่จ่ายค้างอยู่ → พากลับไปหน้าจ่ายเงิน
         if (pending) {
           setPay(pending);
@@ -371,6 +422,7 @@ export default function OrderPage() {
   const payAmount = afterPromo - pointsToUse;
 
   function loadOffers() {
+    if (guestRef.current) return;
     const tk = liff.current ? liff.current.getIDToken() : "dev";
     fetch("/api/promo", { headers: { Authorization: `Bearer ${tk}` } })
       .then((r) => (r.ok ? r.json() : { promos: [] }))
@@ -396,6 +448,10 @@ export default function OrderPage() {
     let hoursErr = false;
     setPromoInput(code);
     setPromoErr("");
+    if (guestRef.current) {
+      setPromoErr("เข้าสู่ระบบ LINE ก่อนจึงใช้โค้ดได้ (ตอนกดชำระเงิน)");
+      return;
+    }
     setPromoBusy(true);
     try {
       const token = liff.current ? liff.current.getIDToken() : "dev";
@@ -434,7 +490,7 @@ export default function OrderPage() {
   function open(it: MenuItem) {
     setEdit(it);
     setSheetToon(false);
-    track("view_item");
+    tk("view_item");
     const food = it.kind === "food";
     setOpts({
       temp: it.temps[0],
@@ -453,12 +509,13 @@ export default function OrderPage() {
     setSendErr("");
     setCheckout(true);
     loadOffers();
-    if (linkPromo && !promo) applyPromo(linkPromo);
+    if (linkPromo && !promo && !guestRef.current) applyPromo(linkPromo);
     loadMenu().catch(() => {}); // รีเฟรชที่ว่างของช่องเวลา
     loadMine().catch(() => {});
   }
 
   async function submit() {
+    if (guestRef.current) return loginToPay();
     setSending(true);
     setSendErr("");
     try {
@@ -495,7 +552,7 @@ export default function OrderPage() {
         }
       }
       if (!r.ok) throw new Error(j.error ?? "สั่งไม่สำเร็จ ลองใหม่อีกครั้ง");
-      track("order");
+      tk("order");
       if (service === "delivery" && dPin)
         try {
           localStorage.setItem("delivery-last", JSON.stringify({ ...dPin, address: dAddr, phone: dPhone }));
@@ -559,6 +616,16 @@ export default function OrderPage() {
     setPhase("menu");
     loadMenu().catch(() => {});
     loadMine().catch(() => {}); // แต้มที่ใช้ไว้กลับคืน
+  }
+
+  // ล็อกอิน LINE ตอนกดชำระเงิน: ตะกร้าจำไว้ในเครื่องแล้ว กลับมาเปิดหน้าชำระต่อให้เอง
+  function loginToPay(resume = true) {
+    const l = liffMod.current;
+    if (!l) return;
+    try {
+      if (resume) localStorage.setItem("resume-checkout", String(Date.now()));
+    } catch {}
+    l.login({ redirectUri: location.href });
   }
 
   function relogin() {
@@ -694,12 +761,18 @@ export default function OrderPage() {
           <div>
             <p className="hero-jp">いらっしゃいませ</p>
             <h1>CODE-MATCHA</h1>
-            <p>สวัสดี {name} วันนี้รับอะไรดี?</p>
+            <p>{name ? `สวัสดี ${name} วันนี้รับอะไรดี?` : "วันนี้รับอะไรดี?"}</p>
             <div className="hero-chips">
               <RatingBadge />
-              <a className="points-chip" href="/member">
-                <Icon name="star" size={13} /> {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
-              </a>
+              {guest ? (
+                <button type="button" className="points-chip guest-chip" onClick={() => loginToPay(false)}>
+                  <Icon name="star" size={13} /> เข้าสู่ระบบ LINE เพื่อสะสมแต้ม ›
+                </button>
+              ) : (
+                <a className="points-chip" href="/member">
+                  <Icon name="star" size={13} /> {points.toLocaleString()} แต้ม · บัตรสมาชิก ›
+                </a>
+              )}
               {(offers.length > 0 || linkPromo) && (
                 <button type="button" className={`points-chip cpn-chip${linkPromo ? " kept" : ""}`} onClick={() => (offers.length > 0 ? setCouponsOpen(true) : undefined)}>
                   <Icon name="gift" size={13} />{" "}
@@ -1066,7 +1139,7 @@ export default function OrderPage() {
                   disabled={closed}
                   onClick={() => {
                     setCart([...cart, { itemId: edit.id, ...opts }]);
-                    track("add_cart");
+                    tk("add_cart");
                     setEdit(null);
                   }}
                 >
@@ -1359,11 +1432,14 @@ export default function OrderPage() {
                       : "ใส่ที่อยู่และเบอร์โทรก่อน"
                   : !ready
                   ? service === "delivery" ? "เลือกเวลาส่งก่อน" : "เลือกเวลามารับก่อน"
-                  : payAmount === 0
+                  : guest
+                    ? `เข้าสู่ระบบ LINE เพื่อชำระเงิน ฿${payAmount}`
+                    : payAmount === 0
                     ? `ใช้ ${pointsToUse} แต้ม ยืนยันสั่ง`
                     : `ไปชำระเงิน ฿${payAmount}`}
             </button>
             )}
+            {guest && <p className="small">ดูเมนูและใส่ตะกร้าได้เลย ล็อกอิน LINE ตอนชำระเงินเท่านั้น ตะกร้าของคุณจะไม่หาย</p>}
             {sendErr && <p className="err" role="alert">{sendErr}</p>}
             {needLogin && liff.current && (
               <button className="ghost" onClick={relogin}>เข้าสู่ระบบ LINE ใหม่</button>

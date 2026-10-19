@@ -2531,3 +2531,5 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .mk-step { display: inline-flex; align-items: center; background: #e6edd3; border-radius: 12px; } .mk-step button { width: 42px; height: 42px; font-size: 20px; font-weight: 700; } .mk-step output { min-width: 34px; text-align: center; font-size: 22px; font-weight: 700; }
 .mk-chname { display: inline-flex; align-items: center; gap: 8px; }
 .mk-soon ul { margin: 6px 0 0; padding-left: 20px; color: var(--stone); font-size: 14px; line-height: 1.8; }
+
+button.guest-chip { cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; color: #fff; }
