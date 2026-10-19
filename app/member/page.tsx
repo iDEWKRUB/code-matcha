@@ -6,6 +6,7 @@ import { POINTS, tierOf } from "@/lib/config";
 import type { MenuItem } from "@/lib/menu";
 import type { Coupon, HistoryRow, Reward } from "@/lib/member";
 import Cup from "../Cup";
+import Credit from "../Credit";
 import Icon from "../Icon";
 import MenuArt, { artTint } from "../MenuArt";
 import MerchArt, { MERCH_TINT } from "../MerchArt";
@@ -541,6 +542,7 @@ export default function MemberPage() {
           </div>
         </>
       )}
+      <Credit className="pg" />
     </main>
   );
 }

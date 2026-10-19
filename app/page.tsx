@@ -32,6 +32,7 @@ import { MAX_CUP_FOR, MAX_CUP_MSG, MAX_CUP_NAME } from "@/lib/cupMsg";
 import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
 import { normalizeCode, promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
+import Credit from "./Credit";
 import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
 import MenuArt, { artTint } from "./MenuArt";
@@ -1383,6 +1384,7 @@ export default function OrderPage() {
           </div>
         </>
       )}
+      <Credit className="pg" />
     </main>
   );
 }

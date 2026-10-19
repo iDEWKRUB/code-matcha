@@ -2405,3 +2405,15 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .dp-pos .text { flex: 1 1 200px; }
 .dp-check { display: inline-block; margin-top: 6px; font-size: 13px; color: #2F4A2A; font-weight: 600; }
 .dm-need { color: #a12c15; font-weight: 700; }
+
+/* เครดิตผู้ออกแบบ (ท้ายหน้า) */
+.credit { margin: 0; text-align: center; font-size: 12px; letter-spacing: .02em; color: var(--stone, #7a7f6e); }
+.credit a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.credit a:hover { color: #2F4A2A; }
+.credit.dark { color: #9fae88; }
+.credit.dark a:hover { color: #e9eedc; }
+.credit.pg { padding: 28px 20px 104px; }
+.adm-side .credit { font-size: 11.5px; line-height: 1.4; padding: 0 4px; }
+.adm.collapsed .adm-side .credit { display: none; }
+.login-credit { margin-top: 18px; color: rgba(255,255,255,.72); position: relative; }
+.login-credit a:hover { color: #fff; }

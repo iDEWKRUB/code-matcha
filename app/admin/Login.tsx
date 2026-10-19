@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Seal from "../Seal";
+import Credit from "../Credit";
 
 export default function Login() {
   const router = useRouter();
@@ -60,6 +61,7 @@ export default function Login() {
         </button>
         <p className="login-foot">ล็อกอินค้างไว้ได้ 12 ชั่วโมง</p>
       </form>
+      <Credit className="login-credit" />
     </main>
   );
 }

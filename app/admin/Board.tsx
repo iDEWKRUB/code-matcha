@@ -10,6 +10,7 @@ import CostTab from "./CostTab";
 import ReportTab from "./ReportTab";
 import { askNotify, chime, notify, unlock } from "./alarm";
 import SettingsTab from "./SettingsTab";
+import Credit from "../Credit";
 import BarAdmin from "./bar/BarAdmin";
 
 const POLL_MS = 5000;
@@ -237,6 +238,7 @@ export default function Board() {
           </svg>
           <span>ออกจากระบบ</span>
         </button>
+        <Credit tone="dark" />
       </aside>
 
       <main className="adm-main">
