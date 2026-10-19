@@ -10,11 +10,12 @@ import CostTab from "./CostTab";
 import ReportTab from "./ReportTab";
 import { askNotify, chime, notify, unlock } from "./alarm";
 import SettingsTab from "./SettingsTab";
+import MarketingTab from "./MarketingTab";
 import Credit from "../Credit";
 import BarAdmin from "./bar/BarAdmin";
 
 const POLL_MS = 5000;
-type Tab = "orders" | "menu" | "bar" | "report" | "cost" | "settings";
+type Tab = "orders" | "menu" | "bar" | "report" | "cost" | "marketing" | "settings";
 
 const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = [
   {
@@ -50,6 +51,12 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
     icon: <path d="M12 3v18M16.5 7.5c0-1.9-2-3-4.5-3s-4.5 1.2-4.5 3.2c0 4.3 9 2.2 9 6.6 0 2-2 3.2-4.5 3.2s-4.5-1.1-4.5-3" />,
   },
   {
+    id: "marketing",
+    label: "การตลาด",
+    hint: "ตารางคอนเทนต์รายวัน · สถานะการลงแต่ละช่องทาง · คลังไอเดีย",
+    icon: <path d="M4 10v4a1 1 0 0 0 1 1h2l6 4V5L7 9H5a1 1 0 0 0-1 1ZM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11" />,
+  },
+  {
     id: "settings",
     label: "ตั้งค่าร้าน",
     hint: "ร้าน · เมนู · โปรโมชั่น · สมาชิก · ส่งข้อความ LINE",
@@ -62,6 +69,19 @@ const TABS: { id: Tab; label: string; hint: string; icon: React.ReactNode }[] = 
 export default function Board() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
+  // จำนวนเรื่องของวันนี้ที่ยังลงไม่ครบ (ป้ายบนเมนูการตลาด)
+  const [mkLeft, setMkLeft] = useState(0);
+  const loadMk = useCallback(() => {
+    fetch("/api/admin/marketing?summary=1", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { left: 0 }))
+      .then((j: { left?: number }) => setMkLeft(j.left ?? 0))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    loadMk();
+    const t = setInterval(loadMk, 60000);
+    return () => clearInterval(t);
+  }, [loadMk]);
   const [collapsed, setCollapsed] = useState(false);
 
   // จำว่าย่อแถบเมนูไว้หรือไม่ (เฉพาะเครื่องนี้)
@@ -223,6 +243,7 @@ export default function Board() {
               <span>{t.label}</span>
               {t.id === "orders" && slips > 0 && <em className="dot-badge">{slips}</em>}
               {t.id === "menu" && soldOut > 0 && <em className="dot-badge muted">{soldOut} หมด</em>}
+              {t.id === "marketing" && mkLeft > 0 && <em className="dot-badge">{mkLeft}</em>}
             </button>
           ))}
         </nav>
@@ -298,6 +319,7 @@ export default function Board() {
         {tab === "bar" && <BarAdmin embedded />}
         {tab === "report" && <ReportTab />}
         {tab === "cost" && <CostTab menu={menu} reload={load} />}
+        {tab === "marketing" && <MarketingTab onError={setError} onChanged={loadMk} />}
         {tab === "settings" && <SettingsTab menu={menu} reload={load} />}
       </main>
     </div>

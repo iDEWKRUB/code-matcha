@@ -2482,3 +2482,52 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .hero-chips .cpn-chip { cursor: pointer; font-family: inherit; color: #fff; background: rgba(194,59,34,.85); border-color: rgba(255,255,255,.55); }
 .hero-chips .cpn-chip.kept { background: rgba(255,255,255,.28); }
 .pt-note { margin: 6px 20px 0; padding: 5px 10px; font-size: 11.5px; line-height: 1.4; }
+
+/* หน้าการตลาด (หลังร้าน) */
+.mk { display: grid; gap: 4px; }
+.mk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.mk-stats > div { background: #fff; border-radius: 16px; padding: 12px 16px; box-shadow: 0 6px 18px -14px rgba(28,36,25,.5); display: grid; gap: 2px; }
+.mk-stats small { color: var(--stone); font-weight: 600; font-size: 12.5px; }
+.mk-stats b { font-size: 26px; line-height: 1.25; font-variant-numeric: tabular-nums; } .mk-stats b.sm { font-size: 20px; }
+.mk-stats span { font-size: 12.5px; color: var(--stone); }
+.mk-bar { display: block; height: 7px; border-radius: 6px; background: #e6edd3; overflow: hidden; margin-top: 4px; }
+.mk-bar u { display: block; height: 100%; background: var(--leaf); border-radius: 6px; transition: width .35s; }
+.mk-tabs { display: flex; gap: 4px; padding: 4px; background: #e6edd3; border-radius: 14px; width: max-content; max-width: 100%; overflow-x: auto; margin-bottom: 12px; }
+.mk-tabs button { padding: 0 16px; min-height: 40px; border-radius: 10px; font-weight: 600; color: var(--stone); white-space: nowrap; }
+.mk-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.16); }
+.mk-flash { margin: 0 0 10px; color: #2F6B2A; font-weight: 600; font-size: 14px; }
+.mk-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--stone); margin: 0 0 10px; }
+.mk-empty { color: var(--stone); text-align: center; padding: 22px 8px; margin: 0; }
+.mk-card { display: grid; gap: 10px; margin-bottom: 12px; }
+.mk-slot { margin: 0; font-size: 12.5px; color: var(--stone); letter-spacing: .04em; font-weight: 700; }
+.mk-title { width: 100%; border: 1.5px solid transparent; background: transparent; border-radius: 10px; padding: 4px 8px; margin: 0 -8px; font: inherit; font-weight: 700; font-size: 18px; line-height: 1.35; }
+.mk-title:hover, .mk-title:focus { border-color: var(--edge); background: #f6f8ee; }
+.mk-meta { display: flex; flex-wrap: wrap; gap: 8px; } .mk-meta .text { width: auto; min-width: 150px; flex: 0 1 220px; }
+.mk-cap { width: 100%; min-height: 78px; resize: vertical; line-height: 1.55; }
+.mk-chs { display: flex; flex-wrap: wrap; gap: 8px; } .mk-chs.sm { gap: 4px; }
+.mk-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mk-count { color: var(--stone); font-size: 13px; } .mk-note { color: #2F6B2A; font-size: 13px; font-weight: 600; }
+.mk-logo { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: -.02em; flex: 0 0 24px; }
+.mk-ch { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px 0 6px; border-radius: 999px; border: 1.5px solid var(--edge); background: #fff; font-size: 13px; font-weight: 600; color: var(--stone); white-space: nowrap; }
+.mk-ch svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 16px; }
+.mk-ch[data-s="sched"] { background: #FFF0C9; border-color: transparent; color: #8A5A00; }
+.mk-ch[data-s="done"] { background: #E0EFCF; border-color: transparent; color: #2F6B2A; }
+.mk-ch.mini { min-height: 32px; padding: 0 8px 0 3px; gap: 3px; } .mk-ch.mini .mk-logo { width: 20px; height: 20px; flex-basis: 20px; font-size: 9px; }
+.mk-weeknav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.mk-wk { overflow-x: auto; border-radius: 18px; background: #fff; box-shadow: 0 8px 20px -16px rgba(28,36,25,.6); }
+.mk-wk table { border-collapse: collapse; width: 100%; min-width: 720px; }
+.mk-wk th, .mk-wk td { padding: 10px 12px; text-align: left; vertical-align: top; border-top: 1px solid var(--hair); }
+.mk-wk thead th { border-top: 0; font-size: 12.5px; color: var(--stone); background: #eef2df; }
+.mk-wk tr.today td { background: #f3f8e6; }
+.mk-day { width: 96px; font-weight: 700; white-space: nowrap; } .mk-day small { display: block; color: var(--stone); font-weight: 500; }
+.mk-sum { width: 90px; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; } .mk-sum small { display: block; font-weight: 600; } .mk-sum.miss { color: var(--seal); }
+.mk-wtitle { width: 100%; min-width: 150px; border: 1.5px solid transparent; background: transparent; border-radius: 8px; padding: 3px 6px; margin: 0 0 4px -6px; font: inherit; font-weight: 600; font-size: 14px; }
+.mk-wtitle:hover, .mk-wtitle:focus { border-color: var(--edge); background: #f6f8ee; }
+.mk-add { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; align-items: center; } .mk-add .text { flex: 1 1 200px; width: auto; }
+.mk-ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; } .mk-ideas .panel { display: grid; gap: 8px; align-content: start; }
+.mk-pill { justify-self: start; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: #e6edd3; color: var(--matcha); }
+.mk-rules { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+.mk-rules h3 { margin: 0 0 2px; font-size: 16px; } .mk-hint { margin: 0 0 12px; color: var(--stone); font-size: 13px; }
+.mk-step { display: inline-flex; align-items: center; background: #e6edd3; border-radius: 12px; } .mk-step button { width: 42px; height: 42px; font-size: 20px; font-weight: 700; } .mk-step output { min-width: 34px; text-align: center; font-size: 22px; font-weight: 700; }
+.mk-chname { display: inline-flex; align-items: center; gap: 8px; }
+.mk-soon ul { margin: 6px 0 0; padding-left: 20px; color: var(--stone); font-size: 14px; line-height: 1.8; }
