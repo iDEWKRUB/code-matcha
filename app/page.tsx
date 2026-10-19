@@ -29,7 +29,8 @@ import {
 } from "@/lib/menu";
 import type { BarHours } from "@/lib/bar";
 import { MAX_CUP_FOR, MAX_CUP_MSG, MAX_CUP_NAME } from "@/lib/cupMsg";
-import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
+import { POINTS, POINTS_EXPIRY, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
+import { nowInShop } from "@/lib/time";
 import { normalizeCode, promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
 import Credit from "./Credit";
@@ -707,6 +708,14 @@ export default function OrderPage() {
         </svg>
       </header>
       <Notice text={notice} />
+      {points > 0 && nowInShop().date <= POINTS_EXPIRY.noticeUntil && (
+        <a className="pt-note" href="/member" role="note">
+          <Icon name="bell" size={15} />
+          <span>
+            ตั้งแต่ {POINTS_EXPIRY.startsText} แต้มใหม่มีอายุ {POINTS_EXPIRY.months} เดือน · แต้มที่คุณมีตอนนี้ <b>ไม่หมดอายุ</b>
+          </span>
+        </a>
+      )}
       {bar && (
         <nav className="mode-sw" aria-label="เลือกหมวด">
           <span className="on" aria-current="page">

@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import type { MenuItem } from "./menu";
 import { orderReceiptUrl } from "./orderReceipt";
 import { getMenu } from "./orders";
+import { POINTS_EXPIRY } from "./config";
 import { referralInfo } from "./referral";
+import { nowInShop } from "./time";
 import { db } from "./supabase";
 
 export type Reward = {
@@ -124,9 +126,11 @@ const refunded = (r: LedgerRow) =>
   !!r.orders &&
   (r.orders.status === "cancelled" || (r.orders.status === "awaiting_payment" && !!r.orders.expires_at && new Date(r.orders.expires_at) < new Date()));
 
-const LABEL: Record<string, string> = { earn: "ได้แต้มจากออเดอร์", redeem: "ใช้แต้มเป็นส่วนลด", adjust: "ร้านปรับแต้ม", reward: "แลกของขวัญ" };
+const LABEL: Record<string, string> = { earn: "ได้แต้มจากออเดอร์", redeem: "ใช้แต้มเป็นส่วนลด", adjust: "ร้านปรับแต้ม", reward: "แลกของขวัญ", expire: "แต้มหมดอายุ" };
 
 export async function memberSummary(userId: string, name: string) {
+  // ตัดแต้มที่หมดอายุลงบัญชีก่อนอ่าน (ยังไม่รัน migration-041 ก็ข้ามไปเฉยๆ)
+  await db().rpc("points_balance", { p_user: userId });
   const [ledger, coupons, firstOrder, rewards, menu, referral] = await Promise.all([
     db()
       .from("points_ledger")
@@ -145,7 +149,7 @@ export async function memberSummary(userId: string, name: string) {
 
   const rows = (ledger.data as unknown as LedgerRow[]).filter((r) => !refunded(r));
   const earned = rows.filter((r) => r.kind === "earn" || r.kind === "referral").reduce((n, r) => n + r.delta, 0);
-  const used = -rows.filter((r) => r.delta < 0).reduce((n, r) => n + r.delta, 0);
+  const used = -rows.filter((r) => r.delta < 0 && r.kind !== "expire").reduce((n, r) => n + r.delta, 0);
   const balance = Math.max(0, rows.reduce((n, r) => n + r.delta, 0));
 
   const history: HistoryRow[] = rows.slice(0, 30).map((r) => ({
@@ -155,6 +159,21 @@ export async function memberSummary(userId: string, name: string) {
     label: r.kind === "reward" ? `แลก ${r.note}` : r.kind === "referral" ? r.note : r.orders ? `${LABEL[r.kind] ?? r.kind} #${r.orders.daily_no}` : (LABEL[r.kind] ?? r.kind),
     ...(r.kind === "earn" && r.orders?.channel === "line" && r.orders.status !== "cancelled" ? { receipt: orderReceiptUrl(r.orders.id) } : {}),
   }));
+
+  // แต้มใหม่หมดอายุ: ประกาศ (ถึงสิ้นเดือน เฉพาะคนที่เคยมีแต้ม) + แต้มที่ใกล้หมดภายใน soonDays วัน
+  const today = nowInShop().date;
+  const soonRows = await db().rpc("points_expiring", { p_user: userId });
+  const horizon = Date.now() + POINTS_EXPIRY.soonDays * 86400000;
+  const soonList = ((soonRows.data as { exp: string; points: number }[] | null) ?? []).filter((x) => new Date(x.exp).getTime() <= horizon);
+  const expiry = {
+    started: today >= POINTS_EXPIRY.startsOn,
+    showNotice: today <= POINTS_EXPIRY.noticeUntil && earned > 0,
+    months: POINTS_EXPIRY.months,
+    startsText: POINTS_EXPIRY.startsText,
+    soon: soonList.length
+      ? { points: soonList.reduce((n, x) => n + x.points, 0), date: soonList[0].exp, days: Math.max(0, Math.ceil((new Date(soonList[0].exp).getTime() - Date.now()) / 86400000)) }
+      : null,
+  };
 
   // รูปการ์ตูนของของขวัญ: ส่งเฉพาะเมนูที่ใช้
   const ids = new Set(rewards.map((r) => r.menuItemId).filter(Boolean));
@@ -171,6 +190,7 @@ export async function memberSummary(userId: string, name: string) {
     rewards: rewards.filter((r) => r.stock === null || r.stock > 0),
     art,
     referral,
+    expiry,
   };
 }
 

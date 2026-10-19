@@ -2466,3 +2466,15 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 .cps-banner-n b { font-size: 20px; }
 .cps-banner-t { flex: 1; min-width: 0; display: grid; line-height: 1.3; } .cps-banner-t b { font-size: 14.5px; } .cps-banner-t small { font-size: 12px; color: var(--stone); }
 .cps-banner-go { color: #2F4A2A; font-weight: 700; font-size: 13px; white-space: nowrap; }
+
+/* แต้มแบบใหม่: ประกาศ (ถึงสิ้นเดือน) + แต้มใกล้หมดอายุ */
+.mb-notice, .mb-soon { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1.5px solid #cfdca7; border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; }
+.mb-notice-ico { flex: 0 0 34px; height: 34px; border-radius: 50%; background: #e6edd3; color: var(--matcha); display: grid; place-items: center; }
+.mb-notice b, .mb-soon b { display: block; font-size: 14.5px; line-height: 1.35; }
+.mb-notice p, .mb-soon p { margin: 2px 0 0; font-size: 13px; line-height: 1.5; color: var(--stone); }
+.mb-notice p strong { color: var(--ink); }
+.mb-soon { background: #fff1cf; border-color: transparent; } .mb-soon .mb-notice-ico { background: #e5a126; color: #fff; }
+.mb-soon.hot { background: #fbe6e0; } .mb-soon.hot .mb-notice-ico { background: var(--seal); }
+.mb-soon button { margin-top: 6px; min-height: 36px; font-weight: 700; font-size: 13.5px; color: #2F4A2A; padding: 0; }
+.pt-note { display: flex; align-items: center; gap: 8px; margin: 10px 20px 0; padding: 8px 12px; border-radius: 12px; background: #e6edd3; color: #2F4A2A; font-size: 12.5px; line-height: 1.45; text-decoration: none; }
+.pt-note .ico { flex-shrink: 0; }

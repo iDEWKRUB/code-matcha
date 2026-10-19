@@ -36,6 +36,7 @@ type Member = {
     canEnterCode: boolean;
     shareMessage: unknown;
   };
+  expiry: { started: boolean; showNotice: boolean; months: number; startsText: string; soon: { points: number; date: string; days: number } | null };
 };
 type View = "rewards" | "coupons" | "history";
 
@@ -268,6 +269,44 @@ export default function MemberPage() {
       </div>
 
       <div className="mb-scroll">
+        {m.expiry.showNotice && (
+          <aside className="mb-notice" role="note">
+            <span className="mb-notice-ico">
+              <Icon name="bell" size={18} />
+            </span>
+            <div>
+              <b>แจ้งให้ทราบ: แต้มแบบใหม่</b>
+              <p>
+                ตั้งแต่ {m.expiry.startsText} แต้มที่ได้รับใหม่จะมีอายุ {m.expiry.months} เดือนนับจากวันที่ได้รับ · แต้มที่คุณมีอยู่ตอนนี้ และที่ได้ก่อนวันดังกล่าว{" "}
+                <strong>ไม่มีวันหมดอายุ</strong>
+              </p>
+            </div>
+          </aside>
+        )}
+        {m.expiry.soon && (
+          <aside className={`mb-soon${m.expiry.soon.days <= 7 ? " hot" : ""}`} role="note">
+            <span className="mb-notice-ico">
+              <Icon name="clock" size={18} />
+            </span>
+            <div>
+              <b>
+                {pts(m.expiry.soon.points)} แต้มของคุณ จะหมดอายุ{m.expiry.soon.days > 0 ? `ใน ${m.expiry.soon.days} วัน` : "วันนี้"}
+              </b>
+              <p>หมดอายุ {dateTH(m.expiry.soon.date, { day: "numeric", month: "short" })} · ใช้ก่อน ไม่เสียเปล่า (ระบบใช้แต้มที่ใกล้หมดก่อนเสมอ)</p>
+              {canNow > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView("rewards");
+                    setTimeout(() => document.getElementById("mb-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                  }}
+                >
+                  ดูของที่แลกได้ ›
+                </button>
+              )}
+            </div>
+          </aside>
+        )}
         <div className="mb-stats">
           <div>
             <small>ใช้ไปแล้ว</small>
@@ -350,6 +389,7 @@ export default function MemberPage() {
           <p className="mb-how">
             ทุก ฿{POINTS.bahtPerPoint} ได้ 1 แต้ม · ใช้แทนเงินสดได้ 1 แต้ม = ฿1 ใช้ได้ทุกครั้งที่สั่ง ไม่มีขั้นต่ำ
             หรือแลกของขวัญด้านล่าง
+            {m.expiry.started && ` · แต้มที่ได้ตั้งแต่ ${m.expiry.startsText} มีอายุ ${m.expiry.months} เดือนนับจากวันที่ได้รับ แต้มก่อนหน้านั้นไม่หมดอายุ`}
           </p>
         </section>
 

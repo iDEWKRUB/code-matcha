@@ -22,6 +22,10 @@ export const RECEIPT = {
 export const POINTS = { bahtPerPoint: 25, minRedeem: 1 }; // ใช้ได้ตั้งแต่ 1 แต้ม
 export const pointsEarned = (paid: number) => Math.floor(paid / POINTS.bahtPerPoint);
 
+// แต้มหมดอายุ: ใช้กับแต้มใหม่ที่ได้ตั้งแต่ startsOn เท่านั้น (แต้มก่อนหน้านั้นไม่หมดอายุ)
+// ต้องตรงกับ migration-041 (trigger ใน points_ledger) · noticeUntil = วันสุดท้ายที่แสดงประกาศ (เฉพาะคนที่เคยมีแต้ม)
+export const POINTS_EXPIRY = { startsOn: "2026-11-01", startsText: "1 พ.ย. 2569", months: 6, noticeUntil: "2026-10-31", soonDays: 30 };
+
 // ระดับบัตรสมาชิก ตามแต้มที่ "สะสมมาทั้งหมด" (ใช้แต้มแลกของแล้วระดับไม่ลด)
 export const TIERS = [
   { id: "culinary", name: "Culinary", th: "สมาชิก", from: 0 },
