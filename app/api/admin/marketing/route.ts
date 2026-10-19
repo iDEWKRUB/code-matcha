@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { addDays, isPillar, isState, weekStartOf, type MkChannel, type MkData, type MkPost, type PostState } from "@/lib/marketing";
+import { isPillar, isState, monthDays, type MkChannel, type MkData, type MkPost, type PostState } from "@/lib/marketing";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -20,7 +20,7 @@ async function channelsAndPerDay() {
   return { channels: ch.data as MkChannel[], perDay: (st.data?.per_day as number | undefined) ?? 2 };
 }
 
-// ?summary=1 → แค่จำนวนเรื่องของวันนี้ที่ยังลงไม่ครบ (ป้ายบนเมนู) · ?week=YYYY-MM-DD → สัปดาห์ที่มีวันนั้น
+// ?summary=1 → แค่จำนวนเรื่องของวันนี้ที่ยังลงไม่ครบ (ป้ายบนเมนู) · ?month=YYYY-MM → ทั้งเดือน (ค่าเริ่มต้น = เดือนนี้)
 export async function GET(req: Request) {
   if (!(await isAdmin())) return bad("unauthorized", 401);
   const url = new URL(req.url);
@@ -37,16 +37,16 @@ export async function GET(req: Request) {
       for (let s = 1; s <= perDay; s++) if (!on.length || !on.every((c) => rows.get(s)?.[c.id] === "done")) left++;
       return NextResponse.json({ left });
     }
-    const wk = url.searchParams.get("week");
-    const weekStart = weekStartOf(wk && /^\d{4}-\d{2}-\d{2}$/.test(wk) ? wk : today);
-    const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const mo = url.searchParams.get("month");
+    const month = mo && /^\d{4}-(0[1-9]|1[0-2])$/.test(mo) ? mo : today.slice(0, 7);
+    const days = monthDays(month);
     const [posts, ideas] = await Promise.all([
-      db().from("marketing_posts").select("post_date,slot,title,pillar,format,caption,status,done_at").gte("post_date", days[0]).lte("post_date", days[6]).order("post_date").order("slot"),
+      db().from("marketing_posts").select("post_date,slot,title,pillar,format,caption,status,done_at").gte("post_date", days[0]).lte("post_date", days[days.length - 1]).order("post_date").order("slot"),
       db().from("marketing_ideas").select("id,title,pillar,format").order("id", { ascending: false }).limit(200),
     ]);
     if (posts.error) throw posts.error;
     if (ideas.error) throw ideas.error;
-    const body: MkData = { today, weekStart, days, perDay, channels, posts: posts.data as MkPost[], ideas: ideas.data as MkData["ideas"] };
+    const body: MkData = { today, month, days, perDay, channels, posts: posts.data as MkPost[], ideas: ideas.data as MkData["ideas"] };
     return NextResponse.json(body);
   } catch {
     return summary ? NextResponse.json({ left: 0 }) : bad(NEED_MIGRATION, 503);

@@ -1,40 +1,94 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { NEXT_STATE, PILLARS, STATE_LABEL, addDays, doneCount, type MkChannel, type MkData, type MkPost, type Pillar, type PostState } from "@/lib/marketing";
+import { createPortal } from "react-dom";
+import {
+  NEXT_STATE,
+  PILLARS,
+  STATE_LABEL,
+  addDays,
+  doneCount,
+  dowMon,
+  shiftMonth,
+  type MkChannel,
+  type MkData,
+  type MkPost,
+  type Pillar,
+  type PostState,
+} from "@/lib/marketing";
 
-const json = (method: string, body: unknown) => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+// หน้าการตลาด v2: ปฏิทินรายเดือน (จุดสถานะต่อช่องทาง) + แผงรายละเอียดวัน + คลังไอเดียลากวาง · มุมมอง วันนี้ / ปฏิทิน / บอร์ด / ตั้งค่า
+
+const json = (method: string, body: unknown) => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 const DOW = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
-const dayNo = (d: string) => Number(d.slice(8));
-const thDate = (d: string, o: Intl.DateTimeFormatOptions) => new Date(`${d}T12:00:00+07:00`).toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", ...o });
-const blank = (date: string, slot: number): MkPost => ({ post_date: date, slot, title: "", pillar: "menu", format: "", caption: "", status: {}, done_at: {} });
+const thDate = (d: string, o: Intl.DateTimeFormatOptions) =>
+  new Date(`${d}T12:00:00+07:00`).toLocaleDateString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    ...o,
+  });
+const dayLabel = (d: string) =>
+  `${DOW[dowMon(d)]} ${thDate(d, { day: "numeric", month: "short" })}`;
+const blank = (date: string, slot: number): MkPost => ({
+  post_date: date,
+  slot,
+  title: "",
+  pillar: "menu",
+  format: "",
+  caption: "",
+  status: {},
+  done_at: {},
+});
+type View = "today" | "cal" | "board" | "rules";
 
-const STATE_ICON: Record<PostState, React.ReactNode> = {
-  todo: <circle cx="12" cy="12" r="8" />,
-  sched: (
-    <>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 8v4l2.5 2" />
-    </>
-  ),
-  done: <path d="M5 12.5l4.5 4.5L19 7.5" />,
-};
-
-function Chip({ ch, state, at, mini, onClick }: { ch: MkChannel; state: PostState; at?: string; mini?: boolean; onClick: () => void }) {
+function Dots({ post, channels }: { post: MkPost; channels: MkChannel[] }) {
   return (
-    <button type="button" className={`mk-ch${mini ? " mini" : ""}`} data-s={state} onClick={onClick} title={`${ch.name}: ${STATE_LABEL[state]}${state === "done" && at ? ` เวลา ${at}` : ""} (กดเพื่อเปลี่ยน)`} aria-label={`${ch.name} ${STATE_LABEL[state]}`}>
-      <span className="mk-logo" style={{ background: ch.color }}>
-        {ch.short}
-      </span>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        {STATE_ICON[state]}
-      </svg>
-      {!mini && <span>{STATE_LABEL[state]}</span>}
-    </button>
+    <span className="mk-dots">
+      {channels.map((c) => {
+        const s = post.status[c.id] ?? "todo";
+        return (
+          <i
+            key={c.id}
+            className="mk-dot"
+            data-s={s}
+            style={{ ["--c" as string]: c.color }}
+            title={`${c.name}: ${STATE_LABEL[s]}`}
+          />
+        );
+      })}
+    </span>
   );
 }
 
-function TodayCard({ post, channels, onSave, onChip }: { post: MkPost; channels: MkChannel[]; onSave: (patch: Partial<MkPost>) => void; onChip: (id: string, force?: PostState) => void }) {
+function Logo({ c, size = 24 }: { c: MkChannel; size?: number }) {
+  return (
+    <span
+      className="mk-logo"
+      style={{
+        background: c.color,
+        width: size,
+        height: size,
+        flexBasis: size,
+      }}
+    >
+      {c.short}
+    </span>
+  );
+}
+
+// การ์ดเรื่องในแผงรายละเอียดวัน
+function PostEditor({
+  post,
+  channels,
+  onSave,
+}: {
+  post: MkPost;
+  channels: MkChannel[];
+  onSave: (patch: Partial<MkPost>) => void;
+}) {
   const [title, setTitle] = useState(post.title);
   const [caption, setCaption] = useState(post.caption);
   const [format, setFormat] = useState(post.format);
@@ -42,68 +96,133 @@ function TodayCard({ post, channels, onSave, onChip }: { post: MkPost; channels:
   useEffect(() => setTitle(post.title), [post.title]);
   useEffect(() => setCaption(post.caption), [post.caption]);
   useEffect(() => setFormat(post.format), [post.format]);
-  const done = doneCount(post, channels);
   async function copy() {
     try {
       await navigator.clipboard.writeText(caption);
-      setNote("คัดลอกแคปชันแล้ว");
+      setNote("คัดลอกแล้ว");
     } catch {
-      setNote("คัดลอกไม่ได้ ลองเลือกข้อความแล้วคัดลอกเอง");
+      setNote("คัดลอกไม่ได้ ลองเลือกข้อความเอง");
     }
-    setTimeout(() => setNote(""), 2200);
+    setTimeout(() => setNote(""), 2000);
   }
   return (
-    <article className="panel mk-card">
-      <h3 className="mk-slot">เรื่องที่ {post.slot} ของวัน</h3>
-      <input className="mk-title" value={title} maxLength={120} placeholder="ตั้งหัวข้อคอนเทนต์ หรือเลือกจากคลังไอเดีย" aria-label={`หัวข้อเรื่องที่ ${post.slot}`} onChange={(e) => setTitle(e.target.value)} onBlur={() => title.trim() !== post.title && onSave({ title })} />
+    <div className="mk-post">
+      <h3>เรื่องที่ {post.slot}</h3>
+      <input
+        className="mk-ti"
+        value={title}
+        maxLength={120}
+        placeholder="ตั้งหัวข้อคอนเทนต์"
+        aria-label={`หัวข้อเรื่องที่ ${post.slot}`}
+        onChange={(e) => setTitle(e.target.value)}
+        onBlur={() => title.trim() !== post.title && onSave({ title })}
+      />
       <div className="mk-meta">
-        <select className="text" value={post.pillar} aria-label="หมวด" onChange={(e) => onSave({ pillar: e.target.value as Pillar })}>
+        <select
+          className="text"
+          value={post.pillar}
+          aria-label="หมวด"
+          onChange={(e) => onSave({ pillar: e.target.value as Pillar })}
+        >
           {Object.entries(PILLARS).map(([k, v]) => (
             <option key={k} value={k}>
               {v}
             </option>
           ))}
         </select>
-        <input className="text" value={format} maxLength={40} placeholder="รูปแบบ เช่น Reel, สตอรี่" aria-label="รูปแบบ" onChange={(e) => setFormat(e.target.value)} onBlur={() => format.trim() !== post.format && onSave({ format })} />
+        <input
+          className="text"
+          value={format}
+          maxLength={40}
+          placeholder="รูปแบบ เช่น Reel"
+          aria-label="รูปแบบ"
+          onChange={(e) => setFormat(e.target.value)}
+          onBlur={() => format.trim() !== post.format && onSave({ format })}
+        />
       </div>
-      <textarea className="mk-cap text" value={caption} maxLength={2200} placeholder="แคปชัน / ข้อความที่จะโพสต์" aria-label="แคปชัน" onChange={(e) => setCaption(e.target.value)} onBlur={() => caption.trim() !== post.caption && onSave({ caption })} />
-      <div className="mk-chs">
-        {channels.map((c) => (
-          <Chip key={c.id} ch={c} state={post.status[c.id] ?? "todo"} at={post.done_at[c.id]} onClick={() => onChip(c.id)} />
-        ))}
-      </div>
+      <textarea
+        className="text mk-cap"
+        value={caption}
+        maxLength={2200}
+        placeholder="แคปชัน / ข้อความที่จะโพสต์"
+        aria-label="แคปชัน"
+        onChange={(e) => setCaption(e.target.value)}
+        onBlur={() => caption.trim() !== post.caption && onSave({ caption })}
+      />
       <div className="mk-row">
-        <button type="button" className="btn ghost-sm" onClick={copy} disabled={!caption.trim()}>
+        <button
+          type="button"
+          className="btn ghost-sm"
+          onClick={copy}
+          disabled={!caption.trim()}
+        >
           คัดลอกแคปชัน
         </button>
-        <button type="button" className="btn ghost-sm" onClick={() => channels.filter((c) => post.status[c.id] !== "done").forEach((c) => onChip(c.id, "done"))} disabled={done === channels.length}>
-          ทำเครื่องหมายลงครบทุกช่อง
-        </button>
-        <span className="mk-count">
-          {done}/{channels.length} ช่อง
-        </span>
-        {note && <span className="mk-note" role="status">{note}</span>}
+        {note && <span className="mk-note">{note}</span>}
       </div>
-    </article>
+      <div className="mk-chl">
+        {channels.map((c) => {
+          const s = post.status[c.id] ?? "todo";
+          return (
+            <div key={c.id} className="mk-cr">
+              <span className="mk-cn">
+                <Logo c={c} />
+                {c.name}
+                {s === "done" && post.done_at[c.id] && (
+                  <small>{post.done_at[c.id]}</small>
+                )}
+              </span>
+              <span className="mk-st3" role="group" aria-label={c.name}>
+                {(["todo", "sched", "done"] as PostState[]).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    data-v={v}
+                    aria-pressed={s === v}
+                    onClick={() => s !== v && onSave({ status: { [c.id]: v } })}
+                  >
+                    {STATE_LABEL[v]}
+                  </button>
+                ))}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
-export default function MarketingTab({ onError, onChanged }: { onError: (s: string) => void; onChanged?: () => void }) {
+export default function MarketingTab({
+  onError,
+  onChanged,
+}: {
+  onError: (s: string) => void;
+  onChanged?: () => void;
+}) {
   const [data, setData] = useState<MkData | null>(null);
-  const [tab, setTab] = useState<"today" | "week" | "ideas" | "rules">("today");
-  const [week, setWeek] = useState<string | null>(null);
+  const [month, setMonth] = useState<string | null>(null);
+  const [view, setView] = useState<View>("cal");
+  const [sel, setSel] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string | null>(null);
+  const [pick, setPick] = useState<number | null>(null); // ไอเดียที่กำลังจะวางลงวัน (โหมดแตะ)
+  const [drag, setDrag] = useState<number | null>(null);
+  const [over, setOver] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
-  const [idea, setIdea] = useState({ title: "", pillar: "menu" as Pillar, format: "" });
+  const [idea, setIdea] = useState("");
   const [newCh, setNewCh] = useState("");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const flash = (m: string) => {
     setMsg(m);
-    setTimeout(() => setMsg(""), 2400);
+    setTimeout(() => setMsg(""), 2600);
   };
-
   const load = useCallback(
-    async (w: string | null) => {
-      const r = await fetch(`/api/admin/marketing${w ? `?week=${w}` : ""}`, { cache: "no-store" });
+    async (m: string | null) => {
+      const r = await fetch(`/api/admin/marketing${m ? `?month=${m}` : ""}`, {
+        cache: "no-store",
+      });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) return onError(j.error ?? "โหลดหน้าการตลาดไม่สำเร็จ");
       setData(j as MkData);
@@ -111,290 +230,609 @@ export default function MarketingTab({ onError, onChanged }: { onError: (s: stri
     [onError],
   );
   useEffect(() => {
-    load(week);
-  }, [load, week]);
+    load(month);
+  }, [load, month]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) =>
+      e.key === "Escape" && (setSel(null), setPick(null));
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, []);
 
-  const on = useMemo(() => (data ? data.channels.filter((c) => c.enabled) : []), [data]);
-  const get = (date: string, slot: number) => data?.posts.find((p) => p.post_date === date && p.slot === slot) ?? blank(date, slot);
+  const on = useMemo(
+    () => (data ? data.channels.filter((c) => c.enabled) : []),
+    [data],
+  );
+  const get = (date: string, slot: number) =>
+    data?.posts.find((p) => p.post_date === date && p.slot === slot) ??
+    blank(date, slot);
+  const slotsOf = (date: string) =>
+    Array.from({ length: data?.perDay ?? 0 }, (_, i) => get(date, i + 1));
 
-  // บันทึกทันทีบนหน้าจอ แล้วส่งไปเซิร์ฟเวอร์ (พลาดแล้วโหลดใหม่)
+  // บันทึกบนหน้าจอทันที แล้วส่งไปเซิร์ฟเวอร์ (พลาดแล้วโหลดใหม่)
   async function save(date: string, slot: number, patch: Partial<MkPost>) {
     if (!data) return;
     const cur = get(date, slot);
-    const next: MkPost = { ...cur, ...patch, status: { ...cur.status, ...(patch.status ?? {}) } };
-    setData({ ...data, posts: [...data.posts.filter((p) => !(p.post_date === date && p.slot === slot)), next] });
-    const r = await fetch("/api/admin/marketing", json("PUT", { date, slot, ...patch }));
+    const next: MkPost = {
+      ...cur,
+      ...patch,
+      status: { ...cur.status, ...(patch.status ?? {}) },
+    };
+    const put = (p: MkPost) => (d: MkData | null) =>
+      d
+        ? {
+            ...d,
+            posts: [
+              ...d.posts.filter(
+                (x) => !(x.post_date === date && x.slot === slot),
+              ),
+              p,
+            ],
+          }
+        : d;
+    setData(put(next));
+    const r = await fetch(
+      "/api/admin/marketing",
+      json("PUT", { date, slot, ...patch }),
+    );
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       onError(j.error ?? "บันทึกไม่สำเร็จ");
-      return load(week);
+      return load(month);
     }
-    setData((d) => (d ? { ...d, posts: [...d.posts.filter((p) => !(p.post_date === date && p.slot === slot)), j as MkPost] } : d));
+    setData(put(j as MkPost));
     onChanged?.();
   }
-  const chip = (date: string, slot: number, id: string, force?: PostState) => {
-    const cur = get(date, slot).status[id] ?? "todo";
-    return save(date, slot, { status: { [id]: force ?? NEXT_STATE[cur] } });
-  };
-
   async function setup(body: unknown, then?: string) {
     const r = await fetch("/api/admin/marketing/setup", json("PUT", body));
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return onError(j.error ?? "บันทึกไม่สำเร็จ");
-    await load(week);
+    await load(month);
     onChanged?.();
     if (then) flash(then);
   }
-
   async function addIdea() {
-    if (!idea.title.trim()) return;
-    const r = await fetch("/api/admin/marketing/ideas", json("POST", idea));
+    if (!idea.trim()) return;
+    const r = await fetch(
+      "/api/admin/marketing/ideas",
+      json("POST", { title: idea }),
+    );
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return onError(j.error ?? "เพิ่มไอเดียไม่สำเร็จ");
-    setIdea({ ...idea, title: "", format: "" });
-    await load(week);
+    setIdea("");
+    await load(month);
   }
   async function delIdea(id: number) {
     await fetch(`/api/admin/marketing/ideas?id=${id}`, { method: "DELETE" });
-    await load(week);
+    setData((d) =>
+      d ? { ...d, ideas: d.ideas.filter((i) => i.id !== id) } : d,
+    );
   }
-  // ใส่ไอเดียในช่องว่างถัดไป (ตั้งแต่วันนี้เป็นต้นไป ในสัปดาห์ที่เปิดอยู่)
-  async function place(id: number) {
-    if (!data) return false;
+  // วางไอเดียลงช่องว่างแรกของวันนั้น
+  async function place(id: number, date: string) {
+    if (!data) return;
     const x = data.ideas.find((i) => i.id === id);
-    if (!x) return false;
-    for (const d of data.days) {
-      if (d < data.today) continue;
-      for (let s = 1; s <= data.perDay; s++) {
-        if (!get(d, s).title) {
-          await save(d, s, { title: x.title, pillar: x.pillar, format: x.format });
-          await fetch(`/api/admin/marketing/ideas?id=${id}`, { method: "DELETE" });
-          setData((cur) => (cur ? { ...cur, ideas: cur.ideas.filter((i) => i.id !== id) } : cur));
-          return true;
-        }
-      }
-    }
-    return false;
+    const free = slotsOf(date).find((p) => !p.title);
+    setPick(null);
+    if (!x) return;
+    if (!free)
+      return flash(
+        `${dayLabel(date)} ครบ ${data.perDay} เรื่องแล้ว เลือกวันอื่นนะ`,
+      );
+    await save(date, free.slot, {
+      title: x.title,
+      pillar: x.pillar,
+      format: x.format,
+    });
+    await delIdea(id);
+    flash(`วาง “${x.title}” ลง ${dayLabel(date)} แล้ว`);
   }
 
   if (!data) return <p className="mk-empty">กำลังโหลด…</p>;
 
-  const inWeek = data.days.includes(data.today);
-  const todayPosts = Array.from({ length: data.perDay }, (_, i) => get(data.today, i + 1));
   const total = on.length;
+  const inMonth = data.days.includes(data.today);
+  const todayPosts = slotsOf(data.today);
+  const titled = (ps: MkPost[]) => ps.filter((p) => p.title);
   const todayDone = todayPosts.reduce((n, p) => n + doneCount(p, on), 0);
   const todayLeft = todayPosts.filter((p) => doneCount(p, on) < total).length;
-  let wd = 0;
-  let wa = 0;
-  for (const d of data.days) {
-    if (d > data.today) continue;
-    for (let s = 1; s <= data.perDay; s++) {
-      wd += doneCount(get(d, s), on);
-      wa += total;
+  const started = data.posts
+    .filter((p) => p.title)
+    .reduce((m, p) => (p.post_date < m ? p.post_date : m), data.today);
+  const past = data.days.filter((d) => d >= started && d <= data.today);
+  let md = 0;
+  let ma = 0;
+  for (const d of past)
+    for (const p of slotsOf(d)) {
+      md += doneCount(p, on);
+      ma += total;
     }
-  }
+  const pct = ma ? Math.round((md / ma) * 100) : 0;
+  const pending = (id: string) =>
+    past.reduce(
+      (n, d) =>
+        n + titled(slotsOf(d)).filter((p) => p.status[id] !== "done").length,
+      0,
+    );
   const worst = on
-    .map((c) => ({ c, n: data.days.filter((d) => d <= data.today).reduce((n, d) => n + Array.from({ length: data.perDay }, (_, i) => get(d, i + 1)).filter((p) => p.status[c.id] !== "done").length, 0) }))
+    .map((c) => ({ c, n: pending(c.id) }))
     .sort((a, b) => b.n - a.n)[0];
-  const pct = wa ? Math.round((wd / wa) * 100) : 0;
+  const dayCls = (d: string) => {
+    const ps = slotsOf(d);
+    const t = titled(ps);
+    const done = ps.reduce((n, p) => n + doneCount(p, on), 0);
+    if (d < started)
+      return t.length
+        ? done === ps.length * total
+          ? "full"
+          : "part"
+        : "empty";
+    if (d < data.today && done < ps.length * total) return "miss";
+    if (!t.length) return "empty";
+    if (done === ps.length * total) return "full";
+    return done ? "part" : "none";
+  };
+  const goView = (v: View) => {
+    setView(v);
+    setPick(null);
+  };
 
   return (
     <div className="mk">
-      <div className="mk-stats">
-        <div>
-          <small>วันนี้ลงแล้ว</small>
-          <b>{inWeek ? `${todayDone}/${total * data.perDay}` : "-"}</b>
-          <span>{inWeek ? (todayLeft ? `เหลืออีก ${todayLeft} เรื่องที่ยังลงไม่ครบช่อง` : "ครบทุกเรื่องแล้ว เยี่ยมมาก") : "ดูสัปดาห์อื่นอยู่"}</span>
-        </div>
-        <div>
-          <small>สัปดาห์นี้ทำตามแผน</small>
-          <b>{pct}%</b>
-          <span>
-            {wd} จาก {wa} โพสต์ (จนถึงวันนี้)
-          </span>
-          <i className="mk-bar">
-            <u style={{ width: `${pct}%` }} />
-          </i>
-        </div>
-        <div>
-          <small>ช่องที่ค้างมากสุด</small>
-          <b className="sm">{worst && worst.n > 0 ? worst.c.name : "ไม่มี"}</b>
-          <span>{worst && worst.n > 0 ? `ค้าง ${worst.n} โพสต์` : "ทำครบตามแผน"}</span>
+      <div className="mk-top">
+        <div className="mk-seg" role="group" aria-label="มุมมอง">
+          {(
+            [
+              ["today", "วันนี้"],
+              ["cal", "ปฏิทิน"],
+              ["board", "บอร์ด"],
+              ["rules", "ตั้งค่า"],
+            ] as const
+          ).map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => goView(v)}
+            >
+              {l}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="mk-tabs" role="tablist">
-        {(
-          [
-            ["today", "วันนี้"],
-            ["week", "ตารางสัปดาห์"],
-            ["ideas", `คลังไอเดีย (${data.ideas.length})`],
-            ["rules", "ตั้งกติกา"],
-          ] as const
-        ).map(([id, label]) => (
-          <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
-            {label}
-          </button>
-        ))}
+      <div className="mk-strip">
+        <span
+          className="mk-ring"
+          style={{
+            ["--p" as string]: total
+              ? (todayDone / (todayPosts.length * total)) * 100
+              : 0,
+          }}
+          data-t={`${todayDone}/${todayPosts.length * total}`}
+          aria-label={`วันนี้ลงแล้ว ${todayDone} จาก ${todayPosts.length * total}`}
+        />
+        <span>
+          <b>{todayLeft ? `เหลือ ${todayLeft} เรื่อง` : "ครบแล้ว"}</b>{" "}
+          <small>ของวันนี้</small>
+        </span>
+        <span>
+          <b>{pct}%</b> <small>ทำตามแผนเดือนนี้ (ถึงวันนี้)</small>
+        </span>
+        <span>
+          <b>{worst && worst.n ? worst.c.name : "ไม่มี"}</b>{" "}
+          <small>
+            {worst && worst.n
+              ? `ค้างมากสุด ${worst.n} โพสต์`
+              : "ไม่มีช่องที่ค้าง"}
+          </small>
+        </span>
       </div>
-      {msg && <p className="mk-flash" role="status">{msg}</p>}
-
-      {(tab === "today" || tab === "week") && (
-        <p className="mk-legend">
-          <span>○ ยังไม่ลง</span>
-          <span>◷ ตั้งเวลาแล้ว</span>
-          <span>✓ ลงแล้ว</span>
-          <span>กดที่ช่องทางเพื่อเปลี่ยนสถานะ</span>
+      {msg && (
+        <p className="mk-flash" role="status">
+          {msg}
         </p>
       )}
 
-      {tab === "today" &&
-        (inWeek ? (
-          todayPosts.map((p) => <TodayCard key={p.slot} post={p} channels={on} onSave={(patch) => save(data.today, p.slot, patch)} onChip={(id, f) => chip(data.today, p.slot, id, f)} />)
+      {view === "cal" && (
+        <>
+          <div className="mk-filt">
+            <span>ดูเฉพาะช่องที่ค้าง</span>
+            {on.map((c) => {
+              const n = pending(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="mk-fc"
+                  aria-pressed={filter === c.id}
+                  onClick={() => setFilter(filter === c.id ? null : c.id)}
+                >
+                  <Logo c={c} size={22} />
+                  {c.name}
+                  {n > 0 && <em>ค้าง {n}</em>}
+                </button>
+              );
+            })}
+          </div>
+          {pick !== null && (
+            <p className="mk-hint">
+              แตะวันที่ต้องการวาง “
+              {data.ideas.find((i) => i.id === pick)?.title}”{" "}
+              <button
+                type="button"
+                className="btn ghost-sm"
+                onClick={() => setPick(null)}
+              >
+                ยกเลิก
+              </button>
+            </p>
+          )}
+          <div className="mk-work">
+            <section className="panel">
+              <div className="mk-calh">
+                <button
+                  type="button"
+                  aria-label="เดือนก่อน"
+                  onClick={() => setMonth(shiftMonth(data.month, -1))}
+                >
+                  ‹
+                </button>
+                <h2>
+                  {thDate(`${data.month}-01`, {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </h2>
+                {!inMonth && (
+                  <button
+                    type="button"
+                    className="mk-now"
+                    onClick={() => setMonth(null)}
+                  >
+                    เดือนนี้
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="เดือนถัดไป"
+                  onClick={() => setMonth(shiftMonth(data.month, 1))}
+                >
+                  ›
+                </button>
+              </div>
+              <div className="mk-grid">
+                {DOW.map((x) => (
+                  <div key={x} className="mk-dow">
+                    {x}
+                  </div>
+                ))}
+                {Array.from({ length: dowMon(data.days[0]) }, (_, i) => (
+                  <div key={`o${i}`} className="mk-cell" data-k="out" />
+                ))}
+                {data.days.map((d) => {
+                  const ps = slotsOf(d);
+                  const flag =
+                    filter &&
+                    d <= data.today &&
+                    titled(ps).some((p) => p.status[filter] !== "done");
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`mk-cell${d === data.today ? " is-today" : ""}${sel === d ? " is-sel" : ""}${pick !== null ? " is-pick" : ""}${over === d ? " is-drop" : ""}`}
+                      data-k={dayCls(d)}
+                      data-flag={flag ? "1" : undefined}
+                      aria-label={dayLabel(d)}
+                      onClick={() =>
+                        pick !== null ? place(pick, d) : setSel(d)
+                      }
+                      onDragOver={(e) => {
+                        if (drag === null) return;
+                        e.preventDefault();
+                        setOver(d);
+                      }}
+                      onDragLeave={() => setOver((o) => (o === d ? null : o))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setOver(null);
+                        if (drag !== null) place(drag, d);
+                        setDrag(null);
+                      }}
+                    >
+                      <span className="mk-dn">{Number(d.slice(8))}</span>
+                      {ps.map((p) => (
+                        <span key={p.slot} className="mk-sl">
+                          <span className={`mk-tt${p.title ? "" : " none"}`}>
+                            {p.title || "—"}
+                          </span>
+                          {p.title && <Dots post={p} channels={on} />}
+                        </span>
+                      ))}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mk-lgd">
+                <span>
+                  <i
+                    className="mk-dot"
+                    data-s="done"
+                    style={{ ["--c" as string]: "#1877F2" }}
+                  />{" "}
+                  ลงแล้ว (สีของช่องทาง)
+                </span>
+                <span>
+                  <i className="mk-dot" data-s="sched" /> ตั้งเวลา
+                </span>
+                <span>
+                  <i className="mk-dot" data-s="todo" /> ยังไม่ลง
+                </span>
+                <span>
+                  <i className="mk-sw" data-k="full" /> ครบ
+                </span>
+                <span>
+                  <i className="mk-sw" data-k="part" /> ลงบางช่อง
+                </span>
+                <span>
+                  <i className="mk-sw" data-k="miss" /> ค้างอยู่
+                </span>
+              </p>
+            </section>
+
+            <aside className="panel mk-tray">
+              <h3>คลังไอเดีย</h3>
+              <p>ลากไปวางบนวัน หรือกด “วางลงวัน” แล้วแตะวัน</p>
+              <form
+                className="mk-add"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addIdea();
+                }}
+              >
+                <input
+                  className="text"
+                  value={idea}
+                  maxLength={120}
+                  placeholder="จดไอเดียใหม่"
+                  aria-label="ไอเดียใหม่"
+                  onChange={(e) => setIdea(e.target.value)}
+                />
+                <button className="btn primary-sm" disabled={!idea.trim()}>
+                  เพิ่ม
+                </button>
+              </form>
+              {data.ideas.length === 0 && (
+                <p className="mk-empty">ยังไม่มีไอเดีย จดไว้ตอนนึกออก</p>
+              )}
+              {data.ideas.map((x) => (
+                <div
+                  key={x.id}
+                  className={`mk-idea${pick === x.id ? " picked" : ""}`}
+                  draggable
+                  onDragStart={(e) => {
+                    setDrag(x.id);
+                    e.dataTransfer.setData("text/plain", String(x.id));
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    setDrag(null);
+                    setOver(null);
+                  }}
+                >
+                  <b>{x.title}</b>
+                  <div className="mk-ir">
+                    <span className="mk-pill">{PILLARS[x.pillar]}</span>
+                    <span>
+                      <button
+                        type="button"
+                        onClick={() => setPick(pick === x.id ? null : x.id)}
+                      >
+                        วางลงวัน
+                      </button>
+                      <button
+                        type="button"
+                        className="del"
+                        onClick={() => delIdea(x.id)}
+                        aria-label="ลบไอเดีย"
+                      >
+                        ลบ
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </aside>
+          </div>
+        </>
+      )}
+
+      {view === "today" &&
+        (inMonth ? (
+          <>
+            <p className="mk-hint soft">
+              แตะที่ช่องทางเมื่อลงโพสต์แล้ว · แตะซ้ำเพื่อเปลี่ยน (ยังไม่ลง →
+              ตั้งเวลา → ลงแล้ว)
+            </p>
+            <div className="mk-tday">
+              {todayPosts.map((p) => (
+                <article key={p.slot} className="panel mk-big">
+                  <span className="mk-m">
+                    เรื่องที่ {p.slot} ของวัน
+                    {p.title
+                      ? ` · ${PILLARS[p.pillar]}${p.format ? ` · ${p.format}` : ""}`
+                      : ""}
+                  </span>
+                  <h3>{p.title || "ยังไม่ตั้งหัวข้อ"}</h3>
+                  <div className="mk-tg">
+                    {on.map((c) => {
+                      const s = p.status[c.id] ?? "todo";
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="mk-tb"
+                          data-s={s}
+                          onClick={() =>
+                            save(data.today, p.slot, {
+                              status: { [c.id]: NEXT_STATE[s] },
+                            })
+                          }
+                        >
+                          <Logo c={c} size={28} />
+                          <span className="t">
+                            {c.name}
+                            <small>
+                              {STATE_LABEL[s]}
+                              {s === "done" && p.done_at[c.id]
+                                ? ` ${p.done_at[c.id]}`
+                                : ""}
+                            </small>
+                          </span>
+                          <span className="ck" aria-hidden="true">
+                            ✓
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mk-row">
+                    <button
+                      type="button"
+                      className="btn ghost-sm"
+                      onClick={() => setSel(data.today)}
+                    >
+                      แก้หัวข้อ / แคปชัน
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost-sm"
+                      disabled={doneCount(p, on) === total}
+                      onClick={() =>
+                        save(data.today, p.slot, {
+                          status: Object.fromEntries(
+                            on
+                              .filter((c) => p.status[c.id] !== "done")
+                              .map((c) => [c.id, "done"]),
+                          ),
+                        })
+                      }
+                    >
+                      ลงครบทุกช่องแล้ว
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
         ) : (
           <p className="mk-empty">
-            กำลังดูสัปดาห์อื่นอยู่{" "}
-            <button className="btn ghost-sm" onClick={() => setWeek(null)}>
-              กลับไปสัปดาห์นี้
+            กำลังดูเดือนอื่นอยู่{" "}
+            <button
+              type="button"
+              className="btn ghost-sm"
+              onClick={() => setMonth(null)}
+            >
+              กลับไปเดือนนี้
             </button>
           </p>
         ))}
 
-      {tab === "week" && (
-        <>
-          <div className="mk-weeknav">
-            <button className="btn ghost-sm" onClick={() => setWeek(addDays(data.weekStart, -7))} aria-label="สัปดาห์ก่อนหน้า">
-              ‹ สัปดาห์ก่อน
-            </button>
-            <b>
-              {thDate(data.days[0], { day: "numeric", month: "short" })} – {thDate(data.days[6], { day: "numeric", month: "short" })}
-            </b>
-            <button className="btn ghost-sm" onClick={() => setWeek(addDays(data.weekStart, 7))} aria-label="สัปดาห์ถัดไป">
-              สัปดาห์ถัดไป ›
-            </button>
-            {!inWeek && (
-              <button className="btn ghost-sm" onClick={() => setWeek(null)}>
-                วันนี้
-              </button>
-            )}
-          </div>
-          <div className="mk-wk">
-            <table>
-              <thead>
-                <tr>
-                  <th>วัน</th>
-                  {Array.from({ length: data.perDay }, (_, i) => (
-                    <th key={i}>เรื่องที่ {i + 1}</th>
-                  ))}
-                  <th>ลงแล้ว</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.days.map((d, di) => {
-                  const posts = Array.from({ length: data.perDay }, (_, i) => get(d, i + 1));
-                  const dd = posts.reduce((n, p) => n + doneCount(p, on), 0);
-                  const miss = d < data.today && dd < total * data.perDay;
-                  return (
-                    <tr key={d} className={d === data.today ? "today" : ""}>
-                      <td className="mk-day">
-                        {DOW[di]} {dayNo(d)}
-                        <small>{d === data.today ? "วันนี้" : d < data.today ? "ผ่านมาแล้ว" : "วางแผน"}</small>
-                      </td>
-                      {posts.map((p) => (
-                        <td key={p.slot}>
-                          <WeekTitle value={p.title} onSave={(title) => save(d, p.slot, { title })} />
-                          <div className="mk-chs sm">
-                            {on.map((c) => (
-                              <Chip key={c.id} ch={c} mini state={p.status[c.id] ?? "todo"} at={p.done_at[c.id]} onClick={() => chip(d, p.slot, c.id)} />
-                            ))}
-                          </div>
-                        </td>
-                      ))}
-                      <td className={`mk-sum${miss ? " miss" : ""}`}>
-                        {dd}/{total * data.perDay}
-                        {miss && <small>ค้างอยู่</small>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {view === "board" &&
+        (() => {
+          type Card = {
+            key: string;
+            title: string;
+            meta: string;
+            date?: string;
+            post?: MkPost;
+          };
+          const cols: [string, Card[]][] = [
+            [
+              "ไอเดีย",
+              data.ideas.map((x) => ({
+                key: `i${x.id}`,
+                title: x.title,
+                meta: PILLARS[x.pillar],
+              })),
+            ],
+            ["ตั้งหัวข้อแล้ว", []],
+            ["พร้อมลง", []],
+            ["กำลังลง", []],
+            ["ลงครบแล้ว", []],
+          ];
+          for (const d of data.days.filter((x) => x >= addDays(data.today, -3)))
+            for (const p of titled(slotsOf(d))) {
+              const n = doneCount(p, on);
+              const k = n === total ? 4 : n ? 3 : p.caption ? 2 : 1;
+              cols[k][1].push({
+                key: `${d}-${p.slot}`,
+                title: p.title,
+                meta: `${dayLabel(d)} · ${n}/${total} ช่อง`,
+                date: d,
+                post: p,
+              });
+            }
+          return (
+            <>
+              <div className="mk-board">
+                {cols.map(([h, cs]) => (
+                  <section key={h} className="mk-col">
+                    <h3>
+                      {h}
+                      <span>{cs.length}</span>
+                    </h3>
+                    {cs.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className="mk-kc"
+                        onClick={() =>
+                          c.date ? setSel(c.date) : goView("cal")
+                        }
+                      >
+                        <b>{c.title}</b>
+                        <small>{c.meta}</small>
+                        {c.post && <Dots post={c.post} channels={on} />}
+                      </button>
+                    ))}
+                    {cs.length === 0 && <p className="mk-empty">ว่าง</p>}
+                  </section>
+                ))}
+              </div>
+              <p className="mk-lgd">
+                แสดงเรื่องตั้งแต่ {dayLabel(addDays(data.today, -3))}{" "}
+                ถึงสิ้นเดือน · กดการ์ดเพื่อเปิดรายละเอียดของวันนั้น
+              </p>
+            </>
+          );
+        })()}
 
-      {tab === "ideas" && (
-        <>
-          <form
-            className="mk-add"
-            onSubmit={(e) => {
-              e.preventDefault();
-              addIdea();
-            }}
-          >
-            <input className="text" value={idea.title} maxLength={120} placeholder="จดไอเดียใหม่ เช่น เมนูตามฤดูกาล" aria-label="ไอเดียใหม่" onChange={(e) => setIdea({ ...idea, title: e.target.value })} />
-            <select className="text" value={idea.pillar} aria-label="หมวด" onChange={(e) => setIdea({ ...idea, pillar: e.target.value as Pillar })}>
-              {Object.entries(PILLARS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-            <button className="btn primary-sm" disabled={!idea.title.trim()}>
-              เพิ่มไอเดีย
-            </button>
-            <button
-              type="button"
-              className="btn ghost-sm"
-              disabled={!data.ideas.length}
-              onClick={async () => {
-                let n = 0;
-                for (const i of [...data.ideas].reverse()) {
-                  if (await place(i.id)) n++;
-                  else break;
-                }
-                flash(n ? `เติมให้ ${n} เรื่อง` : "ไม่มีช่องว่างให้เติมในสัปดาห์นี้");
-              }}
-            >
-              เติมช่องว่างในตารางจากคลังไอเดีย
-            </button>
-          </form>
-          {data.ideas.length === 0 && <p className="mk-empty">ยังไม่มีไอเดีย จดไว้ตอนนึกออก แล้วค่อยหยิบมาใส่ตาราง</p>}
-          <div className="mk-ideas">
-            {data.ideas.map((x) => (
-              <article key={x.id} className="panel">
-                <span className="mk-pill">{PILLARS[x.pillar]}</span>
-                <b>{x.title}</b>
-                <div className="mk-row">
-                  <button
-                    className="btn ghost-sm"
-                    onClick={async () => flash((await place(x.id)) ? "ใส่ในตารางแล้ว" : "สัปดาห์นี้ไม่มีช่องว่างแล้ว")}
-                  >
-                    ใส่ในช่องว่างถัดไป
-                  </button>
-                  <button className="btn ghost-sm" onClick={() => delIdea(x.id)} aria-label="ลบไอเดีย">
-                    ลบ
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </>
-      )}
-
-      {tab === "rules" && (
+      {view === "rules" && (
         <div className="mk-rules">
           <section className="panel">
             <h3>เป้าหมายต่อวัน</h3>
-            <p className="mk-hint">ตารางสัปดาห์จะแสดงจำนวนเรื่องต่อวันตามนี้</p>
+            <p className="mk-hint2">ปฏิทินจะแสดงจำนวนเรื่องต่อวันตามนี้</p>
             <div className="mk-row">
               <span>ทุกวันต้องลง</span>
               <span className="mk-step">
-                <button type="button" aria-label="ลด" onClick={() => data.perDay > 1 && setup({ perDay: data.perDay - 1 })}>
+                <button
+                  type="button"
+                  aria-label="ลด"
+                  onClick={() =>
+                    data.perDay > 1 && setup({ perDay: data.perDay - 1 })
+                  }
+                >
                   −
                 </button>
                 <output>{data.perDay}</output>
-                <button type="button" aria-label="เพิ่ม" onClick={() => data.perDay < 10 && setup({ perDay: data.perDay + 1 })}>
+                <button
+                  type="button"
+                  aria-label="เพิ่ม"
+                  onClick={() =>
+                    data.perDay < 10 && setup({ perDay: data.perDay + 1 })
+                  }
+                >
                   +
                 </button>
               </span>
@@ -403,47 +841,102 @@ export default function MarketingTab({ onError, onChanged }: { onError: (s: stri
           </section>
           <section className="panel">
             <h3>ช่องทางที่ลง</h3>
-            <p className="mk-hint">เปิดเฉพาะช่องที่ร้านใช้จริง เพิ่มช่องใหม่ได้เอง</p>
+            <p className="mk-hint2">
+              เปิดเฉพาะช่องที่ร้านใช้จริง เพิ่มช่องใหม่ได้เอง
+            </p>
             {data.channels.map((c) => (
               <label key={c.id} className="row">
-                <span className="mk-chname">
-                  <span className="mk-logo" style={{ background: c.color }}>
-                    {c.short}
-                  </span>
+                <span className="mk-cn">
+                  <Logo c={c} />
                   {c.name}
                 </span>
-                <input type="checkbox" checked={c.enabled} onChange={(e) => setup({ channel: { id: c.id, enabled: e.target.checked } })} />
+                <input
+                  type="checkbox"
+                  checked={c.enabled}
+                  onChange={(e) =>
+                    setup({ channel: { id: c.id, enabled: e.target.checked } })
+                  }
+                />
               </label>
             ))}
             <form
               className="mk-add"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (newCh.trim()) setup({ addChannel: newCh }, `เพิ่มช่อง ${newCh.trim()} แล้ว`).then(() => setNewCh(""));
+                if (newCh.trim())
+                  setup(
+                    { addChannel: newCh },
+                    `เพิ่มช่อง ${newCh.trim()} แล้ว`,
+                  ).then(() => setNewCh(""));
               }}
             >
-              <input className="text" value={newCh} maxLength={30} placeholder="ชื่อช่องใหม่ เช่น Shopee Live, Lemon8" aria-label="ชื่อช่องทางใหม่" onChange={(e) => setNewCh(e.target.value)} />
+              <input
+                className="text"
+                value={newCh}
+                maxLength={30}
+                placeholder="ชื่อช่องใหม่ เช่น Shopee Live, Lemon8"
+                aria-label="ชื่อช่องทางใหม่"
+                onChange={(e) => setNewCh(e.target.value)}
+              />
               <button className="btn primary-sm" disabled={!newCh.trim()}>
                 เพิ่มช่อง
               </button>
             </form>
           </section>
-          <section className="panel mk-soon">
-            <h3>กำลังจะมา</h3>
-            <ul>
-              <li>ผู้ช่วย AI ร่างแคปชันและคิดไอเดีย</li>
-              <li>เตือนทาง LINE ถ้าวันนี้ยังลงไม่ครบ</li>
-              <li>ลิงก์ติดตามว่าช่องไหนพาลูกค้ามาสั่ง</li>
-            </ul>
-          </section>
         </div>
       )}
+
+      {mounted &&
+        createPortal(
+          <>
+            <div
+              className={`mk-scrim${sel ? " on" : ""}`}
+              onClick={() => setSel(null)}
+            />
+            <aside
+              className={`mk-drawer${sel ? " on" : ""}`}
+              aria-hidden={!sel}
+              aria-label="รายละเอียดวัน"
+            >
+              {sel && (
+                <>
+                  <div className="mk-dh">
+                    <h2>
+                      {dayLabel(sel)}
+                      <small>
+                        {sel === data.today
+                          ? "วันนี้"
+                          : sel < data.today
+                            ? "ผ่านมาแล้ว"
+                            : "วางแผน"}{" "}
+                        · วันละ {data.perDay} เรื่อง × {total} ช่องทาง
+                      </small>
+                    </h2>
+                    <button
+                      type="button"
+                      className="mk-x"
+                      onClick={() => setSel(null)}
+                      aria-label="ปิด"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="mk-db">
+                    {slotsOf(sel).map((p) => (
+                      <PostEditor
+                        key={`${sel}-${p.slot}`}
+                        post={p}
+                        channels={on}
+                        onSave={(patch) => save(sel, p.slot, patch)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </aside>
+          </>,
+          document.body,
+        )}
     </div>
   );
-}
-
-function WeekTitle({ value, onSave }: { value: string; onSave: (v: string) => void }) {
-  const [v, setV] = useState(value);
-  useEffect(() => setV(value), [value]);
-  return <input className="mk-wtitle" value={v} maxLength={120} placeholder="ยังไม่ตั้งหัวข้อ" aria-label="หัวข้อ" onChange={(e) => setV(e.target.value)} onBlur={() => v.trim() !== value && onSave(v)} />;
 }

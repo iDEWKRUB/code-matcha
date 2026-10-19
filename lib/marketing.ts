@@ -29,8 +29,8 @@ export type MkPost = {
 export type MkIdea = { id: number; title: string; pillar: Pillar; format: string };
 export type MkData = {
   today: string;
-  weekStart: string;
-  days: string[];
+  month: string; // YYYY-MM
+  days: string[]; // ทุกวันของเดือน
   perDay: number;
   channels: MkChannel[];
   posts: MkPost[];
@@ -43,9 +43,18 @@ export function addDays(date: string, n: number) {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
-// วันจันทร์ของสัปดาห์ที่มีวันนั้น
-export function weekStartOf(date: string) {
-  const dow = new Date(`${date}T00:00:00Z`).getUTCDay(); // 0 = อาทิตย์
-  return addDays(date, -((dow + 6) % 7));
+// ทุกวันของเดือน YYYY-MM
+export function monthDays(month: string) {
+  const out: string[] = [];
+  for (let d = `${month}-01`; d.slice(0, 7) === month; d = addDays(d, 1)) out.push(d);
+  return out;
 }
+// เดือนถัดไป/ก่อนหน้า (n = ±1)
+export function shiftMonth(month: string, n: number) {
+  const d = new Date(`${month}-15T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return d.toISOString().slice(0, 7);
+}
+// 0 = จันทร์ … 6 = อาทิตย์
+export const dowMon = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 export const doneCount = (p: Pick<MkPost, "status"> | undefined, channels: MkChannel[]) => channels.filter((c) => p?.status?.[c.id] === "done").length;
