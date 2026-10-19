@@ -196,7 +196,13 @@ export default function MemberPage() {
   const { tier, next } = tierOf(m.earned);
   const progress = next ? Math.min(100, Math.round(((m.earned - tier.from) / (next.from - tier.from)) * 100)) : 100;
   const waiting = m.coupons.filter((c) => c.status === "waiting");
-  const shown = m.rewards.filter((r) => r.category === cat);
+  const shown = m.rewards.filter((r) => r.category === cat).sort((a, b) => Number(a.points > m.balance) - Number(b.points > m.balance) || a.points - b.points);
+  // รางวัลถัดไป = ใบที่ใกล้ที่สุดที่ยังแลกไม่ได้ (Goal Gradient: ยิ่งใกล้ ยิ่งอยากไปต่อ)
+  const goal = [...m.rewards].sort((a, b) => a.points - b.points).find((r) => r.points > m.balance) ?? null;
+  const goalLeft = goal ? goal.points - m.balance : 0;
+  const goalFilled = goal ? Math.min(10, Math.floor((m.balance / goal.points) * 10)) : 10;
+  const canNow = m.rewards.filter((r) => r.points <= m.balance).length;
+  const canShown = shown.filter((r) => r.points <= m.balance).length;
 
   return (
     <main className="app member">
@@ -245,8 +251,9 @@ export default function MemberPage() {
             <span className="mbcard-tier">{tier.name}</span>
           </div>
           <div className="mbcard-points">
-            <small>แต้มคงเหลือ</small>
+            <small>แต้มของคุณ</small>
             <b>{pts(m.balance)}</b>
+            <span className="mbcard-worth">= ฿{pts(m.balance)} ใช้ลดได้ทันที</span>
           </div>
           <div className="mbcard-foot">
             <div>
@@ -278,6 +285,41 @@ export default function MemberPage() {
             <span>ใบ</span>
           </div>
         </div>
+
+        <section className={`mb-goal${goal && goalLeft <= 3 ? " near" : ""}`} aria-label="รางวัลถัดไป">
+          <div className="mb-goal-head">
+            <b>รางวัลถัดไปของคุณ</b>
+            {goal && <span>{goalFilled}/10</span>}
+          </div>
+          {goal ? (
+            <>
+              <div className="mb-segs" role="progressbar" aria-valuenow={goalFilled} aria-valuemin={0} aria-valuemax={10} aria-label={`ความคืบหน้าสู่ ${goal.name}`}>
+                {Array.from({ length: 10 }, (_, i) => (
+                  <i key={i} className={i < goalFilled ? "on" : ""} />
+                ))}
+              </div>
+              <p className="mb-goal-msg">
+                {goalLeft <= 3 && <em>ใกล้แล้ว!</em>}
+                อีก <strong>{goalLeft}</strong> แต้ม รับ{goal.name}
+              </p>
+              <p className="mb-goal-sub">ซื้ออีกประมาณ ฿{(goalLeft * POINTS.bahtPerPoint).toLocaleString("th-TH")} ก็ถึง</p>
+            </>
+          ) : (
+            <p className="mb-goal-msg">คุณแลกได้ครบทุกรางวัลแล้ว</p>
+          )}
+          {canNow > 0 && (
+            <button
+              type="button"
+              className="mb-goal-go"
+              onClick={() => {
+                setView("rewards");
+                setTimeout(() => document.getElementById("mb-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+              }}
+            >
+              แลกได้ตอนนี้ {canNow} รายการ ›
+            </button>
+          )}
+        </section>
 
         <section className="mb-level">
           <div className="mb-level-row">
@@ -364,7 +406,7 @@ export default function MemberPage() {
           {refMsg && <p className={`mb-invite-msg${refMsg.ok ? "" : " bad"}`}>{refMsg.text}</p>}
         </section>
 
-        <nav className="mb-tabs" role="tablist" aria-label="บัตรสมาชิก">
+        <nav id="mb-tabs" className="mb-tabs" role="tablist" aria-label="บัตรสมาชิก">
           {(
             [
               ["rewards", "gift", "แลกของขวัญ"],
@@ -389,6 +431,11 @@ export default function MemberPage() {
               </button>
             ))}
           </div>
+        )}
+        {view === "rewards" && canShown > 0 && (
+          <p className="mb-own">
+            ที่คุณมีสิทธิ์รับตอนนี้ <b>{canShown}</b> รายการ
+          </p>
         )}
         {view === "rewards" &&
           (shown.length === 0 ? (

@@ -33,6 +33,7 @@ import { POINTS, REFERRAL, SHOP, pointsEarned } from "@/lib/config";
 import { normalizeCode, promoDiscount, type PromoRule } from "@/lib/promo";
 import Cup from "./Cup";
 import Credit from "./Credit";
+import CouponSheet, { type Offer } from "./CouponSheet";
 import Food from "./Food";
 import Icon, { type IconName } from "./Icon";
 import MenuArt, { artTint } from "./MenuArt";
@@ -223,7 +224,8 @@ export default function OrderPage() {
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   // โค้ดที่ร้านเปิดให้เห็น (โหลดตอนเปิดหน้าชำระ) กดแล้วใช้เลย
-  const [offers, setOffers] = useState<(AppliedPromo & { label: string; expiresOn: string | null; timeFrom: string | null; nowOk: boolean })[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [couponsOpen, setCouponsOpen] = useState(false);
   const [promoErr, setPromoErr] = useState("");
   const [promoBusy, setPromoBusy] = useState(false);
   const [bar, setBar] = useState<BarHours | null>(null);
@@ -727,18 +729,37 @@ export default function OrderPage() {
           </span>
         </p>
       )}
-      {offers.length > 0 && (
+      {offers.length > 2 && (
+        <button type="button" className="cps-banner" onClick={() => setCouponsOpen(true)}>
+          <span className="cps-banner-n">
+            <b>{offers.length}</b>
+            คูปอง
+          </span>
+          <span className="cps-banner-t">
+            <b>
+              ลดสูงสุด{" "}
+              {offers.some((o) => o.kind === "percent")
+                ? `${Math.max(...offers.filter((o) => o.kind === "percent").map((o) => o.value))}%`
+                : `฿${Math.max(...offers.map((o) => o.value))}`}{" "}
+              · เก็บได้เลย
+            </b>
+            <small>{linkPromo && offers.some((o) => o.code === linkPromo) ? `เก็บไว้แล้ว: ${linkPromo} · ระบบใส่ให้ตอนชำระ` : "เลือกคูปอง ระบบใส่ให้ตอนชำระ"}</small>
+          </span>
+          <span className="cps-banner-go">ดูทั้งหมด ›</span>
+        </button>
+      )}
+      {offers.length > 0 && offers.length <= 2 && (
         <section className="coupons" aria-label="คูปองสำหรับคุณ">
           <b className="coupons-h">คูปองสำหรับคุณ · กดเก็บ แล้วระบบใส่ให้ตอนชำระ</b>
           <div className="coupons-row">
             {offers.map((o) => (
-              <button key={o.code} type="button" className={`coupon${linkPromo === o.code ? " on" : ""}`} aria-pressed={linkPromo === o.code} disabled={!o.nowOk} onClick={() => keepOffer(o.code)}>
+              <button key={o.code} type="button" className={`coupon${linkPromo === o.code ? " on" : ""}`} aria-pressed={linkPromo === o.code} onClick={() => keepOffer(o.code)}>
                 <span className="coupon-v">{o.kind === "percent" ? `${o.value}%` : `฿${o.value}`}</span>
                 <span className="coupon-t">
                   <b>{o.label.split(" · ")[0]}</b>
                   <small>{o.label.split(" · ").slice(1).join(" · ") || o.code}</small>
                 </span>
-                <span className="coupon-go">{!o.nowOk ? `เริ่ม ${o.timeFrom}` : linkPromo === o.code ? "เก็บแล้ว ✓" : "เก็บ"}</span>
+                <span className="coupon-go">{linkPromo === o.code ? "เก็บแล้ว ✓" : !o.nowOk ? `เก็บไว้ · ${o.timeFrom}` : "เก็บ"}</span>
               </button>
             ))}
           </div>
@@ -1383,6 +1404,14 @@ export default function OrderPage() {
             </p>
           </div>
         </>
+      )}
+      {couponsOpen && (
+        <CouponSheet
+          offers={offers}
+          kept={linkPromo}
+          onKeep={(c) => (c ? keepOffer(c) : dropLinkPromo())}
+          onClose={() => setCouponsOpen(false)}
+        />
       )}
       <Credit className="pg" />
     </main>
