@@ -2595,3 +2595,13 @@ html:has(.sheet-opt), body:has(.sheet-opt) { overflow: hidden; overscroll-behavi
 @media (prefers-reduced-motion: reduce) { .mk-drawer, .mk-scrim { transition: none; } }
 
 button.guest-chip { cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; color: #fff; }
+/* หน้าการตลาด: รายละเอียดคอนเทนต์ */
+.mk-f { display: grid; gap: 4px; } .mk-f > span { font-size: 12.5px; font-weight: 700; color: var(--stone); }
+.mk-f .text { width: 100%; max-width: 100%; } .mk-f textarea.text { resize: vertical; line-height: 1.5; }
+.mk-tags { margin: -2px 0 0; font-size: 12.5px; color: var(--matcha); }
+.mk-cr .mk-cc { grid-column: 1 / -1; }
+.mk-cc summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--matcha); padding: 2px 0; list-style-position: inside; }
+.mk-cc summary small { color: var(--stone); font-weight: 400; margin-left: 6px; }
+.mk-cc[open] { display: grid; gap: 6px; padding-top: 4px; } .mk-cc .text { width: 100%; resize: vertical; }
+.mk-cnt { font-size: 12px; color: var(--stone); font-variant-numeric: tabular-nums; } .mk-cnt.over { color: var(--seal); font-weight: 700; }
+.mk-psy { margin: 8px 0 0; font-size: 12.5px; color: var(--ink); line-height: 1.6; } .mk-psy small { color: var(--stone); }

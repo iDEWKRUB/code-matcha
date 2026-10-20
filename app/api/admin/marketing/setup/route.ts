@@ -5,7 +5,7 @@ import { db } from "@/lib/supabase";
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
 const PALETTE = ["#7A4E0D", "#6B2E86", "#2C4A8C", "#A12C15", "#2F6B2A"];
 
-// ตั้งกติกา: จำนวนเรื่องต่อวัน · เปิด/ปิดช่องทาง · เพิ่มช่องทางใหม่
+// ตั้งกติกา: จำนวนเรื่องต่อวัน · แฮชแท็กแบรนด์ · เปิด/ปิดช่องทาง · เพิ่มช่องทางใหม่
 export async function PUT(req: Request) {
   if (!(await isAdmin())) return bad("unauthorized", 401);
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -14,6 +14,12 @@ export async function PUT(req: Request) {
       const n = Number(b.perDay);
       if (!Number.isInteger(n) || n < 1 || n > 10) return bad("จำนวนเรื่องต่อวันต้องอยู่ระหว่าง 1–10");
       const { error } = await db().from("marketing_settings").upsert({ id: 1, per_day: n });
+      if (error) throw error;
+    }
+    if (b.brandTags !== undefined) {
+      if (typeof b.brandTags !== "string" || b.brandTags.length > 300) return bad("แฮชแท็กยาวเกิน 300 ตัวอักษร");
+      const tags = b.brandTags.split(/[\s,]+/).filter(Boolean).map((x) => (x.startsWith("#") ? x : `#${x}`)).join(" ");
+      const { error } = await db().from("marketing_settings").upsert({ id: 1, brand_tags: tags });
       if (error) throw error;
     }
     if (b.channel && typeof b.channel === "object") {

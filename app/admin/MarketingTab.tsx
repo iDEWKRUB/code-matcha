@@ -5,8 +5,10 @@ import { createPortal } from "react-dom";
 import {
   NEXT_STATE,
   PILLARS,
+  PSYCH,
   STATE_LABEL,
   addDays,
+  composeCaption,
   doneCount,
   dowMon,
   shiftMonth,
@@ -39,10 +41,18 @@ const blank = (date: string, slot: number): MkPost => ({
   pillar: "menu",
   format: "",
   caption: "",
+  body: "",
+  psychology: "",
+  visual: "",
+  cta: "",
+  hashtags: "",
+  captions: {},
   status: {},
   done_at: {},
 });
 type View = "today" | "cal" | "board" | "rules";
+// ช่องทางที่จำกัดความยาว (นับรวมแฮชแท็ก)
+const LIMITS: Record<string, number> = { x: 280 };
 
 function Dots({ post, channels }: { post: MkPost; channels: MkChannel[] }) {
   return (
@@ -79,32 +89,139 @@ function Logo({ c, size = 24 }: { c: MkChannel; size?: number }) {
   );
 }
 
+// ช่องข้อความที่บันทึกตอนออกจากช่อง (ไม่ยิงทุกตัวอักษร)
+function Field({
+  label,
+  value,
+  onSave,
+  multi,
+  max,
+  placeholder,
+  rows,
+}: {
+  label: string;
+  value: string;
+  onSave: (v: string) => void;
+  multi?: boolean;
+  max: number;
+  placeholder?: string;
+  rows?: number;
+}) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const done = () => v.trim() !== value && onSave(v);
+  return (
+    <label className="mk-f">
+      <span>{label}</span>
+      {multi ? (
+        <textarea
+          className="text"
+          rows={rows ?? 3}
+          value={v}
+          maxLength={max}
+          placeholder={placeholder}
+          onChange={(e) => setV(e.target.value)}
+          onBlur={done}
+        />
+      ) : (
+        <input
+          className="text"
+          value={v}
+          maxLength={max}
+          placeholder={placeholder}
+          onChange={(e) => setV(e.target.value)}
+          onBlur={done}
+        />
+      )}
+    </label>
+  );
+}
+
+async function copyText(text: string, set: (s: string) => void) {
+  try {
+    await navigator.clipboard.writeText(text);
+    set("คัดลอกแล้ว");
+  } catch {
+    set("คัดลอกไม่ได้ ลองเลือกข้อความเอง");
+  }
+  setTimeout(() => set(""), 2000);
+}
+
+// แคปชันของช่องหนึ่ง (เขียนแยกได้ ว่าง = ใช้แคปชันหลัก) + ตัวนับ + คัดลอกพร้อมแฮชแท็ก
+function ChannelCaption({
+  post,
+  c,
+  brandTags,
+  onSave,
+}: {
+  post: MkPost;
+  c: MkChannel;
+  brandTags: string;
+  onSave: (patch: Partial<MkPost>) => void;
+}) {
+  const own = post.captions[c.id] ?? "";
+  const [v, setV] = useState(own);
+  const [note, setNote] = useState("");
+  useEffect(() => setV(own), [own]);
+  const full = composeCaption(
+    { ...post, captions: { ...post.captions, [c.id]: v } },
+    c.id,
+    brandTags,
+  );
+  const limit = LIMITS[c.id];
+  return (
+    <details className="mk-cc">
+      <summary>
+        แคปชัน {c.name}
+        <small>{own ? "เขียนแยกแล้ว" : "ใช้แคปชันหลัก"}</small>
+      </summary>
+      <textarea
+        className="text"
+        rows={3}
+        value={v}
+        maxLength={2200}
+        placeholder={`เว้นว่าง = ใช้แคปชันหลัก${limit ? ` · ไม่เกิน ${limit} ตัวอักษรรวมแฮชแท็ก` : ""}`}
+        aria-label={`แคปชันสำหรับ ${c.name}`}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={() => v.trim() !== own && onSave({ captions: { [c.id]: v } })}
+      />
+      <div className="mk-row">
+        <span
+          className={`mk-cnt${limit && full.length > limit ? " over" : ""}`}
+        >
+          {full.length}
+          {limit ? `/${limit}` : ""} ตัวอักษร (รวมแฮชแท็ก)
+        </span>
+        <button
+          type="button"
+          className="btn ghost-sm"
+          disabled={!full}
+          onClick={() => copyText(full, setNote)}
+        >
+          คัดลอกพร้อมแฮชแท็ก
+        </button>
+        {note && <span className="mk-note">{note}</span>}
+      </div>
+    </details>
+  );
+}
+
 // การ์ดเรื่องในแผงรายละเอียดวัน
 function PostEditor({
   post,
   channels,
+  brandTags,
   onSave,
 }: {
   post: MkPost;
   channels: MkChannel[];
+  brandTags: string;
   onSave: (patch: Partial<MkPost>) => void;
 }) {
   const [title, setTitle] = useState(post.title);
-  const [caption, setCaption] = useState(post.caption);
   const [format, setFormat] = useState(post.format);
-  const [note, setNote] = useState("");
   useEffect(() => setTitle(post.title), [post.title]);
-  useEffect(() => setCaption(post.caption), [post.caption]);
   useEffect(() => setFormat(post.format), [post.format]);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(caption);
-      setNote("คัดลอกแล้ว");
-    } catch {
-      setNote("คัดลอกไม่ได้ ลองเลือกข้อความเอง");
-    }
-    setTimeout(() => setNote(""), 2000);
-  }
   return (
     <div className="mk-post">
       <h3>เรื่องที่ {post.slot}</h3>
@@ -112,7 +229,7 @@ function PostEditor({
         className="mk-ti"
         value={title}
         maxLength={120}
-        placeholder="ตั้งหัวข้อคอนเทนต์"
+        placeholder="หัวข้อโพสต์ (Hook ดึงความสนใจใน 1 บรรทัด)"
         aria-label={`หัวข้อเรื่องที่ ${post.slot}`}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={() => title.trim() !== post.title && onSave({ title })}
@@ -140,26 +257,65 @@ function PostEditor({
           onBlur={() => format.trim() !== post.format && onSave({ format })}
         />
       </div>
-      <textarea
-        className="text mk-cap"
-        value={caption}
-        maxLength={2200}
-        placeholder="แคปชัน / ข้อความที่จะโพสต์"
-        aria-label="แคปชัน"
-        onChange={(e) => setCaption(e.target.value)}
-        onBlur={() => caption.trim() !== post.caption && onSave({ caption })}
-      />
-      <div className="mk-row">
-        <button
-          type="button"
-          className="btn ghost-sm"
-          onClick={copy}
-          disabled={!caption.trim()}
+      <label className="mk-f">
+        <span>หลักจิตวิทยาที่ใช้</span>
+        <select
+          className="text"
+          value={post.psychology}
+          onChange={(e) => onSave({ psychology: e.target.value })}
         >
-          คัดลอกแคปชัน
-        </button>
-        {note && <span className="mk-note">{note}</span>}
-      </div>
+          <option value="">— ไม่ระบุ —</option>
+          {Object.entries(PSYCH).map(([k, v]) => (
+            <option key={k} value={k}>
+              {k} · {v}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Field
+        label="เนื้อเรื่อง / คำอธิบาย"
+        multi
+        rows={4}
+        max={3000}
+        value={post.body}
+        placeholder="เล่าเรื่องจริงของร้าน ให้คุณค่าก่อนขาย 3–6 บรรทัด"
+        onSave={(body) => onSave({ body })}
+      />
+      <Field
+        label="ไอเดียภาพ / ช็อตที่ต้องถ่าย"
+        multi
+        rows={3}
+        max={1500}
+        value={post.visual}
+        placeholder="เช่น 1) เทผงมัทฉะ 2) ตีฟอง 3) เทนม + ข้อความบนภาพ"
+        onSave={(visual) => onSave({ visual })}
+      />
+      <Field
+        label="CTA (ชวนทำอะไร 1 อย่าง)"
+        max={200}
+        value={post.cta}
+        placeholder="เช่น สั่งล่วงหน้าผ่าน LINE ไม่ต้องรอคิว"
+        onSave={(cta) => onSave({ cta })}
+      />
+      <Field
+        label="แคปชันหลัก (ใช้กับทุกช่องที่ไม่ได้เขียนแยก)"
+        multi
+        rows={4}
+        max={2200}
+        value={post.caption}
+        placeholder="แคปชัน / ข้อความที่จะโพสต์"
+        onSave={(caption) => onSave({ caption })}
+      />
+      <Field
+        label="แฮชแท็กของโพสต์นี้"
+        max={500}
+        value={post.hashtags}
+        placeholder="#มัทฉะ #matchalatte #กรุงเทพนนท์"
+        onSave={(hashtags) => onSave({ hashtags })}
+      />
+      {brandTags && (
+        <p className="mk-tags">แฮชแท็กแบรนด์ที่เติมให้ทุกโพสต์: {brandTags}</p>
+      )}
       <div className="mk-chl">
         {channels.map((c) => {
           const s = post.status[c.id] ?? "todo";
@@ -185,6 +341,12 @@ function PostEditor({
                   </button>
                 ))}
               </span>
+              <ChannelCaption
+                post={post}
+                c={c}
+                brandTags={brandTags}
+                onSave={onSave}
+              />
             </div>
           );
         })}
@@ -257,6 +419,7 @@ export default function MarketingTab({
       ...cur,
       ...patch,
       status: { ...cur.status, ...(patch.status ?? {}) },
+      captions: { ...cur.captions, ...(patch.captions ?? {}) },
     };
     const put = (p: MkPost) => (d: MkData | null) =>
       d
@@ -578,6 +741,28 @@ export default function MarketingTab({
                   <i className="mk-sw" data-k="miss" /> ค้างอยู่
                 </span>
               </p>
+              {(() => {
+                const used = new Map<string, number>();
+                for (const p of data.posts)
+                  if (p.title && p.psychology)
+                    used.set(p.psychology, (used.get(p.psychology) ?? 0) + 1);
+                const list = [...used.entries()].sort((a, b) => b[1] - a[1]);
+                const unused = Object.keys(PSYCH).filter((k) => !used.has(k));
+                return (
+                  <p className="mk-psy">
+                    <b>หลักจิตวิทยาเดือนนี้:</b>{" "}
+                    {list.length
+                      ? list.map(([k, n]) => `${k} ${n}`).join(" · ")
+                      : "ยังไม่ได้ระบุ"}
+                    {list.length > 0 && unused.length > 0 && (
+                      <small>
+                        {" "}
+                        · ยังไม่ได้ใช้: {unused.slice(0, 5).join(", ")}
+                      </small>
+                    )}
+                  </p>
+                );
+              })()}
             </section>
 
             <aside className="panel mk-tray">
@@ -768,7 +953,7 @@ export default function MarketingTab({
               cols[k][1].push({
                 key: `${d}-${p.slot}`,
                 title: p.title,
-                meta: `${dayLabel(d)} · ${n}/${total} ช่อง`,
+                meta: `${dayLabel(d)} · ${n}/${total} ช่อง${p.psychology ? ` · ${p.psychology}` : ""}`,
                 date: d,
                 post: p,
               });
@@ -838,6 +1023,16 @@ export default function MarketingTab({
               </span>
               <span>เรื่อง</span>
             </div>
+          </section>
+          <section className="panel">
+            <h3>แฮชแท็กประจำแบรนด์</h3>
+            <p className="mk-hint2">
+              เติมท้ายแคปชันให้ทุกโพสต์ตอนกด “คัดลอกพร้อมแฮชแท็ก”
+            </p>
+            <BrandTags
+              value={data.brandTags}
+              onSave={(brandTags) => setup({ brandTags }, "บันทึกแฮชแท็กแล้ว")}
+            />
           </section>
           <section className="panel">
             <h3>ช่องทางที่ลง</h3>
@@ -927,6 +1122,7 @@ export default function MarketingTab({
                         key={`${sel}-${p.slot}`}
                         post={p}
                         channels={on}
+                        brandTags={data.brandTags}
                         onSave={(patch) => save(sel, p.slot, patch)}
                       />
                     ))}
@@ -938,5 +1134,37 @@ export default function MarketingTab({
           document.body,
         )}
     </div>
+  );
+}
+
+function BrandTags({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+}) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  return (
+    <form
+      className="mk-add"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave(v);
+      }}
+    >
+      <input
+        className="text"
+        value={v}
+        maxLength={300}
+        placeholder="#CODEMATCHA #มัทฉะ"
+        aria-label="แฮชแท็กแบรนด์"
+        onChange={(e) => setV(e.target.value)}
+      />
+      <button className="btn primary-sm" disabled={v.trim() === value}>
+        บันทึก
+      </button>
+    </form>
   );
 }
