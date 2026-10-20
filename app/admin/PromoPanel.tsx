@@ -28,6 +28,7 @@ type Form = {
   timeTo: string;
   note: string;
   showCustomers: boolean;
+  active: boolean;
 };
 const EMPTY: Form = {
   code: "",
@@ -43,7 +44,26 @@ const EMPTY: Form = {
   timeTo: "",
   note: "",
   showCustomers: true,
+  active: true,
 };
+const str = (n: number | null | undefined) => (n === null || n === undefined ? "" : String(n));
+// เปิดโค้ดเดิมมาแก้ (ชื่อโค้ดเปลี่ยนไม่ได้ เพราะออเดอร์เก่าอ้างชื่อนี้อยู่)
+const fromRule = (p: PromoRule): Form => ({
+  code: p.code,
+  kind: p.kind,
+  value: str(p.value),
+  maxDiscount: str(p.maxDiscount),
+  minSpend: p.minSpend ? String(p.minSpend) : "",
+  newCustomersOnly: p.newCustomersOnly,
+  perUserLimit: str(p.perUserLimit),
+  maxUses: str(p.maxUses),
+  expiresOn: p.expiresOn ?? "",
+  timeFrom: p.timeFrom ?? "",
+  timeTo: p.timeTo ?? "",
+  note: p.note ?? "",
+  showCustomers: p.showCustomers,
+  active: p.active,
+});
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const digits = (s: string) => s.replace(/\D/g, "");
 
@@ -53,6 +73,14 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
   const [form, setForm] = useState<Form | null>(null);
   const [err, setErr] = useState("");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null); // ชื่อโค้ดที่กำลังแก้ (null = สร้างใหม่)
+  const formRef = useRef<HTMLDivElement>(null);
+  const openForm = (f: Form, code: string | null) => {
+    setErr("");
+    setForm(f);
+    setEditing(code);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   // ส่งการ์ดโปร
   const [card, setCard] = useState({
@@ -147,6 +175,7 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
   async function save() {
     if (!form) return;
     setErr("");
+    if (!editing && promos.some((p) => p.code === form.code)) return setErr(`มีโค้ด ${form.code} อยู่แล้ว กด “แก้ไข” ที่โค้ดนั้นแทน`);
     const r = await fetch(
       "/api/admin/promos",
       json("POST", {
@@ -163,12 +192,14 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
         timeTo: form.timeTo || null,
         note: form.note,
         showCustomers: form.showCustomers,
+        active: form.active,
       }),
     );
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return setErr(j.error ?? "บันทึกไม่สำเร็จ");
     setPromos(j);
     setForm(null);
+    setEditing(null);
   }
 
   async function toggleShow(p: PromoRule) {
@@ -231,7 +262,7 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
             </h2>
             <p>ลูกค้าพิมพ์โค้ดในตะกร้าตอนสั่ง ระบบตรวจสิทธิ์และคิดส่วนลดให้อัตโนมัติ</p>
           </div>
-          <button className="btn primary-sm" onClick={() => setForm(EMPTY)}>
+          <button className="btn primary-sm" onClick={() => openForm(EMPTY, null)}>
             + สร้างโค้ด
           </button>
         </header>
@@ -256,6 +287,9 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
                 <span className="knob" aria-hidden="true" />
                 {p.active ? "ใช้ได้" : "ปิด"}
               </button>
+              <button className="btn ghost-sm" onClick={() => openForm(fromRule(p), p.code)}>
+                แก้ไข
+              </button>
               <button className={`btn ${confirmDel === p.code ? "danger-sm" : "ghost-sm"}`} onClick={() => remove(p.code)}>
                 {confirmDel === p.code ? "ยืนยันลบ" : "ลบ"}
               </button>
@@ -264,11 +298,22 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
         </ul>
 
         {form && (
-          <div className="promo-form">
+          <div className="promo-form" ref={formRef}>
+            <h3 className="promo-form-h">{editing ? `แก้ไขโค้ด ${editing}` : "สร้างโค้ดใหม่"}</h3>
+            {editing && (promos.find((p) => p.code === editing)?.used ?? 0) > 0 && (
+              <p className="promo-form-note">โค้ดนี้มีคนใช้ไปแล้ว {promos.find((p) => p.code === editing)?.used} ครั้ง การแก้ไขมีผลกับการสั่งครั้งต่อไปเท่านั้น ออเดอร์เก่าไม่เปลี่ยน</p>
+            )}
             <div className="hours">
               <label>
                 โค้ด
-                <input className="text" value={form.code} placeholder="เช่น MATCHA20" onChange={(e) => set("code", normalizeCode(e.target.value))} />
+                <input
+                  className="text"
+                  value={form.code}
+                  placeholder="เช่น MATCHA20"
+                  readOnly={!!editing}
+                  title={editing ? "เปลี่ยนชื่อโค้ดไม่ได้ ถ้าต้องการชื่อใหม่ให้สร้างโค้ดใหม่แล้วปิดโค้ดเดิม" : undefined}
+                  onChange={(e) => set("code", normalizeCode(e.target.value))}
+                />
               </label>
               <label>
                 ประเภท
@@ -327,9 +372,15 @@ export default function PromoPanel({ menu, part }: { menu: MenuItem[]; part: "co
             {err && <p className="err">{err}</p>}
             <div className="panel-row">
               <button className="btn primary-sm" disabled={!form.code || !form.value} onClick={save}>
-                บันทึกโค้ด
+                {editing ? "บันทึกการแก้ไข" : "บันทึกโค้ด"}
               </button>
-              <button className="btn ghost-sm" onClick={() => setForm(null)}>
+              <button
+                className="btn ghost-sm"
+                onClick={() => {
+                  setForm(null);
+                  setEditing(null);
+                }}
+              >
                 ยกเลิก
               </button>
             </div>
