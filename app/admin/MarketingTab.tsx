@@ -10,6 +10,7 @@ import {
   addDays,
   composeCaption,
   goalLabel,
+  linkProblem,
   doneCount,
   dowMon,
   shiftMonth,
@@ -52,6 +53,7 @@ const blank = (date: string, slot: number): MkPost => ({
   cta: "",
   hashtags: "",
   captions: {},
+  links: {},
   status: {},
   done_at: {},
 });
@@ -205,6 +207,16 @@ function ChannelCaption({
         >
           คัดลอกพร้อมแฮชแท็ก
         </button>
+        {c.url && (
+          <a
+            className="btn ghost-sm"
+            href={c.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            เปิด {c.name} ร้าน ↗
+          </a>
+        )}
         {note && <span className="mk-note">{note}</span>}
       </div>
     </details>
@@ -346,6 +358,7 @@ function PostEditor({
                   </button>
                 ))}
               </span>
+              <PostLink post={post} c={c} onSave={onSave} />
               <ChannelCaption
                 post={post}
                 c={c}
@@ -450,6 +463,7 @@ export default function MarketingTab({
       ...patch,
       status: { ...cur.status, ...(patch.status ?? {}) },
       captions: { ...cur.captions, ...(patch.captions ?? {}) },
+      links: { ...cur.links, ...(patch.links ?? {}) },
     };
     const put = (p: MkPost) => (d: MkData | null) =>
       d
@@ -475,7 +489,7 @@ export default function MarketingTab({
     }
     setData(put(j as MkPost));
     onChanged?.();
-    if (patch.status) loadGoals();
+    if (patch.status || patch.links) loadGoals();
   }
   async function setup(body: unknown, then?: string) {
     const r = await fetch("/api/admin/marketing/setup", json("PUT", body));
@@ -1162,19 +1176,36 @@ export default function MarketingTab({
               เปิดเฉพาะช่องที่ร้านใช้จริง เพิ่มช่องใหม่ได้เอง
             </p>
             {data.channels.map((c) => (
-              <label key={c.id} className="row">
-                <span className="mk-cn">
-                  <Logo c={c} />
-                  {c.name}
-                </span>
-                <input
-                  type="checkbox"
-                  checked={c.enabled}
-                  onChange={(e) =>
-                    setup({ channel: { id: c.id, enabled: e.target.checked } })
-                  }
-                />
-              </label>
+              <div key={c.id} className="mk-chset">
+                <label className="row">
+                  <span className="mk-cn">
+                    <Logo c={c} />
+                    {c.name}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={c.enabled}
+                    onChange={(e) =>
+                      setup({
+                        channel: { id: c.id, enabled: e.target.checked },
+                      })
+                    }
+                  />
+                </label>
+                {c.enabled && (
+                  <ChannelUrl
+                    c={c}
+                    onSave={(url) =>
+                      setup(
+                        { channelUrl: { id: c.id, url } },
+                        url
+                          ? `บันทึกลิงก์ ${c.name} แล้ว`
+                          : `ลบลิงก์ ${c.name} แล้ว`,
+                      )
+                    }
+                  />
+                )}
+              </div>
             ))}
             <form
               className="mk-add"
@@ -1412,6 +1443,113 @@ function GoalForm({
           </button>
         </span>
       </div>
+    </form>
+  );
+}
+
+// ลิงก์โพสต์จริงของช่องหนึ่ง: วางแล้วบันทึกทันที สถานะเป็น "ลงแล้ว" เอง
+function PostLink({
+  post,
+  c,
+  onSave,
+}: {
+  post: MkPost;
+  c: MkChannel;
+  onSave: (patch: Partial<MkPost>) => void;
+}) {
+  const cur = post.links[c.id] ?? "";
+  const [v, setV] = useState(cur);
+  const [err, setErr] = useState("");
+  useEffect(() => setV(cur), [cur]);
+  const commit = (val: string) => {
+    const url = val.trim();
+    if (url === cur) return setErr("");
+    const problem = url ? linkProblem(url, c.id, c.name) : null;
+    if (problem) return setErr(problem);
+    setErr("");
+    onSave({ links: { [c.id]: url } });
+  };
+  return (
+    <div className="mk-link">
+      {cur && !err ? (
+        <div className="mk-row">
+          <a
+            className="mk-open"
+            href={cur}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            เปิดโพสต์ใน {c.name} ↗
+          </a>
+          <button
+            type="button"
+            className="mk-unlink"
+            onClick={() => onSave({ links: { [c.id]: "" } })}
+          >
+            เปลี่ยนลิงก์
+          </button>
+        </div>
+      ) : (
+        <input
+          className="text"
+          inputMode="url"
+          value={v}
+          maxLength={500}
+          placeholder={`วางลิงก์โพสต์ ${c.name} ที่ลงแล้ว (ระบบติ๊ก “ลงแล้ว” ให้เอง)`}
+          aria-label={`ลิงก์โพสต์ ${c.name}`}
+          onChange={(e) => setV(e.target.value)}
+          onPaste={(e) => {
+            const t = e.clipboardData.getData("text");
+            if (t) {
+              e.preventDefault();
+              setV(t.trim());
+              commit(t);
+            }
+          }}
+          onBlur={() => commit(v)}
+        />
+      )}
+      {err && <small className="mk-err">{err}</small>}
+    </div>
+  );
+}
+
+// ลิงก์เพจ/โปรไฟล์ร้านของช่อง (หน้า ตั้งค่า)
+function ChannelUrl({
+  c,
+  onSave,
+}: {
+  c: MkChannel;
+  onSave: (url: string) => void;
+}) {
+  const [v, setV] = useState(c.url ?? "");
+  const [err, setErr] = useState("");
+  useEffect(() => setV(c.url ?? ""), [c.url]);
+  return (
+    <form
+      className="mk-add mk-churl"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const url = v.trim();
+        const problem = url ? linkProblem(url, c.id, c.name) : null;
+        if (problem) return setErr(problem);
+        setErr("");
+        onSave(url);
+      }}
+    >
+      <input
+        className="text"
+        inputMode="url"
+        value={v}
+        maxLength={500}
+        placeholder={`ลิงก์เพจ/โปรไฟล์ร้านใน ${c.name}`}
+        aria-label={`ลิงก์เพจร้านใน ${c.name}`}
+        onChange={(e) => setV(e.target.value)}
+      />
+      <button className="btn ghost-sm" disabled={v.trim() === (c.url ?? "")}>
+        บันทึก
+      </button>
+      {err && <small className="mk-err">{err}</small>}
     </form>
   );
 }

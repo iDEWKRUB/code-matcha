@@ -34,7 +34,31 @@ export const PSYCH: Record<string, string> = {
 };
 export const isPsych = (v: unknown): v is string => v === "" || (typeof v === "string" && v in PSYCH);
 
-export type MkChannel = { id: string; name: string; short: string; color: string; enabled: boolean; sort: number };
+export type MkChannel = { id: string; name: string; short: string; color: string; enabled: boolean; sort: number; url: string };
+
+// โดเมนของแต่ละช่องทาง (ใช้ตรวจว่าวางลิงก์ถูกช่อง) · ช่องที่ร้านเพิ่มเองไม่ตรวจ
+const DOMAINS: Record<string, string[]> = {
+  fb: ["facebook.com", "fb.com", "fb.watch", "fb.me"],
+  ig: ["instagram.com", "instagr.am"],
+  x: ["x.com", "twitter.com"],
+  tiktok: ["tiktok.com"],
+  line: ["line.me"],
+  yt: ["youtube.com", "youtu.be"],
+};
+// ตรวจลิงก์: คืนข้อความผิดพลาด หรือ null ถ้าใช้ได้
+export function linkProblem(url: string, channelId: string, channelName = "ช่องนี้") {
+  let u: URL;
+  try {
+    u = new URL(url.trim());
+  } catch {
+    return "ลิงก์ไม่ถูกต้อง ลองคัดลอกลิงก์จากแอปอีกครั้ง";
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return "ลิงก์ต้องขึ้นต้นด้วย https://";
+  const allow = DOMAINS[channelId];
+  const host = u.hostname.replace(/^www\.|^m\.|^mobile\./, "");
+  if (allow && !allow.some((d) => host === d || host.endsWith(`.${d}`))) return `ลิงก์นี้ไม่ใช่ของ ${channelName} วางผิดช่องหรือเปล่า`;
+  return null;
+}
 export type MkPost = {
   post_date: string;
   slot: number;
@@ -48,10 +72,11 @@ export type MkPost = {
   cta: string;
   hashtags: string; // แฮชแท็กเฉพาะโพสต์
   captions: Record<string, string>; // แคปชันแยกช่องทาง
+  links: Record<string, string>; // ลิงก์โพสต์จริงของแต่ละช่อง
   status: Record<string, PostState>;
   done_at: Record<string, string>;
 };
-export const POST_COLUMNS = "post_date,slot,title,pillar,format,caption,body,psychology,visual,cta,hashtags,captions,status,done_at";
+export const POST_COLUMNS = "post_date,slot,title,pillar,format,caption,body,psychology,visual,cta,hashtags,captions,links,status,done_at";
 
 // แคปชันพร้อมโพสต์ของช่องหนึ่ง: แคปชันของช่อง (ว่าง = แคปชันหลัก) + แฮชแท็กเฉพาะโพสต์ + แฮชแท็กแบรนด์ (ไม่ซ้ำ)
 export function composeCaption(p: Pick<MkPost, "caption" | "captions" | "hashtags">, channelId: string, brandTags: string) {

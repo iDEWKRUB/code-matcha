@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
+import { linkProblem } from "@/lib/marketing";
 import { db } from "@/lib/supabase";
 
-const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
+const bad = (error: string, status = 400) =>
+  NextResponse.json({ error }, { status });
 const PALETTE = ["#7A4E0D", "#6B2E86", "#2C4A8C", "#A12C15", "#2F6B2A"];
 
 // ตั้งกติกา: จำนวนเรื่องต่อวัน · แฮชแท็กแบรนด์ · เปิด/ปิดช่องทาง · เพิ่มช่องทางใหม่
@@ -12,32 +14,91 @@ export async function PUT(req: Request) {
   try {
     if (b.perDay !== undefined) {
       const n = Number(b.perDay);
-      if (!Number.isInteger(n) || n < 1 || n > 10) return bad("จำนวนเรื่องต่อวันต้องอยู่ระหว่าง 1–10");
-      const { error } = await db().from("marketing_settings").upsert({ id: 1, per_day: n });
+      if (!Number.isInteger(n) || n < 1 || n > 10)
+        return bad("จำนวนเรื่องต่อวันต้องอยู่ระหว่าง 1–10");
+      const { error } = await db()
+        .from("marketing_settings")
+        .upsert({ id: 1, per_day: n });
       if (error) throw error;
     }
     if (b.brandTags !== undefined) {
-      if (typeof b.brandTags !== "string" || b.brandTags.length > 300) return bad("แฮชแท็กยาวเกิน 300 ตัวอักษร");
-      const tags = b.brandTags.split(/[\s,]+/).filter(Boolean).map((x) => (x.startsWith("#") ? x : `#${x}`)).join(" ");
-      const { error } = await db().from("marketing_settings").upsert({ id: 1, brand_tags: tags });
+      if (typeof b.brandTags !== "string" || b.brandTags.length > 300)
+        return bad("แฮชแท็กยาวเกิน 300 ตัวอักษร");
+      const tags = b.brandTags
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map((x) => (x.startsWith("#") ? x : `#${x}`))
+        .join(" ");
+      const { error } = await db()
+        .from("marketing_settings")
+        .upsert({ id: 1, brand_tags: tags });
+      if (error) throw error;
+    }
+    // ลิงก์เพจ/โปรไฟล์ร้านของช่องนั้น (ว่าง = ลบ)
+    if (b.channelUrl && typeof b.channelUrl === "object") {
+      const c = b.channelUrl as { id?: unknown; url?: unknown };
+      if (
+        typeof c.id !== "string" ||
+        typeof c.url !== "string" ||
+        c.url.length > 500
+      )
+        return bad("ข้อมูลไม่ถูกต้อง");
+      const url = c.url.trim();
+      if (url) {
+        const { data: ch } = await db()
+          .from("marketing_channels")
+          .select("name")
+          .eq("id", c.id)
+          .maybeSingle();
+        const problem = linkProblem(
+          url,
+          c.id,
+          (ch?.name as string | undefined) ?? "ช่องนี้",
+        );
+        if (problem) return bad(problem);
+      }
+      const { error } = await db()
+        .from("marketing_channels")
+        .update({ url })
+        .eq("id", c.id);
       if (error) throw error;
     }
     if (b.channel && typeof b.channel === "object") {
       const c = b.channel as { id?: unknown; enabled?: unknown };
-      if (typeof c.id !== "string" || typeof c.enabled !== "boolean") return bad("ข้อมูลไม่ถูกต้อง");
+      if (typeof c.id !== "string" || typeof c.enabled !== "boolean")
+        return bad("ข้อมูลไม่ถูกต้อง");
       if (!c.enabled) {
-        const { data } = await db().from("marketing_channels").select("id").eq("enabled", true);
-        if ((data ?? []).filter((x) => x.id !== c.id).length === 0) return bad("ต้องเปิดไว้อย่างน้อย 1 ช่องทาง");
+        const { data } = await db()
+          .from("marketing_channels")
+          .select("id")
+          .eq("enabled", true);
+        if ((data ?? []).filter((x) => x.id !== c.id).length === 0)
+          return bad("ต้องเปิดไว้อย่างน้อย 1 ช่องทาง");
       }
-      const { error } = await db().from("marketing_channels").update({ enabled: c.enabled }).eq("id", c.id);
+      const { error } = await db()
+        .from("marketing_channels")
+        .update({ enabled: c.enabled })
+        .eq("id", c.id);
       if (error) throw error;
     }
     if (b.addChannel !== undefined) {
       const name = typeof b.addChannel === "string" ? b.addChannel.trim() : "";
-      if (!name || name.length > 30) return bad("ใส่ชื่อช่องทาง (ไม่เกิน 30 ตัวอักษร)");
-      const { data: all } = await db().from("marketing_channels").select("id,sort");
+      if (!name || name.length > 30)
+        return bad("ใส่ชื่อช่องทาง (ไม่เกิน 30 ตัวอักษร)");
+      const { data: all } = await db()
+        .from("marketing_channels")
+        .select("id,sort");
       const sort = Math.max(0, ...(all ?? []).map((x) => x.sort as number)) + 1;
-      const { error } = await db().from("marketing_channels").insert({ id: `c${Date.now().toString(36)}`, name, short: name.slice(0, 2).toUpperCase(), color: PALETTE[sort % PALETTE.length], enabled: true, sort });
+      const { error } = await db()
+        .from("marketing_channels")
+        .insert({
+          id: `c${Date.now().toString(36)}`,
+          name,
+          short: name.slice(0, 2).toUpperCase(),
+          color: PALETTE[sort % PALETTE.length],
+          enabled: true,
+          sort,
+        });
       if (error) throw error;
     }
   } catch {
