@@ -2605,3 +2605,19 @@ button.guest-chip { cursor: pointer; font: inherit; font-size: 12px; font-weight
 .mk-cc[open] { display: grid; gap: 6px; padding-top: 4px; } .mk-cc .text { width: 100%; resize: vertical; }
 .mk-cnt { font-size: 12px; color: var(--stone); font-variant-numeric: tabular-nums; } .mk-cnt.over { color: var(--seal); font-weight: 700; }
 .mk-psy { margin: 8px 0 0; font-size: 12.5px; color: var(--ink); line-height: 1.6; } .mk-psy small { color: var(--stone); }
+/* หน้าการตลาด: เป้าหมายและรางวัล */
+.mk-goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.mk-goal { background: #fff; border-radius: 16px; padding: 12px 14px; display: grid; gap: 6px; box-shadow: 0 6px 18px -14px rgba(28,36,25,.5); border: 2px solid transparent; }
+.mk-goal.won { border-color: #e0a526; background: #fff8e4; }
+.mk-goal-h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; } .mk-goal-h b { font-size: 14px; } .mk-goal-h span { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--matcha); }
+.mk-gbar { display: block; height: 8px; border-radius: 6px; background: #e6edd3; overflow: hidden; } .mk-gbar u { display: block; height: 100%; background: var(--leaf); border-radius: 6px; transition: width .4s; }
+.mk-goal.won .mk-gbar u { background: #e0a526; }
+.mk-goal p { margin: 0; font-size: 13px; color: var(--stone); } .mk-goal p strong { color: var(--ink); }
+.mk-goal small { font-size: 12.5px; color: var(--stone); } .mk-goal .mk-gok { color: #2F6B2A; font-weight: 700; }
+.mk-gset { grid-column: 1 / -1; }
+.mk-gf { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--hair); } .mk-gf.new { background: #f6f8ee; border-radius: 12px; padding: 10px; border-top: 0; margin-top: 6px; }
+.mk-gf-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .mk-gf-row .text { width: auto; flex: 1 1 140px; min-width: 0; }
+.mk-gf > .text { width: 100%; }
+.mk-chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--stone); min-height: 36px; }
+.mk-gf-btns { margin-left: auto; display: inline-flex; gap: 6px; }
+.mk-claims { display: grid; gap: 2px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--edge); } .mk-claims b { font-size: 13px; } .mk-claims small { font-size: 12.5px; color: var(--stone); }

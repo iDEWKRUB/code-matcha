@@ -9,11 +9,16 @@ import {
   STATE_LABEL,
   addDays,
   composeCaption,
+  goalLabel,
   doneCount,
   dowMon,
   shiftMonth,
   type MkChannel,
+  type GoalMetric,
+  type GoalPeriod,
+  type MkClaim,
   type MkData,
+  type MkGoalProgress,
   type MkPost,
   type Pillar,
   type PostState,
@@ -394,6 +399,31 @@ export default function MarketingTab({
   useEffect(() => {
     load(month);
   }, [load, month]);
+  // เป้าหมายรายสัปดาห์/รายเดือน (คำนวณที่เซิร์ฟเวอร์ ถึงวันนี้)
+  const [goals, setGoals] = useState<{
+    goals: MkGoalProgress[];
+    claims: MkClaim[];
+  } | null>(null);
+  const loadGoals = useCallback(async () => {
+    const r = await fetch("/api/admin/marketing/goals", { cache: "no-store" });
+    if (r.ok) setGoals(await r.json());
+  }, []);
+  useEffect(() => {
+    loadGoals();
+  }, [loadGoals]);
+  async function goalCall(method: string, body?: unknown, q = "") {
+    const r = await fetch(
+      `/api/admin/marketing/goals${q}`,
+      body === undefined ? { method } : json(method, body),
+    );
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      onError(j.error ?? "บันทึกไม่สำเร็จ");
+      return false;
+    }
+    setGoals(j);
+    return true;
+  }
   useEffect(() => {
     const esc = (e: KeyboardEvent) =>
       e.key === "Escape" && (setSel(null), setPick(null));
@@ -445,6 +475,7 @@ export default function MarketingTab({
     }
     setData(put(j as MkPost));
     onChanged?.();
+    if (patch.status) loadGoals();
   }
   async function setup(body: unknown, then?: string) {
     const r = await fetch("/api/admin/marketing/setup", json("PUT", body));
@@ -591,6 +622,58 @@ export default function MarketingTab({
           </small>
         </span>
       </div>
+      {goals && goals.goals.some((g) => g.active) && (
+        <div className="mk-goals">
+          {goals.goals
+            .filter((g) => g.active)
+            .map((g) => {
+              const pct = Math.min(100, Math.round((g.value / g.target) * 100));
+              return (
+                <div
+                  key={g.id}
+                  className={`mk-goal${g.achieved ? " won" : ""}`}
+                >
+                  <div className="mk-goal-h">
+                    <b>{goalLabel(g)}</b>
+                    <span>
+                      {g.value}/{g.target}
+                    </span>
+                  </div>
+                  <i className="mk-gbar">
+                    <u style={{ width: `${pct}%` }} />
+                  </i>
+                  <p>
+                    รางวัล: <strong>{g.reward}</strong>
+                  </p>
+                  {g.claimed ? (
+                    <small className="mk-gok">รับรางวัลรอบนี้แล้ว ✓</small>
+                  ) : g.achieved ? (
+                    <button
+                      type="button"
+                      className="btn primary-sm"
+                      onClick={() =>
+                        goalCall("PUT", { goalId: g.id }).then(
+                          (ok) =>
+                            ok && flash(`ยินดีด้วย! ได้รางวัล: ${g.reward}`),
+                        )
+                      }
+                    >
+                      ทำได้แล้ว! กดรับรางวัล
+                    </button>
+                  ) : (
+                    <small>
+                      {g.daysLeft > 0
+                        ? `เหลืออีก ${g.daysLeft} วัน`
+                        : "วันสุดท้ายของรอบ"}{" "}
+                      · ขาดอีก {g.target - g.value}
+                      {g.metric === "posts" ? " เรื่อง" : " วัน"}
+                    </small>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      )}
       {msg && (
         <p className="mk-flash" role="status">
           {msg}
@@ -995,6 +1078,45 @@ export default function MarketingTab({
 
       {view === "rules" && (
         <div className="mk-rules">
+          <section className="panel mk-gset">
+            <h3>เป้าหมายและรางวัล</h3>
+            <p className="mk-hint2">
+              ตั้งเป้าให้ตัวเอง ทำถึงแล้วกดรับรางวัลได้รอบละครั้ง
+              (สัปดาห์เริ่มวันจันทร์)
+            </p>
+            {goals?.goals.map((g) => (
+              <GoalForm
+                key={g.id}
+                goal={g}
+                onSave={(v) =>
+                  goalCall("POST", { ...v, id: g.id }).then(
+                    (ok) => ok && flash("บันทึกเป้าหมายแล้ว"),
+                  )
+                }
+                onDelete={() => goalCall("DELETE", undefined, `?id=${g.id}`)}
+              />
+            ))}
+            <GoalForm
+              onSave={(v) =>
+                goalCall("POST", v).then(
+                  (ok) => ok && flash("เพิ่มเป้าหมายแล้ว"),
+                )
+              }
+            />
+            {goals && goals.claims.length > 0 && (
+              <div className="mk-claims">
+                <b>รางวัลที่ได้แล้ว</b>
+                {goals.claims.map((c) => (
+                  <small key={c.id}>
+                    {c.period_key.startsWith("W:")
+                      ? `สัปดาห์ ${thDate(c.period_key.slice(2), { day: "numeric", month: "short" })}`
+                      : `เดือน ${thDate(`${c.period_key.slice(2)}-01`, { month: "short", year: "numeric" })}`}{" "}
+                    · {c.reward} ({c.value})
+                  </small>
+                ))}
+              </div>
+            )}
+          </section>
           <section className="panel">
             <h3>เป้าหมายต่อวัน</h3>
             <p className="mk-hint2">ปฏิทินจะแสดงจำนวนเรื่องต่อวันตามนี้</p>
@@ -1165,6 +1287,131 @@ function BrandTags({
       <button className="btn primary-sm" disabled={v.trim() === value}>
         บันทึก
       </button>
+    </form>
+  );
+}
+
+type GoalDraft = {
+  period: GoalPeriod;
+  metric: GoalMetric;
+  target: number;
+  reward: string;
+  strict: boolean;
+  active: boolean;
+};
+// ฟอร์มเป้าหมาย 1 รายการ (ไม่มี goal = ฟอร์มเพิ่มใหม่)
+function GoalForm({
+  goal,
+  onSave,
+  onDelete,
+}: {
+  goal?: MkGoalProgress;
+  onSave: (v: GoalDraft) => Promise<unknown>;
+  onDelete?: () => void;
+}) {
+  const init: GoalDraft = goal
+    ? {
+        period: goal.period,
+        metric: goal.metric,
+        target: goal.target,
+        reward: goal.reward,
+        strict: goal.strict,
+        active: goal.active,
+      }
+    : {
+        period: "week",
+        metric: "posts",
+        target: 10,
+        reward: "",
+        strict: false,
+        active: true,
+      };
+  const [v, setV] = useState<GoalDraft>(init);
+  const [confirm, setConfirm] = useState(false);
+  const changed = JSON.stringify(v) !== JSON.stringify(init);
+  const set = (p: Partial<GoalDraft>) => setV({ ...v, ...p });
+  return (
+    <form
+      className={`mk-gf${goal ? "" : " new"}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave(v).then(() => !goal && setV({ ...init, reward: "" }));
+      }}
+    >
+      <div className="mk-gf-row">
+        <select
+          className="text"
+          value={v.period}
+          aria-label="รอบ"
+          onChange={(e) => set({ period: e.target.value as GoalPeriod })}
+        >
+          <option value="week">ทุกสัปดาห์</option>
+          <option value="month">ทุกเดือน</option>
+        </select>
+        <select
+          className="text"
+          value={v.metric}
+          aria-label="ชนิดเป้าหมาย"
+          onChange={(e) => set({ metric: e.target.value as GoalMetric })}
+        >
+          <option value="posts">โพสต์ครบ (เรื่อง)</option>
+          <option value="days">ลงครบทุกวัน (วัน)</option>
+        </select>
+        <input
+          className="text"
+          type="number"
+          min={1}
+          max={v.metric === "days" ? (v.period === "week" ? 7 : 31) : 400}
+          value={v.target}
+          aria-label="ตัวเลขเป้าหมาย"
+          onChange={(e) => set({ target: Number(e.target.value) })}
+        />
+      </div>
+      <input
+        className="text"
+        value={v.reward}
+        maxLength={120}
+        placeholder="รางวัลที่จะให้ตัวเอง เช่น ซื้อชุดชงมัทฉะ 1 ชุด"
+        aria-label="รางวัล"
+        onChange={(e) => set({ reward: e.target.value })}
+      />
+      <div className="mk-gf-row">
+        <label className="mk-chk">
+          <input
+            type="checkbox"
+            checked={v.strict}
+            onChange={(e) => set({ strict: e.target.checked })}
+          />{" "}
+          นับเมื่อลงครบทุกช่อง
+        </label>
+        {goal && (
+          <label className="mk-chk">
+            <input
+              type="checkbox"
+              checked={v.active}
+              onChange={(e) => set({ active: e.target.checked })}
+            />{" "}
+            ใช้อยู่
+          </label>
+        )}
+        <span className="mk-gf-btns">
+          {goal && (
+            <button
+              type="button"
+              className={`btn ${confirm ? "danger-sm" : "ghost-sm"}`}
+              onClick={() => (confirm ? onDelete?.() : setConfirm(true))}
+            >
+              {confirm ? "ยืนยันลบ" : "ลบ"}
+            </button>
+          )}
+          <button
+            className="btn primary-sm"
+            disabled={goal ? !changed : !v.reward.trim()}
+          >
+            {goal ? "บันทึก" : "เพิ่มเป้าหมาย"}
+          </button>
+        </span>
+      </div>
     </form>
   );
 }

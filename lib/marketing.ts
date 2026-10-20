@@ -92,4 +92,14 @@ export function shiftMonth(month: string, n: number) {
 }
 // 0 = จันทร์ … 6 = อาทิตย์
 export const dowMon = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
+export const weekStartOf = (date: string) => addDays(date, -dowMon(date));
+
+// เป้าหมาย + รางวัล
+export type GoalPeriod = "week" | "month";
+export type GoalMetric = "posts" | "days";
+export type MkGoal = { id: number; period: GoalPeriod; metric: GoalMetric; target: number; reward: string; strict: boolean; active: boolean; sort: number };
+export type MkGoalProgress = MkGoal & { value: number; achieved: boolean; claimed: boolean; key: string; from: string; to: string; daysLeft: number };
+export type MkClaim = { id: number; goal_id: number; period_key: string; reward: string; value: number; claimed_at: string };
+export const goalLabel = (g: Pick<MkGoal, "period" | "metric" | "target">) =>
+  `${g.period === "week" ? "สัปดาห์นี้" : "เดือนนี้"} ${g.metric === "posts" ? `โพสต์ครบ ${g.target} เรื่อง` : `ลงครบทุกวัน ${g.target} วัน`}`;
 export const doneCount = (p: Pick<MkPost, "status"> | undefined, channels: MkChannel[]) => channels.filter((c) => p?.status?.[c.id] === "done").length;
