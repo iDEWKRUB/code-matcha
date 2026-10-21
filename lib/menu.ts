@@ -1,4 +1,5 @@
 // ใช้ร่วมกันทั้งฝั่งหน้าเว็บและเซิร์ฟเวอร์
+import type { ClosedDate, DayHours } from "./schedule";
 
 export type Temp = "iced" | "hot";
 export type Kind = "drink" | "food";
@@ -46,7 +47,11 @@ export type ShopSettings = {
   closeTime: string; // รอบสุดท้ายต้องก่อนเวลานี้
   slotMinutes: number;
   slotCapacity: number; // แก้วสูงสุดต่อรอบ
-  accepting: boolean; // สวิตช์เปิด/ปิดรับออเดอร์
+  accepting: boolean; // รับออเดอร์ตอนนี้ไหม (สวิตช์ของร้าน และวันนี้ไม่ใช่วันหยุดตามตาราง)
+  manualAccepting: boolean; // สวิตช์เปิด/ปิดรับออเดอร์ที่ร้านกดเอง
+  weekly: DayHours[]; // เวลาเปิด–ปิดแต่ละวัน (0 = อาทิตย์ … 6 = เสาร์)
+  closedDates: ClosedDate[]; // วันหยุดพิเศษ
+  closedReason: string | null; // วันนี้หยุดเพราะอะไร (null = วันนี้เปิดตามตาราง)
   orderNoStart: number; // เลขออเดอร์แรกของแต่ละวัน
   deliveryEnabled: boolean; // ร้านนำไปส่ง (ฟรีในรัศมี)
   deliveryKm: number; // รัศมีส่ง (กม.)

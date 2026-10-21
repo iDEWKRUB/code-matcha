@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getBarHours } from "@/lib/barServer";
 import { activeNotice } from "@/lib/menu";
+import { nextOpenAfter, scheduleSummary } from "@/lib/schedule";
+import { nowInShop } from "@/lib/time";
 import {
   getMenu,
   getPowders,
@@ -43,6 +45,10 @@ export async function GET() {
         openTime: settings.openTime,
         closeTime: settings.closeTime,
         openNow: openNow(settings),
+        closedReason: settings.closedReason, // วันนี้หยุดตามตาราง/วันหยุดพิเศษ
+        manualClosed: !settings.manualAccepting, // ร้านปิดรับชั่วคราวด้วยสวิตช์
+        summary: scheduleSummary(settings.weekly),
+        nextOpen: nextOpenAfter(settings.weekly, settings.closedDates, nowInShop().date),
       },
       bar: bar?.enabled ? bar : null,
       payReady: !!process.env.PROMPTPAY_ID,

@@ -4,6 +4,7 @@ import { memberUri, type Card } from "@/lib/flex";
 import { orderLink, replyCard, replyText, validSignature } from "@/lib/line";
 import { basePrice } from "@/lib/menu";
 import { getMenu, getSettings, openNow, pointsBalance, rowWhen } from "@/lib/orders";
+import { scheduleSummary } from "@/lib/schedule";
 import { db } from "@/lib/supabase";
 import { nowInShop } from "@/lib/time";
 
@@ -90,9 +91,9 @@ async function commandCard(cmd: string, userId: string, link: string): Promise<C
     const open = openNow(s);
     return {
       tone: open ? "matcha" : "danger",
-      title: open ? "ตอนนี้ร้านเปิดอยู่" : s.accepting ? "ตอนนี้ร้านปิดแล้ว" : "ร้านปิดรับออเดอร์ชั่วคราว",
+      title: open ? "ตอนนี้ร้านเปิดอยู่" : s.closedReason ? s.closedReason.replace("ร้านหยุด", "วันนี้ร้านหยุด") : s.accepting ? "ตอนนี้ร้านปิดแล้ว" : "ร้านปิดรับออเดอร์ชั่วคราว",
       rows: [
-        ["เวลาเปิด", `${s.openTime}–${s.closeTime} น.`, true],
+        ["เวลาเปิด", scheduleSummary(s.weekly), true],
         ["สั่งล่วงหน้า", `เลือกรอบรับทุก ${s.slotMinutes} นาที`],
         ["ทานที่ร้าน / กลับบ้าน", "สั่งได้ตอนร้านเปิด"],
       ],

@@ -54,7 +54,24 @@ const DeliveryMap = dynamic(() => import("./DeliveryMap"), { ssr: false, loading
 const tint = (color: string) => ({ "--tint": color }) as React.CSSProperties;
 
 type Opts = Omit<CartLine, "itemId">;
-type Hours = { accepting: boolean; openTime: string; closeTime: string; openNow: boolean };
+type Hours = {
+  accepting: boolean;
+  openTime: string;
+  closeTime: string;
+  openNow: boolean;
+  closedReason?: string | null; // วันนี้หยุดตามตาราง/วันหยุดพิเศษ
+  manualClosed?: boolean; // ร้านกดปิดรับชั่วคราวเอง
+  summary?: string; // เช่น "ทุกวัน 09:00–20:00 น. · หยุดวันอังคาร"
+  nextOpen?: { dayName: string; open: string; tomorrow: boolean } | null;
+};
+
+// ข้อความปิดร้านสำหรับลูกค้า: หัวข้อ + บอกเปิดอีกทีเมื่อไร
+function closedCopy(h: Hours) {
+  const next = h.nextOpen ? `เปิดอีกครั้ง${h.nextOpen.tomorrow ? "พรุ่งนี้" : ` วัน${h.nextOpen.dayName}`} ${h.nextOpen.open} น.` : "";
+  if (h.manualClosed) return { title: "ปิดรับออเดอร์ชั่วคราว", line: "ร้านจะเปิดรับอีกครั้งเร็ว ๆ นี้", slim: "ดูเมนูไว้ก่อนได้" };
+  if (h.closedReason) return { title: h.closedReason.replace("ร้านหยุด", "วันนี้ร้านหยุด"), line: next || "ขออภัยในความไม่สะดวก", slim: next };
+  return { title: "หมดเวลาสั่งของวันนี้แล้ว", line: h.summary ?? `เปิดรับออเดอร์ ${h.openTime}–${h.closeTime} น.`, slim: `เปิด ${h.openTime}–${h.closeTime} น.` };
+}
 type AppliedPromo = Pick<PromoRule, "code" | "kind" | "value" | "maxDiscount" | "minSpend" | "newCustomersOnly">;
 type Done = { no: number; pickupTime: string; pickupDate?: string; service: Service; tableNo: string; total: number; discount: number; free?: boolean; paid?: boolean; earned?: number; ahead?: number; reason?: string };
 
@@ -83,13 +100,14 @@ async function shrink(file: File): Promise<Blob> {
 // แจ้งให้ชัดว่าตอนนี้สั่งไม่ได้เพราะอะไร และเปิดอีกทีเมื่อไร
 function ClosedNotice({ hours, compact = false, slim = false }: { hours: Hours; compact?: boolean; slim?: boolean }) {
   // แถบบางบนหน้าเมนู: บอกว่าร้านปิดแบบไม่แย่งความเด่นจากการ์ดเมนู (ตอนกดสั่งยังแจ้งเต็ม ๆ)
+  const c = closedCopy(hours);
   if (slim)
     return (
       <p className="closed-slim" role="status">
         <Icon name="clock" size={15} />
         <span>
-          <b>{hours.accepting ? "หมดเวลาสั่งวันนี้" : "ปิดรับออเดอร์ชั่วคราว"}</b>
-          {hours.accepting ? ` · เปิด ${hours.openTime}–${hours.closeTime} น.` : " · ดูเมนูไว้ก่อนได้"}
+          <b>{hours.closedReason ? c.title : hours.manualClosed ? c.title : "หมดเวลาสั่งวันนี้"}</b>
+          {c.slim ? ` · ${c.slim}` : ""}
         </span>
       </p>
     );
@@ -99,16 +117,8 @@ function ClosedNotice({ hours, compact = false, slim = false }: { hours: Hours; 
         <Icon name="clock" size={compact ? 20 : 26} />
       </span>
       <div>
-        <b>{hours.accepting ? "หมดเวลาสั่งของวันนี้แล้ว" : "ร้านปิดรับออเดอร์ชั่วคราว"}</b>
-        <span>
-          {hours.accepting ? (
-            <>
-              เปิดรับออเดอร์ทุกวัน <strong>{hours.openTime}–{hours.closeTime} น.</strong>
-            </>
-          ) : (
-            "ร้านจะเปิดรับอีกครั้งเร็ว ๆ นี้"
-          )}
-        </span>
+        <b>{c.title}</b>
+        <span>{c.line}</span>
         {!compact && <small>ดูเมนูไว้ก่อนได้ แล้วกลับมาสั่งตอนร้านเปิดนะ</small>}
       </div>
     </div>

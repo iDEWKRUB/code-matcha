@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DAY_NAMES, DAY_ORDER, type ClosedDate, type DayHours } from "@/lib/schedule";
 import { POINTS, SHOP } from "@/lib/config";
 import { FOOD_LOOKS, LOOKS, activeNotice, type Kind, type MenuItem, type ShopSettings, type Temp } from "@/lib/menu";
 import Icon, { type IconName } from "../Icon";
@@ -152,6 +153,10 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
     slotMinutes: 15,
     slotCapacity: 8,
     accepting: true,
+    manualAccepting: true,
+    weekly: Array.from({ length: 7 }, () => ({ closed: false, open: "10:30", close: "17:00" })),
+    closedDates: [],
+    closedReason: null,
     orderNoStart: 1,
     deliveryEnabled: false,
     deliveryKm: 5,
@@ -313,21 +318,27 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
             <h2>
               <Icon name="clock" size={20} /> เวลาเปิด–ปิดร้าน
             </h2>
-            <p>ลูกค้าเลือกเวลารับได้เฉพาะรอบในช่วงนี้ · ปิดรับชั่วคราวได้ทันทีด้วยสวิตช์</p>
+            <p>ตั้งเวลาเปิด–ปิดแต่ละวัน และวันหยุดครั้งเดียว ระบบเปิด–ปิดรับออเดอร์เองตามตาราง ไม่ต้องมากดทุกวัน · สวิตช์ใช้ปิดรับทันทีเมื่อมีเหตุด่วน</p>
           </div>
           <button
             className="toggle"
             role="switch"
-            aria-checked={settings.accepting}
-            onClick={() => saveHours({ accepting: !settings.accepting })}
+            aria-checked={settings.manualAccepting}
+            onClick={() => saveHours({ accepting: !settings.manualAccepting })}
           >
             <span className="knob" aria-hidden="true" />
-            {settings.accepting ? "เปิดรับออเดอร์" : "ปิดรับออเดอร์"}
+            {settings.manualAccepting ? "เปิดรับออเดอร์" : "ปิดรับออเดอร์"}
           </button>
         </header>
+        <p className={`wk-today${settings.closedReason ? " off" : ""}`}>
+          วันนี้: {!settings.manualAccepting ? "ปิดรับออเดอร์ชั่วคราว (สวิตช์ด้านบนปิดอยู่)" : settings.closedReason ? settings.closedReason : `เปิดตามตาราง ${settings.openTime}–${settings.closeTime} น.`}
+        </p>
+        <WeeklyHours
+          weekly={settings.weekly}
+          closedDates={settings.closedDates}
+          onChange={(weekly, closedDates) => setSettings({ ...settings, weekly, closedDates })}
+        />
         <div className="hours">
-          <TimeSelect label="รอบรับแรก" value={settings.openTime} onChange={(v) => setSettings({ ...settings, openTime: v })} />
-          <TimeSelect label="ปิดรับ (รอบสุดท้ายก่อนเวลานี้)" value={settings.closeTime} onChange={(v) => setSettings({ ...settings, closeTime: v })} />
           <label>
             ระยะห่างแต่ละรอบ
             <select className="text" value={settings.slotMinutes} onChange={(e) => setSettings({ ...settings, slotMinutes: Number(e.target.value) })}>
@@ -362,8 +373,8 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
             className="btn primary-sm"
             onClick={() =>
               saveHours({
-                openTime: settings.openTime,
-                closeTime: settings.closeTime,
+                weekly: settings.weekly,
+                closedDates: settings.closedDates,
                 slotMinutes: settings.slotMinutes,
                 slotCapacity: settings.slotCapacity,
                 orderNoStart: settings.orderNoStart,
@@ -429,7 +440,7 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
             {activeNotice(settings) ? "อัปเดตประกาศ" : "ประกาศเลย"}
           </button>
         </div>
-        {settings.accepting && <p className="report-empty">ถ้าร้านหยุดทั้งวัน อย่าลืมปิดรับออเดอร์ที่ ตั้งค่า › ร้าน ด้วย ลูกค้าจะได้สั่งไม่ได้</p>}
+        <p className="report-empty">ประกาศอย่างเดียวไม่ปิดรับออเดอร์ · วันหยุดประจำและวันหยุดพิเศษตั้งที่ ตั้งค่า › ร้าน › เวลาเปิด–ปิดร้าน ระบบปิดรับให้เอง</p>
         {noticeMsg && <p className="hint-ok">{noticeMsg}</p>}
       </section>
       )}
@@ -770,6 +781,79 @@ export default function SettingsTab({ menu, reload }: { menu: MenuItem[]; reload
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ตารางเวลาเปิด–ปิดรายสัปดาห์ + วันหยุดพิเศษ (แก้ในหน้าจอก่อน แล้วกด "บันทึกเวลาร้าน")
+function WeeklyHours({ weekly, closedDates, onChange }: { weekly: DayHours[]; closedDates: ClosedDate[]; onChange: (w: DayHours[], c: ClosedDate[]) => void }) {
+  const [date, setDate] = useState("");
+  const [note, setNote] = useState("");
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  const set = (d: number, p: Partial<DayHours>) => onChange(weekly.map((x, i) => (i === d ? { ...x, ...p } : x)), closedDates);
+  const firstOpen = DAY_ORDER.find((d) => !weekly[d].closed);
+  const upcoming = closedDates.filter((c) => c.date >= today);
+  return (
+    <div className="wk">
+      <ul className="wk-list">
+        {DAY_ORDER.map((d) => {
+          const w = weekly[d];
+          return (
+            <li key={d} className={w.closed ? "off" : ""}>
+              <b>{DAY_NAMES[d]}</b>
+              <button type="button" className="toggle" role="switch" aria-checked={!w.closed} aria-label={`${DAY_NAMES[d]} เปิดร้าน`} onClick={() => set(d, { closed: !w.closed })}>
+                <span className="knob" aria-hidden="true" />
+                {w.closed ? "หยุด" : "เปิด"}
+              </button>
+              {w.closed ? (
+                <span className="wk-off">ไม่รับออเดอร์ทั้งวัน</span>
+              ) : (
+                <span className="wk-times">
+                  <TimeSelect label="เปิด" value={w.open} onChange={(v) => set(d, { open: v })} />
+                  <TimeSelect label="ปิดรับ" value={w.close} onChange={(v) => set(d, { close: v })} />
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {firstOpen !== undefined && (
+        <button type="button" className="btn ghost-sm" onClick={() => onChange(weekly.map((x) => (x.closed ? x : { ...x, open: weekly[firstOpen].open, close: weekly[firstOpen].close })), closedDates)}>
+          ใช้เวลาเดียวกับ{DAY_NAMES[firstOpen]}ทุกวันที่เปิด
+        </button>
+      )}
+      <div className="wk-special">
+        <h3>วันหยุดพิเศษ</h3>
+        <p className="mk-hint2">เช่น วันหยุดยาว ปีใหม่ ลาพักร้อน ถึงวันนั้นระบบปิดรับออเดอร์ให้เอง</p>
+        {upcoming.length === 0 && <p className="report-empty">ยังไม่มีวันหยุดพิเศษที่จะถึง</p>}
+        {upcoming.map((c) => (
+          <div key={c.date} className="wk-sp-row">
+            <span>
+              <b>{new Date(c.date + "T12:00:00+07:00").toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", weekday: "short", day: "numeric", month: "short", year: "2-digit" })}</b>
+              {c.note ? ` · ${c.note}` : ""}
+            </span>
+            <button type="button" className="btn ghost-sm" onClick={() => onChange(weekly, closedDates.filter((x) => x.date !== c.date))}>
+              เอาออก
+            </button>
+          </div>
+        ))}
+        <div className="wk-sp-add">
+          <input className="text" type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} aria-label="วันที่หยุด" />
+          <input className="text" value={note} maxLength={60} placeholder="เหตุผล (ไม่บังคับ) เช่น วันหยุดปีใหม่" aria-label="เหตุผลที่หยุด" onChange={(e) => setNote(e.target.value)} />
+          <button
+            type="button"
+            className="btn ghost-sm"
+            disabled={!date || closedDates.some((c) => c.date === date)}
+            onClick={() => {
+              onChange(weekly, [...closedDates, { date, note: note.trim() }].sort((a, b) => a.date.localeCompare(b.date)));
+              setDate("");
+              setNote("");
+            }}
+          >
+            เพิ่มวันหยุด
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { pointsEarned } from "./config";
 import { whenText, type Delivery, type MenuItem, type Order, type Payment, type Powder, type Service, type ShopSettings, type Slot } from "./menu";
 import { promptPayPayload } from "./promptpay";
 import { db } from "./supabase";
+import { parseClosedDates, parseWeekly, scheduleFor } from "./schedule";
 import { isBookable, nowInShop, slotTimes, toMinutes } from "./time";
 
 export const MENU_COLUMNS =
@@ -38,21 +39,32 @@ export async function getPowders(activeOnly = true): Promise<Powder[]> {
 export async function getSettings(): Promise<ShopSettings> {
   const { data, error } = await db()
     .from("shop_settings")
-    .select("banner,banner_active,notice,notice_active,notice_until,open_time,close_time,slot_minutes,slot_capacity,accepting,order_no_start,delivery_enabled,delivery_km,delivery_min,shop_lat,shop_lng,preorder_enabled,preorder_from,preorder_cutoff")
+    .select("banner,banner_active,notice,notice_active,notice_until,open_time,close_time,weekly_hours,closed_dates,slot_minutes,slot_capacity,accepting,order_no_start,delivery_enabled,delivery_km,delivery_min,shop_lat,shop_lng,preorder_enabled,preorder_from,preorder_cutoff")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw error;
+  // ตารางเวลารายสัปดาห์: วันนี้ปิดตามตาราง = ไม่รับออเดอร์ (เวลาเปิด/ปิดที่ส่งออกไปคือของ "วันนี้")
+  const baseOpen = data?.open_time ?? "10:30";
+  const baseClose = data?.close_time ?? "17:00";
+  const weekly = parseWeekly(data?.weekly_hours, baseOpen, baseClose);
+  const closedDates = parseClosedDates(data?.closed_dates);
+  const today = scheduleFor(weekly, closedDates, nowInShop().date);
+  const manual = data?.accepting ?? true;
   return {
     banner: data?.banner ?? "",
     bannerActive: data?.banner_active ?? false,
     notice: data?.notice ?? "",
     noticeActive: data?.notice_active ?? false,
     noticeUntil: data?.notice_until ?? null,
-    openTime: data?.open_time ?? "10:30",
-    closeTime: data?.close_time ?? "17:00",
+    openTime: today.closed ? baseOpen : today.open,
+    closeTime: today.closed ? baseClose : today.close,
+    weekly,
+    closedDates,
+    closedReason: today.reason,
+    manualAccepting: manual,
     slotMinutes: data?.slot_minutes ?? 15,
     slotCapacity: data?.slot_capacity ?? 8,
-    accepting: data?.accepting ?? true,
+    accepting: manual && !today.closed,
     orderNoStart: data?.order_no_start ?? 1,
     deliveryEnabled: data?.delivery_enabled ?? false,
     deliveryKm: Number(data?.delivery_km ?? 5),
@@ -90,12 +102,15 @@ export function tomorrowDate() {
   const { date } = nowInShop();
   return new Date(new Date(date + "T12:00:00+07:00").getTime() + 864e5).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
 }
+export const tomorrowSchedule = (s: ShopSettings) => scheduleFor(s.weekly, s.closedDates, tomorrowDate());
 export function preorderOpen(s: ShopSettings) {
-  return s.accepting && s.preorderEnabled && nowInShop().minutes < toMinutes(s.preorderCutoff);
+  // สั่งล่วงหน้าของพรุ่งนี้ได้แม้วันนี้ร้านหยุดตามตาราง (ถ้ายังไม่ปิดรับออเดอร์เอง) แต่ไม่ได้ถ้าพรุ่งนี้ร้านหยุด
+  return s.manualAccepting && s.preorderEnabled && !tomorrowSchedule(s).closed && nowInShop().minutes < toMinutes(s.preorderCutoff);
 }
 export function tomorrowTimes(s: ShopSettings) {
-  const from = Math.min(toMinutes(s.preorderFrom), toMinutes(s.openTime));
-  return slotTimes({ ...s, openTime: `${String(Math.floor(from / 60)).padStart(2, "0")}:${String(from % 60).padStart(2, "0")}` });
+  const t = tomorrowSchedule(s);
+  const from = Math.min(toMinutes(s.preorderFrom), toMinutes(t.open));
+  return slotTimes({ ...s, openTime: `${String(Math.floor(from / 60)).padStart(2, "0")}:${String(from % 60).padStart(2, "0")}`, closeTime: t.close });
 }
 export async function getTomorrowSlots(s: ShopSettings): Promise<Slot[]> {
   if (!preorderOpen(s)) return [];

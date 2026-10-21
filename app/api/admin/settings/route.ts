@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/orders";
 import { db } from "@/lib/supabase";
+import { isTime, type ClosedDate, type DayHours } from "@/lib/schedule";
 import { toMinutes } from "@/lib/time";
 
 export async function GET() {
@@ -49,6 +50,35 @@ export async function PUT(req: Request) {
     if (toMinutes(b.closeTime) <= toMinutes(b.openTime)) return bad("เวลาปิดต้องหลังเวลาเปิด");
     row.open_time = b.openTime;
     row.close_time = b.closeTime;
+  }
+  // ตารางเวลารายสัปดาห์: 7 ช่อง (อาทิตย์…เสาร์) · ต้องเปิดอย่างน้อย 1 วัน
+  if ("weekly" in b) {
+    const w = b.weekly;
+    if (!Array.isArray(w) || w.length !== 7) return bad("ตารางเวลาไม่ถูกต้อง");
+    const days: DayHours[] = [];
+    for (const d of w as Partial<DayHours>[]) {
+      if (typeof d?.closed !== "boolean" || !isTime(d.open) || !isTime(d.close)) return bad("รูปแบบเวลาไม่ถูกต้อง");
+      if (!d.closed && toMinutes(d.close) <= toMinutes(d.open)) return bad("เวลาปิดต้องหลังเวลาเปิด");
+      days.push({ closed: d.closed, open: d.open, close: d.close });
+    }
+    if (days.every((d) => d.closed)) return bad("ต้องเปิดร้านอย่างน้อย 1 วันต่อสัปดาห์");
+    row.weekly_hours = days;
+    // เวลาปกติเดิม (ใช้เป็นค่าสำรอง) = วันเปิดวันแรก
+    const first = days.find((d) => !d.closed)!;
+    row.open_time = first.open;
+    row.close_time = first.close;
+  }
+  // วันหยุดพิเศษ (เช่น วันหยุดยาว) · เก็บเฉพาะวันที่ยังไม่ผ่าน
+  if ("closedDates" in b) {
+    const list = b.closedDates;
+    if (!Array.isArray(list) || list.length > 100) return bad("วันหยุดพิเศษไม่ถูกต้อง");
+    const out: ClosedDate[] = [];
+    for (const d of list as Partial<ClosedDate>[]) {
+      if (typeof d?.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d.date) || Number.isNaN(Date.parse(d.date))) return bad("วันที่ไม่ถูกต้อง");
+      if (out.some((x) => x.date === d.date)) continue;
+      out.push({ date: d.date, note: typeof d.note === "string" ? d.note.trim().slice(0, 60) : "" });
+    }
+    row.closed_dates = out.sort((a, b) => a.date.localeCompare(b.date));
   }
   if ("slotMinutes" in b) {
     if (![5, 10, 15, 20, 30, 60].includes(b.slotMinutes as number)) return bad("ระยะห่างรอบไม่ถูกต้อง");

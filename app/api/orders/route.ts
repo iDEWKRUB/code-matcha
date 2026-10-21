@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   if ("error" in built) return fail(built.error);
   const { items, total, cups } = built;
   const shop = await getSettings();
-  if (!shop.accepting) return fail("ร้านปิดรับออเดอร์ชั่วคราว", 409);
+  if (!shop.accepting && !(body.pickupDate === "tomorrow" && shop.manualAccepting)) return fail(shop.closedReason ? `วันนี้${shop.closedReason} ไม่รับออเดอร์ของวันนี้` : "ร้านปิดรับออเดอร์ชั่วคราว", 409);
 
   // วิธีรับ: สั่งล่วงหน้าต้องเลือกรอบ / อยู่ที่ร้านแล้ว (ทานที่ร้าน, กลับบ้าน) ทำให้เลยตอนร้านเปิด
   const service: Service = body.service === "dine_in" || body.service === "takeaway" || body.service === "delivery" ? body.service : "pickup";
