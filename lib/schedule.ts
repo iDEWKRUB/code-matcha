@@ -114,7 +114,7 @@ export function scheduleSummary(weekly: DayHours[]) {
     ? `${first.open}–${first.close} น.`
     : "เวลาต่างกันแต่ละวัน";
   const head =
-    closed.length === 0
+    closed.length <= 3
       ? "ทุกวัน"
       : `เปิด ${open.map((d) => DAY_SHORT[d]).join(" ")}`;
   return `${head} ${hours}${closed.length ? ` · หยุดวัน${closed.map((d) => DAY_NAMES[d]).join(" ")}` : ""}`;
